@@ -12,21 +12,18 @@ const nextConfig = {
     ],
   },
 
-  // Configuración para server actions
-  experimental: {
-    serverComponentsExternalPackages: ['sharp'],
-  },
+  // ✅ ACTUALIZADO: serverExternalPackages (ya no es experimental)
+  serverExternalPackages: ['sharp', '@supabase/supabase-js'],
 
-  // Límites de tamaño para archivos
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
+  // ✅ ACTUALIZADO: Server Actions configuración
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
     },
   },
 
-  serverActions: {
-    bodySizeLimit: '10mb',
-  },
+  // ⚠️ NOTA: api.bodyParser solo funciona en Pages Router
+  // Para App Router, el límite se maneja automáticamente
 }
 
 module.exports = nextConfig
