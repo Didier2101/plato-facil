@@ -1,7 +1,32 @@
-import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Configuración para imágenes de Supabase Storage
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'rmrelrctstkbuxhbilxv.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/productos/**',
+      }
+    ],
+  },
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+  // Configuración para server actions
+  experimental: {
+    serverComponentsExternalPackages: ['sharp'],
+  },
 
-export default nextConfig;
+  // Límites de tamaño para archivos
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+
+  serverActions: {
+    bodySizeLimit: '10mb',
+  },
+}
+
+module.exports = nextConfig

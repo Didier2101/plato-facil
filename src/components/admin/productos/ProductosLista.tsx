@@ -26,15 +26,21 @@ export default function ProductosLista() {
         cargarProductos();
     }, []);
 
+    // En tu componente ProductosLista, actualiza cargarProductos:
     const cargarProductos = async () => {
         setLoading(true);
         try {
             const result = await obtenerProductosAction();
-            if (result.success && result.productos) {
-                setProductos(result.productos);
+            if (result.success) {
+                setProductos(result.productos || []);
+                console.log("Productos cargados:", result.productos?.length || 0);
+            } else {
+                console.error("Error del servidor:", result.error);
+                setProductos([]);
             }
         } catch (error) {
             console.error("Error cargando productos:", error);
+            setProductos([]);
         } finally {
             setLoading(false);
         }
