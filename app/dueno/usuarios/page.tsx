@@ -61,13 +61,11 @@ export default function UsuariosPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loading
-                    texto="Cargando usuarios..."
-                    tamaño="grande"
-                    tipo="spinner"
-                />
-            </div>
+            <Loading
+                texto="Cargando productos..."
+                tamaño="mediano"
+                color="orange-500"
+            />
         );
     }
 

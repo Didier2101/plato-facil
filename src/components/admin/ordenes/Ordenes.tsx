@@ -9,6 +9,8 @@ import Swal from "sweetalert2";
 import { actualizarEstadoOrdenAction } from "@/src/actions/actualizarEstadoOrdenAction";
 import OrdenCard from "./OrdenCard";
 import { FaUtensils } from "react-icons/fa";
+import { calcularTiempoTranscurrido } from "@/src/utils/texto";
+import Loading from "../../ui/Loading";
 
 export default function Ordenes() {
     const [ordenes, setOrdenes] = useState<OrdenCompleta[]>([]);
@@ -53,7 +55,7 @@ export default function Ordenes() {
     // Cambiar estado de orden o eliminar
     const cambiarEstado = async (
         ordenId: string,
-        accion: "lista" | "eliminar"
+        accion: "lista" | "cancelar"
     ) => {
         const orden = ordenes.find((o) => o.id === ordenId);
         if (!orden) return;
@@ -126,19 +128,7 @@ export default function Ordenes() {
     };
 
     // Formato tiempo transcurrido
-    const calcularTiempoTranscurrido = (fecha: string) => {
-        const ahora = new Date();
-        const ordenFecha = new Date(fecha);
-        const diffMs = ahora.getTime() - ordenFecha.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
 
-        if (diffMins < 1) return "Ahora";
-        if (diffMins < 60) return `${diffMins}m`;
-
-        const horas = Math.floor(diffMins / 60);
-        const mins = diffMins % 60;
-        return `${horas}h ${mins}m`;
-    };
 
     const getTimeColor = (fecha: string) => {
         const diffMins = Math.floor(
@@ -149,40 +139,41 @@ export default function Ordenes() {
         return "text-red-600 bg-red-50";
     };
 
+
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-                <div className="text-center bg-white rounded-xl shadow-lg p-8">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600 font-medium">Cargando órdenes...</p>
-                </div>
-            </div>
+            <Loading
+                texto="Cargando órdenes..."
+                tamaño="mediano"
+                color="orange-500"
+            />
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="p-6">
             {/* Header */}
+
             <div className="">
-                <div className="max-w-7xl mx-auto px-6 py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-orange-500 p-3 rounded-xl">
-                                <FaUtensils className="text-white text-xl" />
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Cocina</h1>
-                                <p className="text-gray-600">
-                                    {ordenes.length} {ordenes.length === 1 ? 'orden' : 'órdenes'} pendiente{ordenes.length === 1 ? '' : 's'}
-                                </p>
-                            </div>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-orange-500 p-3 rounded-xl">
+                            <FaUtensils className="text-white text-xl" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">Cocina</h1>
+                            <p className="text-gray-600">
+                                {ordenes.length} {ordenes.length === 1 ? 'orden' : 'órdenes'} pendiente{ordenes.length === 1 ? '' : 's'}
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
+
             {/* Contenido */}
-            <div className="max-w-7xl mx-auto px-6 py-0">
+            <div className="mt-4">
                 {ordenes.length === 0 ? (
                     <div className="text-center py-16 bg-white rounded-xl shadow-sm">
                         <FaUtensils className="text-gray-300 text-5xl mx-auto mb-4" />

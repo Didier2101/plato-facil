@@ -1,50 +1,42 @@
 "use client";
 
+import React from "react";
+import { LuChefHat } from "react-icons/lu";
+
 interface LoadingProps {
     texto?: string;
     tamaño?: "pequeño" | "mediano" | "grande";
-    tipo?: "spinner" | "puntos" | "esqueleto";
+    color?: string;
 }
 
 export default function Loading({
-    texto = "Cargando...",
+    texto = "Cargando órdenes...",
     tamaño = "mediano",
-    tipo = "spinner"
+    color = "orange-500"
 }: LoadingProps) {
     const tamaños = {
-        pequeño: "h-6 w-6",
-        mediano: "h-12 w-12",
-        grande: "h-16 w-16"
+        pequeño: { icon: "h-8 w-8", circle: "h-12 w-12" },
+        mediano: { icon: "h-12 w-12", circle: "h-16 w-16" },
+        grande: { icon: "h-16 w-16", circle: "h-24 w-24" }
     };
 
-    const textos = {
+    const textoTamaño = {
         pequeño: "text-sm",
         mediano: "text-base",
         grande: "text-lg"
     };
 
-    if (tipo === "esqueleto") {
-        return (
-            <div className="animate-pulse space-y-4">
-                <div className="bg-gray-200 rounded-lg h-8"></div>
-                <div className="bg-gray-200 rounded-lg h-4"></div>
-                <div className="bg-gray-200 rounded-lg h-4 w-3/4"></div>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex flex-col items-center justify-center space-y-4">
-            {tipo === "spinner" ? (
-                <div className={`animate-spin rounded-full border-b-2 border-blue-600 ${tamaños[tamaño]}`}></div>
-            ) : (
-                <div className="flex space-x-2">
-                    <div className="animate-bounce h-3 w-3 bg-blue-600 rounded-full"></div>
-                    <div className="animate-bounce h-3 w-3 bg-blue-600 rounded-full" style={{ animationDelay: "0.1s" }}></div>
-                    <div className="animate-bounce h-3 w-3 bg-blue-600 rounded-full" style={{ animationDelay: "0.2s" }}></div>
-                </div>
-            )}
-            <p className={`text-gray-600 ${textos[tamaño]}`}>{texto}</p>
+        <div className="flex flex-col items-center justify-center space-y-4 min-h-screen bg-gray-50">
+            <div className="relative flex items-center justify-center">
+                {/* Círculo animado */}
+                <div
+                    className={`absolute rounded-full border-4 border-${color} border-t-transparent animate-spin ${tamaños[tamaño].circle}`}
+                />
+                {/* Ícono de chef en el centro */}
+                <LuChefHat className={`text-${color} ${tamaños[tamaño].icon} relative z-10`} />
+            </div>
+            <p className={`text-gray-600 font-medium ${textoTamaño[tamaño]}`}>{texto}</p>
         </div>
     );
 }

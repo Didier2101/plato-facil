@@ -1,10 +1,11 @@
-import { Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
 import { SupabaseProvider } from "@/src/components/SupabaseProvider";
 import "./globals.css";
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"], // los pesos que necesites
+  weight: ["400", "500", "600", "700", "800"],
+  display: 'swap',
 });
 
 export const metadata = {
@@ -15,7 +16,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={`${poppins.className} min-h-screen bg-gray-50 text-slate-900`}>
+      <body className={`${inter.className} antialiased min-h-screen bg-gray-50 text-slate-900`}>
         <SupabaseProvider>
           {children}
         </SupabaseProvider>

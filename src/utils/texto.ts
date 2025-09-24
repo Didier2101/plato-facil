@@ -85,3 +85,18 @@ export const generarIniciales = (nombre: string, cantidad: number = 2): string =
         .map(palabra => palabra.charAt(0).toUpperCase())
         .join('');
 };
+
+
+export const calcularTiempoTranscurrido = (fecha: string) => {
+    const ahora = new Date();
+    const ordenFecha = new Date(fecha);
+    const diffMs = ahora.getTime() - ordenFecha.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return "Ahora";
+    if (diffMins < 60) return `${diffMins}m`;
+
+    const horas = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return `${horas}h ${mins}m`;
+};

@@ -7,9 +7,9 @@ import CarritoResumen from "./CarritoResumen";
 import Swal from "sweetalert2";
 import ProductoCard from "./ProductoCard";
 import { ProductoFrontend } from "@/src/types/producto";
-
-// Usar el tipo que devuelve el action
-
+import Loading from "../ui/Loading";
+import { FaStore } from "react-icons/fa";
+import { MdOutlineShoppingCart } from "react-icons/md";
 
 export default function TiendaProductos() {
     const [productos, setProductos] = useState<ProductoFrontend[]>([]);
@@ -17,25 +17,30 @@ export default function TiendaProductos() {
     const [categoriaActiva, setCategoriaActiva] = useState<string>("todas");
     const [mostrarCarrito, setMostrarCarrito] = useState(false);
 
-    const { productos: productosCarrito, total } = useCarritoStore();
+    const { productos: productosCarrito } = useCarritoStore();
 
-    // Obtener categorías únicas
+    // Categorías únicas
     const categorias = [
         { id: "todas", nombre: "Todas" },
-        ...Array.from(
-            new Set(productos.map(p => p.categoria))
-        ).map(categoria => ({
-            id: categoria.toLowerCase().replace(/\s+/g, '-'),
-            nombre: categoria
-        }))
+        ...Array.from(new Set(productos.map((p) => p.categoria))).map(
+            (categoria) => ({
+                id: categoria.toLowerCase().replace(/\s+/g, "-"),
+                nombre: categoria,
+            })
+        ),
     ];
 
-    // Filtrar productos por categoría
-    const productosFiltrados = categoriaActiva === "todas"
-        ? productos
-        : productos.filter(p => p.categoria.toLowerCase().replace(/\s+/g, '-') === categoriaActiva);
+    // Filtrar productos
+    const productosFiltrados =
+        categoriaActiva === "todas"
+            ? productos
+            : productos.filter(
+                (p) =>
+                    p.categoria.toLowerCase().replace(/\s+/g, "-") ===
+                    categoriaActiva
+            );
 
-    // Cargar productos al iniciar
+    // Cargar productos
     useEffect(() => {
         const cargarProductos = async () => {
             try {
@@ -43,15 +48,21 @@ export default function TiendaProductos() {
                 const result = await obtenerProductosAction();
 
                 if (result.success && result.productos) {
-                    // Solo productos activos
-                    const productosActivos = result.productos.filter(p => p.activo);
-                    setProductos(productosActivos);
+                    setProductos(result.productos.filter((p) => p.activo));
                 } else {
-                    Swal.fire("❌ Error", result.error || "No se pudieron cargar los productos", "error");
+                    Swal.fire(
+                        "❌ Error",
+                        result.error || "No se pudieron cargar los productos",
+                        "error"
+                    );
                 }
             } catch (error) {
-                console.error('Error cargando productos:', error);
-                Swal.fire("❌ Error", "Error inesperado al cargar productos", "error");
+                console.error("Error cargando productos:", error);
+                Swal.fire(
+                    "❌ Error",
+                    "Error inesperado al cargar productos",
+                    "error"
+                );
             } finally {
                 setLoading(false);
             }
@@ -62,98 +73,108 @@ export default function TiendaProductos() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
-                <span className="ml-3 text-gray-600">Cargando productos...</span>
-            </div>
+            <Loading
+                texto="Cargando productos..."
+                tamaño="mediano"
+                color="orange-500"
+            />
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="p-6">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-bold text-gray-800">Nuestra Tienda</h1>
 
-                        {/* Indicador de productos con ingredientes */}
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            <span>Personaliza cada producto</span>
-                        </div>
-                    </div>
+
+            <div className="flex items-center gap-4">
+                <div className="bg-orange-500 p-3 rounded-xl">
+                    <FaStore className="text-white text-xl" />
+                </div>
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        Tienda
+                    </h1>
+                    <p className="text-gray-600">
+                        {productos.length}{" "}
+                        {productos.length === 1
+                            ? "producto disponible"
+                            : "productos disponibles"}
+                    </p>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 py-8">
-                {/* Tabs de categorías */}
-                <div className="mb-8">
-                    <div className="border-b border-gray-200">
-                        <nav className="-mb-px flex space-x-8 overflow-x-auto">
-                            {categorias.map((categoria) => (
-                                <button
-                                    key={categoria.id}
-                                    onClick={() => setCategoriaActiva(categoria.id)}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${categoriaActiva === categoria.id
-                                        ? "border-orange-500 text-orange-600"
-                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                >
-                                    {categoria.nombre}
-                                    <span className="ml-2 bg-gray-100 text-gray-900 rounded-full px-2 py-1 text-xs">
-                                        {categoria.id === "todas"
-                                            ? productos.length
-                                            : productos.filter(p => p.categoria.toLowerCase().replace(/\s+/g, '-') === categoria.id).length
-                                        }
-                                    </span>
-                                </button>
-                            ))}
-                        </nav>
-                    </div>
-                </div>
 
-                {/* Grid de productos */}
+
+            {/* Tabs de categorías con scroll-x */}
+
+            <div className="overflow-x-auto scrollbar-hide">
+                <nav className="flex gap-2 sm:gap-3 py-3 min-w-max">
+                    {categorias.map((categoria) => (
+                        <button
+                            key={categoria.id}
+                            onClick={() => setCategoriaActiva(categoria.id)}
+                            className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${categoriaActiva === categoria.id
+                                ? "bg-orange-500 text-white shadow-sm"
+                                : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-100"
+                                }`}
+                        >
+                            {categoria.nombre}
+                            <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                                {categoria.id === "todas"
+                                    ? productos.length
+                                    : productos.filter(
+                                        (p) =>
+                                            p.categoria
+                                                .toLowerCase()
+                                                .replace(/\s+/g, "-") ===
+                                            categoria.id
+                                    ).length}
+                            </span>
+                        </button>
+                    ))}
+                </nav>
+            </div>
+
+
+            {/* Contenido */}
+            <div className="mt-2">
                 {productosFiltrados.length === 0 ? (
-                    <div className="text-center py-12">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2-2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8l-1 1m1-1l-1-1m-6 2h2m-2 2h2" />
-                        </svg>
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">No hay productos</h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                            No se encontraron productos en esta categoría.
+                    <div className="text-center py-16 bg-white rounded-xl shadow-sm">
+                        <FaStore className="text-gray-300 text-5xl mx-auto mb-4" />
+                        <h2 className="text-xl font-bold text-gray-900 mb-2">
+                            Sin productos
+                        </h2>
+                        <p className="text-gray-500">
+                            No hay productos disponibles en esta categoría
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
                         {productosFiltrados.map((producto) => (
                             <ProductoCard key={producto.id} producto={producto} />
                         ))}
                     </div>
                 )}
-
-                {/* Resumen flotante del carrito */}
-                {productosCarrito.length > 0 && (
-                    <div className="fixed bottom-4 right-4 bg-orange-600 text-white px-4 py-3 rounded-lg shadow-lg z-50">
-                        <div className="flex items-center space-x-3">
-                            <div>
-                                <p className="text-sm font-medium">
-                                    {productosCarrito.reduce((sum, p) => sum + p.cantidad, 0)} productos
-                                </p>
-                                <p className="text-lg font-bold">
-                                    ${total.toLocaleString('es-CO')}
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setMostrarCarrito(true)}
-                                className="bg-white text-orange-600 px-3 py-1 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
-                            >
-                                Ver carrito
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
+
+            {/* Carrito flotante */}
+            {productosCarrito.length > 0 && (
+                <div className="fixed bottom-20 right-8 z-50">
+                    <button
+                        onClick={() => setMostrarCarrito(true)}
+                        className="relative bg-orange-600 text-white p-3 rounded-full shadow-lg hover:bg-orange-500 transition-colors"
+                    >
+                        {/* Ícono del carrito */}
+                        <MdOutlineShoppingCart size={24} />
+
+                        {/* Badge con cantidad */}
+                        <span className="absolute -top-1 -right-1 bg-white text-orange-600 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow">
+                            {productosCarrito.reduce((sum, p) => sum + p.cantidad, 0)}
+                        </span>
+                    </button>
+                </div>
+            )}
+
 
             {/* Modal del carrito */}
             {mostrarCarrito && (
