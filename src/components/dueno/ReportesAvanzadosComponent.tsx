@@ -14,7 +14,7 @@ import {
     FiHome,
     FiTruck,
 } from "react-icons/fi";
-import { obtenerReporteAvanzadoAction } from "@/src/actions/obtenerReporteAvanzadoAction";
+import { obtenerReporteAvanzadoAction } from "@/src/actions/dueno/obtenerReporteAvanzadoAction";
 import Loading from "../ui/Loading";
 
 // Esquema de validación para filtros

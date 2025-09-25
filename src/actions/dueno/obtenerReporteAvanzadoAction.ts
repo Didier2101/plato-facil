@@ -9,7 +9,7 @@ import type {
     VentaCategoriaMap,
     VentaHoraMap,
     VentaMetodoPagoMap
-} from "../types/reportes";
+} from "../../types/reportes";
 
 export async function obtenerReporteAvanzadoAction(filtro: FiltroReporte): Promise<ReporteResponse> {
     try {

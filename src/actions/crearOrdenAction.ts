@@ -18,7 +18,6 @@ interface ProductoOrden {
     precio: number;
     cantidad: number;
     subtotal: number;
-    // NUEVO: datos de personalización
     ingredientes_personalizados?: IngredientePersonalizado[];
     notas?: string;
     personalizacion_id?: string;
@@ -31,16 +30,61 @@ interface DatosCliente {
     notas?: string;
 }
 
+// NUEVO: Datos de domicilio
+interface DatosDomicilio {
+    costo_domicilio: number;
+    distancia_km: number;
+    duracion_estimada: number;
+    direccion_formateada?: string;
+}
+
 interface OrdenData {
     cliente: DatosCliente;
     productos: ProductoOrden[];
     total: number;
     estado: string;
     tipo_orden: "establecimiento" | "domicilio";
+    // NUEVO: Información de domicilio opcional
+    domicilio?: DatosDomicilio;
+    metodo_pago?: "efectivo" | "tarjeta";
+    monto_entregado?: number;
 }
 
 export async function crearOrdenAction(ordenData: OrdenData) {
     try {
+        // NUEVO: Validar domicilio si es necesario
+        if (ordenData.tipo_orden === "domicilio") {
+            if (!ordenData.domicilio) {
+                return {
+                    success: false,
+                    error: "Debe calcular el costo de domicilio antes de crear la orden"
+                };
+            }
+
+            if (!ordenData.cliente.direccion?.trim()) {
+                return {
+                    success: false,
+                    error: "La dirección es requerida para pedidos a domicilio"
+                };
+            }
+
+            // Verificar que el domicilio esté activo
+            const { data: config } = await supabaseAdmin
+                .from('configuracion_restaurante')
+                .select('domicilio_activo')
+                .single();
+
+            if (!config?.domicilio_activo) {
+                return {
+                    success: false,
+                    error: "El servicio de domicilio está desactivado actualmente"
+                };
+            }
+        }
+
+        // Calcular total final incluyendo domicilio
+        const totalFinal = ordenData.total + (ordenData.domicilio?.costo_domicilio || 0);
+
         // Iniciar inserción de la orden
         const { data: orden, error: ordenError } = await supabaseAdmin
             .from("ordenes")
@@ -48,12 +92,16 @@ export async function crearOrdenAction(ordenData: OrdenData) {
                 cliente_nombre: ordenData.cliente.nombre,
                 cliente_telefono: ordenData.cliente.telefono || null,
                 cliente_direccion: ordenData.tipo_orden === "domicilio"
-                    ? ordenData.cliente.direccion || null
+                    ? (ordenData.domicilio?.direccion_formateada || ordenData.cliente.direccion)
                     : "En establecimiento",
                 cliente_notas: ordenData.cliente.notas || null,
-                total: ordenData.total,
+                total: totalFinal, // MODIFICADO: Total incluyendo domicilio
                 estado: ordenData.estado,
                 tipo_orden: ordenData.tipo_orden,
+                // NUEVO: Campos de domicilio
+                costo_domicilio: ordenData.domicilio?.costo_domicilio || 0,
+                distancia_km: ordenData.domicilio?.distancia_km || null,
+                duracion_estimada: ordenData.domicilio?.duracion_estimada || null,
                 created_at: new Date().toISOString()
             })
             .select()
@@ -67,6 +115,23 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             };
         }
 
+        // NUEVO: Crear registro de pago si se especifica método
+        if (ordenData.metodo_pago && ordenData.tipo_orden === "domicilio") {
+            const { error: pagoError } = await supabaseAdmin
+                .from("pagos")
+                .insert({
+                    orden_id: orden.id,
+                    usuario_id: "00000000-0000-0000-0000-000000000000", // Usuario por defecto para pedidos web
+                    metodo_pago: ordenData.metodo_pago,
+                    monto: ordenData.monto_entregado || totalFinal
+                });
+
+            if (pagoError) {
+                console.warn("Error registrando pago:", pagoError);
+                // No fallar la orden por esto, solo registrar el warning
+            }
+        }
+
         // Crear los detalles de la orden (incluyendo notas de personalización)
         const detallesOrden = ordenData.productos.map(producto => ({
             orden_id: orden.id,
@@ -75,7 +140,7 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             precio_unitario: producto.precio,
             cantidad: producto.cantidad,
             subtotal: producto.subtotal,
-            notas_personalizacion: producto.notas || null // NUEVO: notas específicas del producto
+            notas_personalizacion: producto.notas || null
         }));
 
         const { data: detallesCreados, error: detallesError } = await supabaseAdmin
@@ -93,7 +158,7 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             };
         }
 
-        // CORREGIDO: Crear registros de personalización SOLO para ingredientes EXCLUIDOS
+        // Crear registros de personalización SOLO para ingredientes EXCLUIDOS
         interface PersonalizacionIngrediente {
             orden_detalle_id: string;
             ingrediente_id: string;
@@ -147,10 +212,18 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             orden: {
                 id: orden.id,
                 total: orden.total,
+                total_productos: ordenData.total,
+                costo_domicilio: ordenData.domicilio?.costo_domicilio || 0,
+                distancia_km: ordenData.domicilio?.distancia_km,
                 estado: orden.estado,
                 tipo_orden: orden.tipo_orden,
                 created_at: orden.created_at,
-                productos_personalizados: personalizacionesData.length // Info adicional
+                productos_personalizados: personalizacionesData.length,
+                // NUEVO: Información adicional útil
+                metodo_pago: ordenData.metodo_pago,
+                cambio_a_devolver: ordenData.metodo_pago === "efectivo" && ordenData.monto_entregado
+                    ? ordenData.monto_entregado - totalFinal
+                    : null
             }
         };
 

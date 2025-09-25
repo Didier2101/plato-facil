@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import Usuarios, { Usuario } from "@/src/components/dueno/Usuarios";
 import Swal from "sweetalert2";
 
-import { obtenerUsuariosAction } from "@/src/actions/obtenerUsuariosAction";
-import { crearUsuarioAction } from "@/src/actions/crearUsuarioAction";
+import { obtenerUsuariosAction } from "@/src/actions/dueno/obtenerUsuariosAction";
+import { crearUsuarioAction } from "@/src/actions/dueno/crearUsuarioAction";
 import Loading from "@/src/components/ui/Loading";
 
 export default function UsuariosPage() {
