@@ -3,12 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiUsers, FiBarChart2, FiUser, FiSettings, FiMenu, FiX } from "react-icons/fi";
-import LogoutButton from "@/src/components/auth/LogoutButton";
-import { useUserStore } from "@/src/store/useUserStore";
-import { formatearNombrePropio } from "@/src/utils/texto";
+import { FaBars, FaTimes, FaHome, FaClipboardList, FaInfoCircle } from "react-icons/fa";
 import Logo from "@/src/components/ui/Logo";
-
+import UserWelcomeNotification from "@/src/components/cliente-domicilio/UserWelcomeNotification";
 
 interface LinkItem {
     href: string;
@@ -16,7 +13,7 @@ interface LinkItem {
     icon: React.ComponentType<{ className?: string }>;
 }
 
-function DuenoNavLink({
+function DomiciliosNavLink({
     href,
     label,
     icon: Icon,
@@ -24,6 +21,7 @@ function DuenoNavLink({
     mobile = false,
     collapsed = false,
 }: LinkItem & { active: boolean; mobile?: boolean; collapsed?: boolean }) {
+    // ... (el código del NavLink se mantiene igual)
     // Navegación móvil (bottom bar)
     if (mobile) {
         return (
@@ -97,7 +95,7 @@ function DuenoNavLink({
             </div>
             <span className="font-medium">{label}</span>
 
-            {/* Punto indicador alternativo - descomenta si prefieres punto en lugar de línea */}
+            {/* Punto indicador alternativo */}
             {active && (
                 <div className="ml-auto">
                     <div className="w-2 h-2 bg-orange-500 rounded-full" />
@@ -107,16 +105,14 @@ function DuenoNavLink({
     );
 }
 
-export default function DuenoLayout({ children }: { children: React.ReactNode }) {
+export default function DomiciliosLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const { nombre, email } = useUserStore();
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const links: LinkItem[] = [
-        { href: "/dueno/usuarios", label: "Usuarios", icon: FiUsers },
-        { href: "/dueno/reportes", label: "Reportes", icon: FiBarChart2 },
-        { href: "/dueno/configuraciones", label: "Configuración", icon: FiSettings },
+        { href: "/domicilios", label: "Hacer Pedido", icon: FaHome },
+        { href: "/domicilios/mis-ordenes", label: "Mis Órdenes", icon: FaClipboardList },
+        { href: "/domicilios/informacion", label: "Información", icon: FaInfoCircle },
     ];
 
     const toggleSidebar = () => {
@@ -124,60 +120,21 @@ export default function DuenoLayout({ children }: { children: React.ReactNode })
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
+        <div className="flex min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 overflow-x-hidden">
+            {/* ✅ NUEVO: Componente de notificaciones */}
+            <UserWelcomeNotification />
+
             {/* Navegación inferior móvil */}
             <div className="fixed bottom-0 left-0 right-0 bg-white shadow-xl z-50 border-t border-gray-200 md:hidden">
                 <div className="flex justify-around items-center py-3 px-4 relative">
                     {links.map((link) => (
-                        <DuenoNavLink
+                        <DomiciliosNavLink
                             key={link.href}
                             {...link}
-                            active={pathname?.startsWith(link.href) ?? false}
+                            active={pathname === link.href}
                             mobile
                         />
                     ))}
-
-                    {/* Botón de usuario móvil */}
-                    <button
-                        onClick={() => setShowUserMenu((prev) => !prev)}
-                        className={`flex flex-col items-center py-2 px-3 rounded-xl transition-all duration-200 ${showUserMenu
-                            ? "bg-orange-500 text-white shadow-lg"
-                            : "text-gray-600 hover:text-orange-500 hover:bg-orange-50"
-                            }`}
-                    >
-                        <FiUser className="text-lg mb-1" />
-                        <span className="text-xs font-medium">Cuenta</span>
-                    </button>
-
-                    {/* Dropdown móvil */}
-                    {showUserMenu && (
-                        <>
-                            <div
-                                className="fixed inset-0 bg-black/20 z-40"
-                                onClick={() => setShowUserMenu(false)}
-                            />
-                            <div className="absolute bottom-20 right-4 bg-white border border-gray-200 rounded-xl shadow-xl p-6 w-64 z-50">
-                                <div className="mb-4">
-                                    {nombre ? (
-                                        <div className="flex items-center gap-3 mb-4">
-
-                                            <div>
-                                                <p className="font-semibold text-gray-900">
-                                                    {formatearNombrePropio(nombre)}
-                                                </p>
-                                                {email && <p className="text-sm text-gray-500">{email}</p>}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="font-semibold text-gray-900">Gerente</p>
-                                    )}
-                                </div>
-                                <div className="border-t border-gray-200 pt-4">
-                                    <LogoutButton isExpanded={true} />
-                                </div>
-                            </div>
-                        </>
-                    )}
                 </div>
             </div>
 
@@ -199,7 +156,7 @@ export default function DuenoLayout({ children }: { children: React.ReactNode })
                                          rounded-xl flex items-center justify-center transition-colors"
                                 title="Expandir menú"
                             >
-                                <FiMenu className="text-gray-700 text-lg" />
+                                <FaBars className="text-gray-700 text-lg" />
                             </button>
                         </div>
                     )}
@@ -212,81 +169,51 @@ export default function DuenoLayout({ children }: { children: React.ReactNode })
                                      rounded-lg flex items-center justify-center transition-colors"
                             title="Contraer menú"
                         >
-                            <FiX className="text-gray-700 text-sm" />
+                            <FaTimes className="text-gray-700 text-sm" />
                         </button>
                     )}
                 </div>
 
-                {/* Info usuario */}
+                {/* Información de domicilio */}
                 {!sidebarCollapsed && (
-                    <div className="p-6 bg-gray-50 border-b border-gray-200">
-                        {nombre ? (
-                            <div className="flex items-center gap-3">
-
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-gray-900 font-semibold truncate">
-                                        {formatearNombrePropio(nombre)}
-                                    </p>
-                                    {email && (
-                                        <p className="text-sm text-gray-500 truncate">{email}</p>
-                                    )}
-                                    <div className="inline-flex items-center gap-1 mt-1">
-                                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                        <span className="text-xs text-gray-600 font-medium">Gerente</span>
-                                    </div>
+                    <div className="p-6 bg-orange-50 border-b border-gray-200">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
+                                <span className="text-white font-bold text-lg">🚚</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-gray-900 font-semibold">Pedidos a Domicilio</p>
+                                <p className="text-sm text-gray-600">Entregamos en tu ubicación</p>
+                                <div className="flex items-center gap-1 mt-1">
+                                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                    <span className="text-xs text-gray-600 font-medium">30-45 min</span>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-gray-400 rounded-xl flex items-center justify-center">
-                                    <span className="text-white font-bold text-lg">D</span>
-                                </div>
-                                <div>
-                                    <p className="text-gray-900 font-semibold">Gerente</p>
-                                    <div className="inline-flex items-center gap-1 mt-1">
-                                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                        <span className="text-xs text-gray-600 font-medium">Administrador</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Avatar colapsado */}
-                {sidebarCollapsed && (
-                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-center">
-                        <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center"
-                            title={nombre ? formatearNombrePropio(nombre) : "Gerente"}>
-                            <span className="text-white font-bold text-lg">
-                                {nombre ? formatearNombrePropio(nombre).charAt(0) : "D"}
-                            </span>
                         </div>
                     </div>
                 )}
 
-                {/* Navegación */}
+                {/* Icono colapsado */}
+                {sidebarCollapsed && (
+                    <div className="p-4 bg-orange-50 border-b border-gray-200 flex justify-center">
+                        <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center"
+                            title="Pedidos a Domicilio">
+                            <span className="text-white font-bold text-lg">🚚</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Navegación - Tabs principales */}
                 <nav className={`flex-1 ${sidebarCollapsed ? 'p-4 space-y-3' : 'p-6 space-y-2'}`}>
                     {links.map((link) => (
-                        <DuenoNavLink
+                        <DomiciliosNavLink
                             key={link.href}
                             {...link}
-                            active={pathname?.startsWith(link.href) ?? false}
+                            active={pathname === link.href}
                             collapsed={sidebarCollapsed}
                         />
                     ))}
                 </nav>
-
-                {/* Logout */}
-                <div className={`border-t border-gray-200 ${sidebarCollapsed ? 'p-4' : 'p-6'}`}>
-                    {sidebarCollapsed ? (
-                        <div className="flex justify-center">
-                            <LogoutButton isExpanded={false} />
-                        </div>
-                    ) : (
-                        <LogoutButton isExpanded={true} />
-                    )}
-                </div>
             </aside>
 
             {/* Contenido principal */}

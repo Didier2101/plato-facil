@@ -108,9 +108,9 @@ export default function Logo({ collapsed = false }: LogoProps) {
     }
 
     return (
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-center gap-4">
             {puedeMostrarImagen ? (
-                <div className="relative w-16 h-16">
+                <div className="relative w-40 h-16">
                     <Image
                         src={logoUrl}
                         alt={`Logo ${nombreRestaurante}`}
@@ -129,8 +129,8 @@ export default function Logo({ collapsed = false }: LogoProps) {
             )}
 
             <div>
-                <h1 className="text-2xl font-bold">{nombreRestaurante}</h1>
-                <p className="text-orange-100 text-sm font-medium">Panel de Administración</p>
+
+                <p className="text-gray-800 text-2xl font-bold">{nombreRestaurante}</p>
             </div>
         </div>
     );

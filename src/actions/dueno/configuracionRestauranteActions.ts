@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
 
-// Tipos para la configuración
+// Tipos para la configuración - ACTUALIZADA CON DISTANCIA_BASE_KM
 export interface ConfiguracionRestaurante {
     id?: string;
     nombre_restaurante: string;
@@ -13,6 +13,7 @@ export interface ConfiguracionRestaurante {
     direccion_completa: string;
     costo_base_domicilio: number;
     costo_por_km: number;
+    distancia_base_km: number; // NUEVO CAMPO AGREGADO
     distancia_maxima_km: number;
     tiempo_preparacion_min: number;
     latitud: number;

@@ -8,6 +8,12 @@ const nextConfig = {
         hostname: 'rmrelrctstkbuxhbilxv.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/productos/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'rmrelrctstkbuxhbilxv.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/restaurante-assets/**',
       }
     ],
   },

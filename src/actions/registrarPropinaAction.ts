@@ -8,22 +8,42 @@ export async function registrarPropinaAction(
     porcentaje: number | null
 ) {
     try {
-        const { error } = await supabaseAdmin.from("propinas").insert([
-            {
-                pago_id: pagoId,
-                monto,
-                porcentaje,
-            },
-        ]);
-
-        if (error) {
-            console.error("Error insertando propina:", error);
-            return { success: false, error: "No se pudo registrar la propina" };
+        if (monto <= 0) {
+            return {
+                success: false,
+                error: "El monto de la propina debe ser mayor a 0"
+            };
         }
 
-        return { success: true };
+        const { data, error } = await supabaseAdmin
+            .from("propinas")
+            .insert({
+                pago_id: pagoId,
+                monto: monto,
+                porcentaje: porcentaje,
+                created_at: new Date().toISOString()
+            })
+            .select("id")
+            .single();
+
+        if (error) {
+            console.error("Error registrando propina:", error);
+            return {
+                success: false,
+                error: "Error al registrar la propina"
+            };
+        }
+
+        return {
+            success: true,
+            propinaId: data.id
+        };
+
     } catch (error) {
-        console.error("Error inesperado:", error);
-        return { success: false, error: "Error interno del servidor" };
+        console.error("Error en registrarPropinaAction:", error);
+        return {
+            success: false,
+            error: "Error inesperado al registrar la propina"
+        };
     }
 }

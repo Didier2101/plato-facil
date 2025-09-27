@@ -20,7 +20,8 @@ import {
     FaBusinessTime,
     FaUpload,
     FaTrash,
-    FaCamera
+    FaCamera,
+    FaRulerHorizontal
 } from 'react-icons/fa';
 import { FiSettings } from 'react-icons/fi';
 import Swal from 'sweetalert2';
@@ -32,6 +33,50 @@ import {
     subirImagenLogo,
     type ConfiguracionRestaurante
 } from '@/src/actions/dueno/configuracionRestauranteActions';
+import Loading from '../ui/Loading';
+
+// Tipos para Leaflet (reutilizados de MapaUbicacion.tsx - sin redeclarar Window.L)
+interface ConfigLeafletMap {
+    setView: (latlng: [number, number], zoom: number) => ConfigLeafletMap;
+    on: (event: string, callback: (e: ConfigLeafletEvent) => void) => void;
+    removeLayer: (layer: ConfigLeafletLayer) => void;
+    remove: () => void;
+}
+
+interface ConfigLeafletEvent {
+    latlng: {
+        lat: number;
+        lng: number;
+    };
+}
+
+interface ConfigLeafletLayer {
+    addTo: (map: ConfigLeafletMap) => ConfigLeafletLayer;
+    bindPopup: (content: string) => ConfigLeafletLayer;
+    openPopup?: () => ConfigLeafletLayer;
+    on: (event: string, callback: (e: ConfigLeafletMarkerEvent) => void) => void;
+    setLatLng: (latlng: [number, number]) => ConfigLeafletLayer;
+}
+
+interface ConfigLeafletMarkerEvent {
+    target: {
+        getLatLng: () => { lat: number; lng: number };
+    };
+}
+
+interface ConfigLeafletIcon {
+    iconSize: [number, number];
+    iconAnchor: [number, number];
+    className?: string;
+    html?: string;
+}
+
+interface ConfigLeafletL {
+    map: (id: string | HTMLElement) => ConfigLeafletMap;
+    tileLayer: (url: string, options: { maxZoom: number; attribution: string }) => ConfigLeafletLayer;
+    marker: (latlng: [number, number], options?: { icon?: ConfigLeafletIcon; draggable?: boolean }) => ConfigLeafletLayer;
+    divIcon: (options: ConfigLeafletIcon) => ConfigLeafletIcon;
+}
 
 // Componente de subida de imagen
 const ImageUploader = ({ currentImageUrl, onImageChange }: {
@@ -50,7 +95,6 @@ const ImageUploader = ({ currentImageUrl, onImageChange }: {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        // Validar tipo de archivo
         if (!file.type.startsWith('image/')) {
             Swal.fire({
                 title: 'Error',
@@ -60,7 +104,6 @@ const ImageUploader = ({ currentImageUrl, onImageChange }: {
             return;
         }
 
-        // Validar tamaño (máximo 5MB)
         if (file.size > 5 * 1024 * 1024) {
             Swal.fire({
                 title: 'Error',
@@ -73,14 +116,12 @@ const ImageUploader = ({ currentImageUrl, onImageChange }: {
         setUploading(true);
 
         try {
-            // Crear preview local
             const reader = new FileReader();
             reader.onload = (e) => {
                 setImagePreview(e.target?.result as string);
             };
             reader.readAsDataURL(file);
 
-            // Subir imagen a Supabase
             const resultado = await subirImagenLogo(file);
 
             if (resultado.success && resultado.url) {
@@ -118,7 +159,7 @@ const ImageUploader = ({ currentImageUrl, onImageChange }: {
 
     return (
         <div className="space-y-4">
-            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <FaImage className="text-orange-500" />
                 Logo del Restaurante
             </label>
@@ -179,11 +220,12 @@ const ImageUploader = ({ currentImageUrl, onImageChange }: {
     );
 };
 
-// Componente de selector de ubicación GPS
+// Componente de selector de ubicación GPS con mapa
 const LocationPicker = ({
     currentLat,
     currentLng,
     onLocationChange,
+    address
 }: {
     currentLat: number;
     currentLng: number;
@@ -191,9 +233,124 @@ const LocationPicker = ({
     address: string;
 }) => {
     const [loading, setLoading] = useState(false);
-    const [manualMode, setManualMode] = useState(false);
-    const [tempLat, setTempLat] = useState(currentLat || 4.7110);
-    const [tempLng, setTempLng] = useState(currentLng || -74.0721);
+    const [mapLoaded, setMapLoaded] = useState(false);
+    const [selectedLocation, setSelectedLocation] = useState({
+        lat: currentLat || 4.7110,
+        lng: currentLng || -74.0721
+    });
+    const mapRef = useRef<ConfigLeafletMap | null>(null);
+    const markerRef = useRef<ConfigLeafletLayer | null>(null);
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+
+    // Cargar Leaflet dinámicamente (misma lógica que MapaUbicacion)
+    useEffect(() => {
+        const cargarLeaflet = async () => {
+            if ((window as { L?: ConfigLeafletL }).L) {
+                setMapLoaded(true);
+                return;
+            }
+
+            try {
+                // Cargar CSS de Leaflet
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                document.head.appendChild(link);
+
+                // Cargar JS de Leaflet
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                script.onload = () => setMapLoaded(true);
+                document.head.appendChild(script);
+            } catch (error) {
+                console.error('Error cargando Leaflet:', error);
+            }
+        };
+
+        cargarLeaflet();
+    }, []);
+
+    useEffect(() => {
+        if (mapLoaded && mapContainerRef.current && !mapRef.current) {
+            initializeMap();
+        }
+    }, [mapLoaded]);
+
+    useEffect(() => {
+        const newLocation = {
+            lat: currentLat || 4.7110,
+            lng: currentLng || -74.0721
+        };
+        setSelectedLocation(newLocation);
+
+        // Actualizar el mapa si ya está inicializado
+        if (mapRef.current && markerRef.current) {
+            mapRef.current.setView([newLocation.lat, newLocation.lng], 15);
+            markerRef.current.setLatLng([newLocation.lat, newLocation.lng]);
+        }
+    }, [currentLat, currentLng]);
+
+    const initializeMap = () => {
+        const L = (window as { L?: ConfigLeafletL }).L;
+        if (!L || mapRef.current || !mapContainerRef.current) {
+            return;
+        }
+
+        try {
+            const map = L.map(mapContainerRef.current).setView([selectedLocation.lat, selectedLocation.lng], 15);
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Crear marcador inicial con ícono personalizado
+            const restaurantIcon = L.divIcon({
+                html: '<div style="background: #f97316; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📍</div>',
+                className: 'custom-div-icon',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+
+            const marker = L.marker([selectedLocation.lat, selectedLocation.lng], {
+                icon: restaurantIcon,
+                draggable: true
+            }).addTo(map);
+
+            // Evento de click en el mapa
+            map.on('click', (e: ConfigLeafletEvent) => {
+                const { lat, lng } = e.latlng;
+                marker.setLatLng([lat, lng]);
+                setSelectedLocation({ lat, lng });
+            });
+
+            // Evento de drag del marcador
+            marker.on('dragend', (e: ConfigLeafletMarkerEvent) => {
+                const { lat, lng } = e.target.getLatLng();
+                setSelectedLocation({ lat, lng });
+            });
+
+            mapRef.current = map;
+            markerRef.current = marker;
+        } catch (error) {
+            console.error('Error inicializando mapa:', error);
+        }
+    };
+
+    // Limpiar recursos al desmontar
+    useEffect(() => {
+        return () => {
+            if (mapRef.current) {
+                try {
+                    mapRef.current.remove();
+                } catch (error) {
+                    console.error('Error limpiando mapa:', error);
+                }
+                mapRef.current = null;
+                markerRef.current = null;
+            }
+        };
+    }, []);
 
     const handleGetCurrentLocation = () => {
         if (!navigator.geolocation) {
@@ -210,18 +367,15 @@ const LocationPicker = ({
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                onLocationChange(lat, lng);
-                setTempLat(lat);
-                setTempLng(lng);
-                setLoading(false);
 
-                Swal.fire({
-                    title: 'Ubicación obtenida',
-                    text: 'Se ha actualizado la ubicación con tu posición actual',
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
+                setSelectedLocation({ lat, lng });
+
+                if (mapRef.current && markerRef.current) {
+                    mapRef.current.setView([lat, lng], 15);
+                    markerRef.current.setLatLng([lat, lng]);
+                }
+
+                setLoading(false);
             },
             (error) => {
                 console.error('Error obteniendo ubicación:', error);
@@ -254,26 +408,31 @@ const LocationPicker = ({
         );
     };
 
-    const handleManualSubmit = () => {
-        if (tempLat >= -90 && tempLat <= 90 && tempLng >= -180 && tempLng <= 180) {
-            onLocationChange(tempLat, tempLng);
-            setManualMode(false);
+    const handleConfirmLocation = () => {
+        onLocationChange(selectedLocation.lat, selectedLocation.lng);
+        Swal.fire({
+            title: 'Ubicación actualizada',
+            text: 'La ubicación del restaurante ha sido actualizada correctamente',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    };
 
-            Swal.fire({
-                title: 'Ubicación actualizada',
-                text: 'Las coordenadas han sido actualizadas manualmente',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        } else {
-            Swal.fire({
-                title: 'Coordenadas inválidas',
-                text: 'Por favor ingresa coordenadas válidas (Lat: -90 a 90, Lng: -180 a 180)',
-                icon: 'error'
-            });
+    const handleResetToBogota = () => {
+        const bogotaLat = 4.7110;
+        const bogotaLng = -74.0721;
+
+        setSelectedLocation({ lat: bogotaLat, lng: bogotaLng });
+
+        if (mapRef.current && markerRef.current) {
+            mapRef.current.setView([bogotaLat, bogotaLng], 13);
+            markerRef.current.setLatLng([bogotaLat, bogotaLng]);
         }
     };
+
+    const hasLocationChanged = Math.abs(selectedLocation.lat - currentLat) > 0.0001 ||
+        Math.abs(selectedLocation.lng - currentLng) > 0.0001;
 
     return (
         <div className="space-y-4">
@@ -282,19 +441,30 @@ const LocationPicker = ({
 
                 {/* Información actual */}
                 <div className="bg-white rounded-lg p-4 mb-4 border">
-                    <div className="flex items-center justify-between">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <p className="text-sm font-medium text-gray-700">Ubicación actual:</p>
+                            <p className="text-sm font-medium text-gray-700">Ubicación guardada:</p>
                             <p className="text-lg text-gray-900">
                                 {currentLat.toFixed(6)}, {currentLng.toFixed(6)}
                             </p>
                         </div>
-                        <FaMapMarkerAlt className="text-orange-500 text-2xl" />
+                        <div>
+                            <p className="text-sm font-medium text-gray-700">Ubicación seleccionada:</p>
+                            <p className="text-lg text-orange-600 font-medium">
+                                {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                            </p>
+                        </div>
                     </div>
+                    {address && (
+                        <div className="flex items-center mt-2">
+                            <FaMapMarkerAlt className="text-orange-500 text-xl mr-2" />
+                            <p className="text-sm text-gray-600">{address}</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Controles principales */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                     <button
                         type="button"
                         onClick={handleGetCurrentLocation}
@@ -302,74 +472,67 @@ const LocationPicker = ({
                         className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 justify-center"
                     >
                         {loading ? <FaSpinner className="animate-spin" /> : <FaMapMarkerAlt />}
-                        Usar mi ubicación actual
+                        Mi ubicación
                     </button>
 
                     <button
                         type="button"
-                        onClick={() => setManualMode(!manualMode)}
+                        onClick={handleResetToBogota}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 justify-center"
                     >
                         <FiSettings />
-                        Ingresar manualmente
+                        Bogotá centro
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleConfirmLocation}
+                        disabled={!hasLocationChanged}
+                        className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 justify-center"
+                    >
+                        <FaSave />
+                        Confirmar ubicación
                     </button>
                 </div>
 
-                {/* Modo manual */}
-                {manualMode && (
-                    <div className="bg-white rounded-lg p-4 border border-orange-200">
-                        <h4 className="font-medium text-gray-900 mb-3">Ingreso manual de coordenadas</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Latitud
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.000001"
-                                    value={tempLat}
-                                    onChange={(e) => setTempLat(parseFloat(e.target.value) || 0)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                    placeholder="4.710989"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Longitud
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.000001"
-                                    value={tempLng}
-                                    onChange={(e) => setTempLng(parseFloat(e.target.value) || 0)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                    placeholder="-74.072090"
-                                />
+                {/* Mapa */}
+                <div className="relative mb-4">
+                    <div
+                        ref={mapContainerRef}
+                        className="w-full h-96 rounded-lg border border-gray-300 bg-gray-100"
+                        style={{ minHeight: '400px' }}
+                    />
+
+                    {!mapLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                            <div className="text-center">
+                                <FaSpinner className="text-4xl text-orange-500 animate-spin mx-auto mb-2" />
+                                <p className="text-gray-600">Cargando mapa...</p>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={handleManualSubmit}
-                                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                            >
-                                <FaSave />
-                                Aplicar coordenadas
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setManualMode(false)}
-                                className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
+                    )}
+                </div>
+
+                {/* Advertencia si hay cambios pendientes */}
+                {hasLocationChanged && (
+                    <div className="bg-yellow-50 rounded-lg p-4 mb-4 border border-yellow-200">
+                        <p className="text-yellow-800 text-sm font-medium">
+                            ⚠️ Has seleccionado una nueva ubicación. Haz clic en Confirmar ubicación para guardar los cambios.
+                        </p>
                     </div>
                 )}
 
-                <p className="text-xs text-gray-500 mt-2">
-                    Tip: Puedes buscar las coordenadas de tu restaurante en Google Maps, hacer clic derecho en la ubicación y copiar las coordenadas.
-                </p>
+                {/* Instrucciones */}
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h4 className="font-medium text-blue-900 mb-2">Cómo usar el mapa:</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• Haz clic en cualquier punto del mapa para seleccionar la ubicación</li>
+                        <li>• Arrastra el marcador naranja para ajustar la posición exacta</li>
+                        <li>• Usa Mi ubicación para obtener tu posición GPS actual</li>
+                        <li>• Haz zoom con la rueda del mouse o los controles +/-</li>
+                        <li>• Confirma la ubicación para aplicar los cambios</li>
+                    </ul>
+                </div>
             </div>
         </div>
     );
@@ -387,6 +550,7 @@ export default function Configuraciones() {
         direccion_completa: '',
         costo_base_domicilio: 3000,
         costo_por_km: 1500,
+        distancia_base_km: 1,
         distancia_maxima_km: 10,
         tiempo_preparacion_min: 20,
         latitud: 4.7110,
@@ -417,6 +581,7 @@ export default function Configuraciones() {
                         direccion_completa: resultado.configuracion.direccion_completa,
                         costo_base_domicilio: resultado.configuracion.costo_base_domicilio,
                         costo_por_km: resultado.configuracion.costo_por_km,
+                        distancia_base_km: resultado.configuracion.distancia_base_km,
                         distancia_maxima_km: resultado.configuracion.distancia_maxima_km,
                         tiempo_preparacion_min: resultado.configuracion.tiempo_preparacion_min,
                         latitud: resultado.configuracion.latitud,
@@ -559,22 +724,16 @@ export default function Configuraciones() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-4">
-                    <div className="w-16 h-16 bg-orange-500 rounded-xl flex items-center justify-center">
-                        <FaSpinner className="text-2xl text-white animate-spin" />
-                    </div>
-                    <div className="text-center">
-                        <p className="text-gray-900 font-semibold">Cargando configuración</p>
-                        <p className="text-gray-500 text-sm">Por favor espera un momento...</p>
-                    </div>
-                </div>
-            </div>
+            <Loading
+                texto="Cargando configuración"
+                tamaño="grande"
+                color="orange-500"
+            />
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div>
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-6 py-8">
                 <div className="max-w-7xl mx-auto">
@@ -690,7 +849,7 @@ export default function Configuraciones() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaPhone className="text-orange-500" />
                                 Teléfono
                             </label>
@@ -705,7 +864,7 @@ export default function Configuraciones() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaEnvelope className="text-orange-500" />
                                 Email
                             </label>
@@ -720,7 +879,7 @@ export default function Configuraciones() {
                         </div>
 
                         <div className="md:col-span-2 space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaMapMarkerAlt className="text-orange-500" />
                                 Dirección Completa *
                             </label>
@@ -759,9 +918,9 @@ export default function Configuraciones() {
                         Configuración de Domicilios
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div className="space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaDollarSign className="text-orange-500" />
                                 Costo Base
                             </label>
@@ -780,7 +939,30 @@ export default function Configuraciones() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                <FaRulerHorizontal className="text-orange-500" />
+                                Distancia Base
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    name="distancia_base_km"
+                                    value={formData.distancia_base_km}
+                                    onChange={handleInputChange}
+                                    min="0.1"
+                                    max="5"
+                                    step="0.1"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
+                                />
+                                <span className="absolute right-3 top-3 text-gray-500">KM</span>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                Distancia incluida en el costo base
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaRoute className="text-orange-500" />
                                 Costo por KM
                             </label>
@@ -799,7 +981,7 @@ export default function Configuraciones() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaGlobe className="text-orange-500" />
                                 Distancia Máxima
                             </label>
@@ -819,7 +1001,7 @@ export default function Configuraciones() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaClock className="text-orange-500" />
                                 Tiempo de Preparación
                             </label>
@@ -839,7 +1021,7 @@ export default function Configuraciones() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaBusinessTime className="text-orange-500" />
                                 Hora de Apertura
                             </label>
@@ -853,7 +1035,7 @@ export default function Configuraciones() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                 <FaBusinessTime className="text-orange-500" />
                                 Hora de Cierre
                             </label>
@@ -865,6 +1047,22 @@ export default function Configuraciones() {
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
                             />
                         </div>
+                    </div>
+
+                    {/* Explicación del cálculo de costos */}
+                    <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <h3 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                            <FaDollarSign className="text-blue-600" />
+                            Cálculo de Costo de Domicilio
+                        </h3>
+                        <p className="text-sm text-blue-800 mb-2">
+                            El costo del domicilio se calcula de la siguiente manera:
+                        </p>
+                        <ul className="text-sm text-blue-700 space-y-1">
+                            <li>• <strong>Distancia ≤ {formData.distancia_base_km} km:</strong> Solo costo base (${formData.costo_base_domicilio.toLocaleString()})</li>
+                            <li>• <strong>Distancia {'>'} {formData.distancia_base_km} km:</strong> Costo base + (distancia extra × ${formData.costo_por_km.toLocaleString()})</li>
+                            <li>• <strong>Ejemplo:</strong> Para 3 km = ${formData.costo_base_domicilio.toLocaleString()} + ({Math.max(3 - formData.distancia_base_km, 0).toFixed(1)} km × ${formData.costo_por_km.toLocaleString()}) = ${(formData.costo_base_domicilio + Math.max(3 - formData.distancia_base_km, 0) * formData.costo_por_km).toLocaleString()}</li>
+                        </ul>
                     </div>
                 </div>
 

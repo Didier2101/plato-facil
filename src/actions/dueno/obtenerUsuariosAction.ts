@@ -4,10 +4,10 @@ import { supabase } from "@/src/lib/supabaseClient";
 
 export async function obtenerUsuariosAction() {
     try {
-        // Obtener usuarios de la tabla auth.users o tu tabla personalizada
+        // Obtener usuarios incluyendo el campo activo
         const { data: usuarios, error } = await supabase
-            .from('usuarios') // o el nombre de tu tabla
-            .select('id, nombre, email, rol')
+            .from('usuarios')
+            .select('id, nombre, email, rol, activo, created_at')
             .order('nombre', { ascending: true });
 
         if (error) {
@@ -18,43 +18,15 @@ export async function obtenerUsuariosAction() {
             };
         }
 
-        return {
-            success: true,
-            usuarios: usuarios || []
-        };
-
-    } catch (error) {
-        console.error('Error inesperado:', error);
-        return {
-            success: false,
-            error: 'Error inesperado al cargar usuarios'
-        };
-    }
-}
-
-// Alternativa si usas auth.users directamente
-export async function obtenerUsuariosAuthAction() {
-    try {
-        const { data, error } = await supabase.auth.admin.listUsers();
-
-        if (error) {
-            console.error('Error al obtener usuarios:', error);
-            return {
-                success: false,
-                error: 'No se pudieron cargar los usuarios'
-            };
-        }
-
-        const usuarios = data.users.map(user => ({
-            id: user.id,
-            nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Sin nombre',
-            email: user.email || '',
-            rol: user.user_metadata?.rol || 'usuario'
-        }));
+        // Asegurar que activo sea true por defecto para usuarios existentes
+        const usuariosFormateados = usuarios?.map(usuario => ({
+            ...usuario,
+            activo: usuario.activo !== null ? usuario.activo : true
+        })) || [];
 
         return {
             success: true,
-            usuarios
+            usuarios: usuariosFormateados
         };
 
     } catch (error) {

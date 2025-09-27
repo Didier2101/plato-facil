@@ -22,7 +22,7 @@ interface OrdenEncontrada {
     cliente_telefono?: string;
     cliente_direccion: string;
     total: number;
-    estado: 'orden_tomada' | 'lista' | 'entregada' | 'cancelada';
+    estado: 'orden_tomada' | 'lista' | 'en_camino' | 'entregada' | 'cancelada';
     tipo_orden: 'establecimiento' | 'domicilio';
     created_at: string;
     updated_at: string;

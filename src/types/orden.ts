@@ -31,7 +31,7 @@ export interface OrdenCompleta {
     cliente_direccion: string;
     cliente_notas?: string | null;
     total: number;
-    estado: 'orden_tomada' | 'lista' | 'en_camino' | 'entregada' | 'cancelada';
+    estado: 'orden_tomada' | 'lista' | 'en_camino' | 'llegue_a_destino' | 'entregada' | 'cancelada';
     tipo_orden: 'establecimiento' | 'domicilio';
     created_at: string;
     updated_at: string;

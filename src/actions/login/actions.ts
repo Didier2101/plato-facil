@@ -36,18 +36,29 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
             return { success: false, error: "No se pudo autenticar el usuario" };
         }
 
-        // buscar datos del usuario en la tabla `usuarios`
+        // buscar datos del usuario en la tabla `usuarios` incluyendo el campo activo
         const { data: usuarioData, error: rolError } = await supabase
             .from("usuarios")
-            .select("rol, nombre, email")
+            .select("rol, nombre, email, activo")
             .eq("id", authData.user.id)
             .single();
 
         if (rolError || !usuarioData) {
+            // Cerrar sesión si no encontramos datos del usuario
+            await supabase.auth.signOut();
             return {
                 success: false,
-                error:
-                    "Tu cuenta fue autenticada pero necesita configuración. Contacta al administrador.",
+                error: "Tu cuenta fue autenticada pero necesita configuración. Contacta al administrador.",
+            };
+        }
+
+        // Verificar si el usuario está activo
+        if (usuarioData.activo === false) {
+            // Cerrar sesión si el usuario está inactivo
+            await supabase.auth.signOut();
+            return {
+                success: false,
+                error: "Tu cuenta ha sido desactivada. Contacta al administrador para más información.",
             };
         }
 

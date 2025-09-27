@@ -21,9 +21,13 @@ interface RutaCalculada {
     duracion_minutos: number;
     costo_domicilio: number;
     fuera_de_cobertura: boolean;
+    // Campos adicionales para el desglose del costo
+    distancia_base_km: number;
+    costo_base: number;
+    distancia_exceso_km: number;
+    costo_exceso: number;
 }
 
-// Add proper type for configuracion
 interface ConfiguracionRestaurante {
     domicilio_activo: boolean;
     latitud: number;
@@ -32,6 +36,7 @@ interface ConfiguracionRestaurante {
     tiempo_preparacion_min: number;
     costo_base_domicilio: number;
     costo_por_km: number;
+    distancia_base_km: number; // NUEVO CAMPO
 }
 
 export interface ResultadoDomicilio {
@@ -39,6 +44,46 @@ export interface ResultadoDomicilio {
     direccion?: DireccionGeocoded;
     ruta?: RutaCalculada;
     error?: string;
+}
+
+// Función para redondear hacia arriba en múltiplos de 100
+function redondearHaciaArriba100(monto: number): number {
+    return Math.ceil(monto / 100) * 100;
+}
+
+// Función para calcular el costo del domicilio con la nueva lógica
+function calcularCostoDomicilio(distancia_km: number, configuracion: ConfiguracionRestaurante) {
+    const { distancia_base_km, costo_base_domicilio, costo_por_km } = configuracion;
+
+    // Si la distancia es menor o igual a la distancia base, solo cobrar el costo base
+    if (distancia_km <= distancia_base_km) {
+        // El costo base ya debería estar redondeado en la configuración, pero por seguridad
+        const costo_final = redondearHaciaArriba100(costo_base_domicilio);
+
+        return {
+            costo_total: costo_final,
+            distancia_base_km: distancia_base_km,
+            costo_base: costo_final,
+            distancia_exceso_km: 0,
+            costo_exceso: 0
+        };
+    }
+
+    // Si excede la distancia base, cobrar base + exceso por km
+    const distancia_exceso = distancia_km - distancia_base_km;
+    const costo_exceso_calculado = distancia_exceso * costo_por_km;
+    const costo_total_calculado = costo_base_domicilio + costo_exceso_calculado;
+
+    // REDONDEAR HACIA ARRIBA EN MÚLTIPLOS DE 100
+    const costo_total_final = redondearHaciaArriba100(costo_total_calculado);
+
+    return {
+        costo_total: costo_total_final,
+        distancia_base_km: distancia_base_km,
+        costo_base: costo_base_domicilio,
+        distancia_exceso_km: Math.round(distancia_exceso * 100) / 100,
+        costo_exceso: costo_total_final - costo_base_domicilio // El exceso real cobrado
+    };
 }
 
 // Calcular distancia usando fórmula de Haversine (sin API)
@@ -122,61 +167,66 @@ async function geocodificarDireccion(direccion: string): Promise<DireccionGeocod
     }
 }
 
-// Calcular ruta usando OpenRouteService - GRATIS (2000/día)
+// Geocodificar coordenadas inversamente (obtener dirección de coordenadas)
+async function geocodificarInverso(coordenadas: Coordenadas): Promise<string> {
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordenadas.lat}&lon=${coordenadas.lng}&addressdetails=1`,
+            {
+                headers: {
+                    'User-Agent': 'RestauranteApp/1.0'
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (data && data.display_name) {
+            return data.display_name;
+        }
+
+        // Fallback si no se puede obtener dirección
+        return `Ubicación: ${coordenadas.lat.toFixed(4)}, ${coordenadas.lng.toFixed(4)}`;
+
+    } catch (error) {
+        console.error('Error en geocodificación inversa:', error);
+        return `Ubicación: ${coordenadas.lat.toFixed(4)}, ${coordenadas.lng.toFixed(4)}`;
+    }
+}
+
+// Calcular ruta usando OpenRouteService o fallback local
 async function calcularRutaDetallada(
     origen: Coordenadas,
     destino: Coordenadas,
-    configuracion: ConfiguracionRestaurante // Fixed: replaced 'any' with proper type
+    configuracion: ConfiguracionRestaurante
 ): Promise<RutaCalculada | null> {
     try {
-        // Verificar cache primero
-        const direccionDestino = `${destino.lat},${destino.lng}`;
-        const { data: cached } = await supabaseAdmin
-            .from('cache_rutas')
-            .select('*')
-            .eq('direccion_destino', direccionDestino)
-            .single();
-
-        if (cached) {
-            return {
-                distancia_km: cached.distancia_km,
-                duracion_minutos: cached.duracion_minutos,
-                costo_domicilio: cached.costo_domicilio,
-                fuera_de_cobertura: cached.fuera_cobertura
-            };
-        }
-
         // Calcular distancia directa primero
         const distanciaDirecta = calcularDistanciaHaversine(origen, destino);
 
         if (distanciaDirecta > configuracion.distancia_maxima_km) {
-            const resultado: RutaCalculada = {
+            const costoDomicilio = calcularCostoDomicilio(distanciaDirecta, configuracion);
+            return {
                 distancia_km: Math.round(distanciaDirecta * 100) / 100,
                 duracion_minutos: Math.round(distanciaDirecta * 3),
-                costo_domicilio: 0,
-                fuera_de_cobertura: true
+                costo_domicilio: 0, // Sin costo si está fuera de cobertura
+                fuera_de_cobertura: true,
+                distancia_base_km: costoDomicilio.distancia_base_km,
+                costo_base: costoDomicilio.costo_base,
+                distancia_exceso_km: costoDomicilio.distancia_exceso_km,
+                costo_exceso: costoDomicilio.costo_exceso
             };
-
-            // Guardar en cache
-            await supabaseAdmin
-                .from('cache_rutas')
-                .insert({
-                    direccion_destino: direccionDestino,
-                    distancia_km: resultado.distancia_km,
-                    duracion_minutos: resultado.duracion_minutos,
-                    costo_domicilio: resultado.costo_domicilio,
-                    fuera_cobertura: resultado.fuera_de_cobertura
-                });
-
-            return resultado;
         }
 
-        // Intentar OpenRouteService
+        // Intentar OpenRouteService para ruta real
+        let distancia_km = distanciaDirecta;
+        let duracion_minutos = Math.round(distanciaDirecta * 3);
+
         try {
             const response = await fetch('https://api.openrouteservice.org/v2/directions/driving-car', {
                 method: 'POST',
                 headers: {
-                    'Authorization': '5b3ce3597851110001cf62489a1a1b4e8b6c4b0b8f5d4d8e8c8b8e8b', // API key pública gratuita
+                    'Authorization': '5b3ce3597851110001cf62489a1a1b4e8b6c4b0b8f5d4d8e8c8b8e8b',
                     'Content-Type': 'application/json',
                     'User-Agent': 'RestauranteApp/1.0'
                 },
@@ -189,54 +239,28 @@ async function calcularRutaDetallada(
             if (response.ok) {
                 const data = await response.json();
                 const route = data.routes[0];
-                const distancia_km = route.summary.distance / 1000;
-                const duracion_minutos = Math.round(route.summary.duration / 60);
-
-                const resultado: RutaCalculada = {
-                    distancia_km: Math.round(distancia_km * 100) / 100,
-                    duracion_minutos: duracion_minutos + configuracion.tiempo_preparacion_min,
-                    costo_domicilio: configuracion.costo_base_domicilio + (distancia_km * configuracion.costo_por_km),
-                    fuera_de_cobertura: false
-                };
-
-                // Guardar en cache
-                await supabaseAdmin
-                    .from('cache_rutas')
-                    .insert({
-                        direccion_destino: direccionDestino,
-                        distancia_km: resultado.distancia_km,
-                        duracion_minutos: resultado.duracion_minutos,
-                        costo_domicilio: resultado.costo_domicilio,
-                        fuera_cobertura: resultado.fuera_de_cobertura
-                    });
-
-                return resultado;
+                distancia_km = route.summary.distance / 1000;
+                duracion_minutos = Math.round(route.summary.duration / 60);
             }
         } catch (orsError) {
             console.warn('OpenRouteService falló, usando fallback:', orsError);
+            // Usar distancia directa con factor de corrección
+            distancia_km = distanciaDirecta * 1.3;
         }
 
-        // Fallback: usar distancia directa con factor de corrección
-        const distanciaEstimada = distanciaDirecta * 1.3; // Factor de corrección para calles
-        const resultado: RutaCalculada = {
-            distancia_km: Math.round(distanciaEstimada * 100) / 100,
-            duracion_minutos: Math.round(distanciaEstimada * 3) + configuracion.tiempo_preparacion_min,
-            costo_domicilio: configuracion.costo_base_domicilio + (distanciaEstimada * configuracion.costo_por_km),
-            fuera_de_cobertura: false
+        // Calcular costo con la nueva lógica
+        const costoDomicilio = calcularCostoDomicilio(distancia_km, configuracion);
+
+        return {
+            distancia_km: Math.round(distancia_km * 100) / 100,
+            duracion_minutos: duracion_minutos + configuracion.tiempo_preparacion_min,
+            costo_domicilio: costoDomicilio.costo_total,
+            fuera_de_cobertura: false,
+            distancia_base_km: costoDomicilio.distancia_base_km,
+            costo_base: costoDomicilio.costo_base,
+            distancia_exceso_km: costoDomicilio.distancia_exceso_km,
+            costo_exceso: costoDomicilio.costo_exceso
         };
-
-        // Guardar en cache
-        await supabaseAdmin
-            .from('cache_rutas')
-            .insert({
-                direccion_destino: direccionDestino,
-                distancia_km: resultado.distancia_km,
-                duracion_minutos: resultado.duracion_minutos,
-                costo_domicilio: resultado.costo_domicilio,
-                fuera_cobertura: resultado.fuera_de_cobertura
-            });
-
-        return resultado;
 
     } catch (error) {
         console.error('Error calculando ruta:', error);
@@ -244,10 +268,10 @@ async function calcularRutaDetallada(
     }
 }
 
-// Action principal para calcular domicilio
+// Action principal para calcular domicilio por dirección (mantenido para compatibilidad)
 export async function calcularDomicilioAction(direccion: string): Promise<ResultadoDomicilio> {
     try {
-        // 1. Obtener configuración del restaurante
+        // 1. Obtener configuración del restaurante (ahora incluyendo distancia_base_km)
         const { data: configuracion, error: configError } = await supabaseAdmin
             .from('configuracion_restaurante')
             .select('*')
@@ -301,6 +325,111 @@ export async function calcularDomicilioAction(direccion: string): Promise<Result
         return {
             success: false,
             error: 'Error interno calculando el domicilio'
+        };
+    }
+}
+
+// ACTION PRINCIPAL para calcular domicilio por coordenadas directamente (usado por MapaUbicacion)
+export async function calcularDomicilioPorCoordenadasAction(coordenadas: Coordenadas): Promise<ResultadoDomicilio> {
+    try {
+        // Validar coordenadas básicas
+        if (!coordenadas || !coordenadas.lat || !coordenadas.lng) {
+            return {
+                success: false,
+                error: 'Las coordenadas proporcionadas no son válidas.'
+            };
+        }
+
+        // Verificar que las coordenadas estén en un rango razonable para Bogotá
+        if (coordenadas.lat < 4.0 || coordenadas.lat > 5.0 || coordenadas.lng > -73.5 || coordenadas.lng < -74.5) {
+            return {
+                success: false,
+                error: 'Las coordenadas están fuera del área de servicio (Bogotá y alrededores).'
+            };
+        }
+
+        // 1. Obtener configuración del restaurante (ahora incluyendo distancia_base_km)
+        const { data: configuracion, error: configError } = await supabaseAdmin
+            .from('configuracion_restaurante')
+            .select('*')
+            .single();
+
+        if (configError || !configuracion) {
+            return {
+                success: false,
+                error: 'No se encontró la configuración del restaurante. Configure los datos primero.'
+            };
+        }
+
+        if (!configuracion.domicilio_activo) {
+            return {
+                success: false,
+                error: 'El servicio de domicilio está desactivado actualmente.'
+            };
+        }
+
+        // 2. Obtener dirección de las coordenadas (geocodificación inversa) - opcional para mostrar
+        const direccion_formateada = await geocodificarInverso(coordenadas);
+
+        const direccionGeocoded: DireccionGeocoded = {
+            direccion_formateada,
+            coordenadas
+        };
+
+        // 3. Calcular ruta desde el restaurante
+        const origen: Coordenadas = {
+            lat: configuracion.latitud,
+            lng: configuracion.longitud
+        };
+
+        const ruta = await calcularRutaDetallada(origen, coordenadas, configuracion);
+        if (!ruta) {
+            return {
+                success: false,
+                error: 'No se pudo calcular la ruta de entrega. Intenta más tarde.'
+            };
+        }
+
+        return {
+            success: true,
+            direccion: direccionGeocoded,
+            ruta
+        };
+
+    } catch (error) {
+        console.error('Error calculando domicilio por coordenadas:', error);
+        return {
+            success: false,
+            error: 'Error interno calculando el costo de domicilio'
+        };
+    }
+}
+
+// Obtener configuración del restaurante (helper para el frontend) - ACTUALIZADO
+export async function obtenerConfiguracionRestauranteAction() {
+    try {
+        const { data: configuracion, error: configError } = await supabaseAdmin
+            .from('configuracion_restaurante')
+            .select('nombre_restaurante, latitud, longitud, domicilio_activo, distancia_maxima_km, costo_base_domicilio, costo_por_km, distancia_base_km')
+            .single();
+
+        if (configError || !configuracion) {
+            return {
+                success: false,
+                error: 'No se encontró la configuración del restaurante.'
+            };
+        }
+
+        return {
+            success: true,
+            configuracion
+        };
+
+    } catch (error) {
+        console.error('Error obteniendo configuración:', error);
+        return {
+            success: false,
+            error: 'Error interno obteniendo la configuración'
         };
     }
 }
