@@ -156,11 +156,18 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     };
 
     const handleProcesarOrden = async () => {
+        // Validaciones básicas mejoradas
         if (!nombre.trim()) {
             Swal.fire("Nombre requerido", "Debes ingresar el nombre del cliente", "warning");
             return;
         }
 
+        if (productos.length === 0) {
+            Swal.fire("Carrito vacío", "Agrega productos antes de continuar", "warning");
+            return;
+        }
+
+        // Validaciones específicas para domicilio - más estrictas
         if (tipo === "domicilio") {
             if (!datosDomicilio) {
                 Swal.fire("Calcular domicilio", "Debes calcular el costo de domicilio primero", "warning");
@@ -176,17 +183,29 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                 Swal.fire("Dirección requerida", "Debes escribir la dirección exacta de entrega", "warning");
                 return;
             }
-        }
 
-        if (productos.length === 0) {
-            Swal.fire("Carrito vacío", "Agrega productos antes de continuar", "warning");
-            return;
-        }
-
-        if (tipo === "domicilio" && metodoPago === "efectivo") {
-            if (montoEntregado === "" || Number(montoEntregado) < totalFinal) {
-                Swal.fire("Pago inválido", "Debes indicar un monto suficiente para pagar en efectivo", "warning");
+            // ✅ NUEVO: Validar método de pago obligatorio para domicilios
+            if (!metodoPago) {
+                Swal.fire("Método de pago requerido", "Selecciona cómo va a pagar el cliente", "warning");
                 return;
+            }
+
+            // ✅ MEJORADO: Validación más clara para efectivo
+            if (metodoPago === "efectivo") {
+                if (montoEntregado === "" || Number(montoEntregado) <= 0) {
+                    Swal.fire("Monto inválido", "Debes indicar con cuánto dinero va a pagar el cliente", "warning");
+                    return;
+                }
+
+                if (Number(montoEntregado) < totalFinal) {
+                    const faltante = totalFinal - Number(montoEntregado);
+                    Swal.fire(
+                        "Monto insuficiente",
+                        `El cliente necesita $${faltante.toLocaleString("es-CO")} adicionales para completar el pago`,
+                        "warning"
+                    );
+                    return;
+                }
             }
         }
 
@@ -206,13 +225,13 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
 
             const ordenData: OrdenData = {
                 cliente: {
-                    nombre: nombre,
-                    telefono: telefono || undefined,
-                    direccion: tipo === "domicilio" ? direccion : "En establecimiento",
-                    notas: notasCliente || undefined,
+                    nombre: nombre.trim(), // ✅ Limpieza de datos
+                    telefono: telefono?.trim() || undefined,
+                    direccion: tipo === "domicilio" ? direccion?.trim() : "En establecimiento",
+                    notas: notasCliente?.trim() || undefined,
                 },
                 productos: productosOrden,
-                total,
+                total, // Este es solo el subtotal de productos
                 estado: "orden_tomada",
                 tipo_orden: tipo,
                 domicilio: datosDomicilio || undefined,
@@ -228,41 +247,73 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                     return p.ingredientes_personalizados.some(ing => !ing.incluido && !ing.obligatorio) || p.notas;
                 }).length;
 
+                // ✅ MEJORADO: Mostrar información separada en el éxito
                 Swal.fire({
                     icon: "success",
-                    title: "Orden creada",
+                    title: "Orden creada exitosamente",
                     html: `
-                        <div class="text-center">
-                            <p class="text-lg font-semibold mb-2">Pedido #${result.orden?.id.slice(-8)}</p>
-                            <p class="text-gray-600 mb-2">Total: $${totalFinal.toLocaleString("es-CO")}</p>
-                            ${datosDomicilio ? `
-                                <div class="bg-blue-50 rounded-lg p-3 mt-3">
-                                    <p class="text-sm text-blue-700">
-                                        <span class="font-medium">Domicilio:</span> $${datosDomicilio.costo_domicilio.toLocaleString("es-CO")}<br>
-                                        <span class="font-medium">Distancia:</span> ${datosDomicilio.distancia_km} km<br>
-                                        <span class="font-medium">Tiempo estimado:</span> ${datosDomicilio.duracion_estimada} min
-                                    </p>
+                    <div class="text-center">
+                        <p class="text-lg font-semibold mb-3">Pedido #${result.orden?.id.slice(-8)}</p>
+                        
+                        <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                            <div class="text-sm space-y-1">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Productos:</span>
+                                    <span class="font-medium">$${result.orden?.subtotal_productos?.toLocaleString("es-CO") || total.toLocaleString("es-CO")}</span>
                                 </div>
-                            ` : ''}
-                            ${conPersonalizacion > 0 ? `<p class="text-xs text-gray-500 mt-2">${conPersonalizacion} productos personalizados</p>` : ''}
+                                ${result.orden?.costo_domicilio ? `
+                                    <div class="flex justify-between text-blue-600">
+                                        <span>Domicilio:</span>
+                                        <span class="font-medium">$${result.orden.costo_domicilio.toLocaleString("es-CO")}</span>
+                                    </div>
+                                ` : ''}
+                                <div class="flex justify-between pt-2 border-t border-gray-200 font-semibold">
+                                    <span>Total:</span>
+                                    <span class="text-green-600">$${result.orden?.total_final?.toLocaleString("es-CO") || totalFinal.toLocaleString("es-CO")}</span>
+                                </div>
+                            </div>
                         </div>
-                    `,
-                    confirmButtonText: "Ok",
-                    confirmButtonColor: "#f97316"
+
+                        ${datosDomicilio ? `
+                            <div class="bg-blue-50 rounded-lg p-3 mb-3">
+                                <p class="text-sm text-blue-700">
+                                    <span class="font-medium">Distancia:</span> ${datosDomicilio.distancia_km} km<br>
+                                    <span class="font-medium">Tiempo estimado:</span> ${datosDomicilio.duracion_estimada} min
+                                </p>
+                            </div>
+                        ` : ''}
+
+                        ${metodoPago === "efectivo" && result.orden?.cambio_a_devolver !== null && result.orden?.cambio_a_devolver !== undefined && result.orden?.cambio_a_devolver > 0 ? `
+                            <div class="bg-green-50 rounded-lg p-3 mb-3">
+                                <p class="text-sm text-green-700">
+                                    <span class="font-medium">Cambio a devolver:</span> ${result.orden.cambio_a_devolver.toLocaleString("es-CO")}
+                                </p>
+                            </div>
+                        ` : ''}
+
+                        ${conPersonalizacion > 0 ? `<p class="text-xs text-gray-500">${conPersonalizacion} productos personalizados</p>` : ''}
+                    </div>
+                `,
+                    confirmButtonText: "Perfecto",
+                    confirmButtonColor: "#f97316",
+                    width: '400px'
                 }).then(() => {
                     limpiarCarrito();
+                    limpiarDatosCliente(); // ✅ Limpiar también datos del cliente
                     onClose();
                 });
             } else {
+                // ✅ MEJORADO: Mostrar errores más claros del backend
                 Swal.fire("Error", result.error || "No se pudo crear la orden", "error");
             }
         } catch (err) {
-            console.error(err);
+            console.error("Error procesando orden:", err);
             Swal.fire("Error", "Ocurrió un error procesando la orden", "error");
         } finally {
             setProcesando(false);
         }
     };
+
 
     return (
         <>
@@ -465,17 +516,20 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                             value={nombre}
                                             onChange={(e) => setCliente({ nombre: e.target.value })}
                                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                            required
                                         />
+
                                     </div>
 
                                     <div className="relative">
                                         <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
                                         <input
                                             type="text"
-                                            placeholder={tipo === "domicilio" ? "Teléfono *" : "Teléfono (opcional)"}
+                                            placeholder="Teléfono *"
                                             value={telefono}
                                             onChange={(e) => setCliente({ telefono: e.target.value })}
                                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                            required={tipo === "domicilio"}
                                         />
                                     </div>
 
@@ -500,13 +554,17 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
 
                                             <div className="relative">
                                                 <FaStickyNote className="absolute left-3 top-4 text-gray-400" size={14} />
-                                                <textarea
-                                                    placeholder="Notas adicionales (ej: piso, referencia, portería...)"
-                                                    value={notasCliente}
-                                                    onChange={(e) => setNotasCliente(e.target.value)}
-                                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                    rows={2}
-                                                />
+                                                <select
+                                                    value={metodoPago}
+                                                    onChange={(e) => setMetodoPago(e.target.value as "efectivo" | "tarjeta" | "transferencia" | "")}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                    required={tipo === "domicilio"}
+                                                >
+                                                    <option value="">Seleccionar método de pago *</option>
+                                                    <option value="efectivo">💵 Efectivo</option>
+                                                    <option value="tarjeta">💳 Tarjeta</option>
+                                                    <option value="transferencia">📱 Transferencia</option>
+                                                </select>
                                             </div>
 
                                             {/* Información de pago */}

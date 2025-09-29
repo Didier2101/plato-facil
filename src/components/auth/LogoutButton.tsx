@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, LogOut } from "lucide-react";
 import Swal from "sweetalert2";
-import { logoutAction } from "@/src/actions/auth";
+import { logoutAction } from "@/src/actions/login/auth";
 import { useUserStore } from "@/src/store/useUserStore";
 
 interface LogoutButtonProps {
@@ -58,7 +58,7 @@ export default function LogoutButton({ isExpanded = true }: LogoutButtonProps) {
             });
 
             // Redirigir
-            router.push('/');
+            router.push('/login');
 
         } catch (error) {
             console.error('Error al cerrar sesión:', error);

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "@/src/schemas/auth";
 import { useState, useTransition } from "react";
 import Swal from "sweetalert2";
-import { useRouter } from "next/navigation";
+
 
 import { useUserStore } from "@/src/store/useUserStore";
 import { FiMail, FiLock, FiEye, FiEyeOff, FiLogIn, FiUser, FiArrowRight } from "react-icons/fi";
@@ -16,7 +16,7 @@ export default function LoginComponent() {
     const [isPending, startTransition] = useTransition();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const router = useRouter();
+
     const setUser = useUserStore((state) => state.setUser);
 
     const {
@@ -62,12 +62,34 @@ export default function LoginComponent() {
                     rol: result.rol,
                 });
 
-                // Mostrar mensaje de bienvenida
-                Swal.fire({
+                // Determinar ruta de redirección
+                let redirectPath = '/login';
+                switch (result.rol) {
+                    case "dueno":
+                        redirectPath = "/dueno/reportes";
+                        break;
+                    case "admin":
+                        redirectPath = "/admin/caja";
+                        break;
+                    case "repartidor":
+                        redirectPath = "/repartidor/ordenes-listas";
+                        break;
+                    default:
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: `Rol no reconocido: ${result.rol}`,
+                            confirmButtonColor: "#3B82F6",
+                        });
+                        return;
+                }
+
+                // ✅ Mostrar mensaje de bienvenida con await
+                await Swal.fire({
                     icon: "success",
                     title: "¡Bienvenido!",
                     text: `Hola ${result.user.nombre || result.user.email}`,
-                    timer: 2000,
+                    timer: 1500,
                     timerProgressBar: true,
                     showConfirmButton: false,
                     confirmButtonColor: "#3B82F6",
@@ -78,27 +100,8 @@ export default function LoginComponent() {
                     }
                 });
 
-                // Redirigir según el rol después de un pequeño delay
-                setTimeout(() => {
-                    switch (result.rol) {
-                        case "dueno":
-                            router.push("/dueno/reportes");
-                            break;
-                        case "admin":
-                            router.push("/admin/caja");
-                            break;
-                        case "repartidor":
-                            router.push("/repartidor");
-                            break;
-                        default:
-                            Swal.fire({
-                                icon: "error",
-                                title: "Error",
-                                text: `Rol no reconocido: ${result.rol}`,
-                                confirmButtonColor: "#3B82F6",
-                            });
-                    }
-                }, 1500);
+                // ✅ Redirigir con window.location para forzar recarga completa
+                window.location.href = redirectPath;
             }
         });
     };

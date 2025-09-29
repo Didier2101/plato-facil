@@ -7,7 +7,7 @@ import { registrarPropinaAction } from "@/src/actions/registrarPropinaAction";
 import type { OrdenCompleta } from "@/src/types/orden";
 import Swal from "sweetalert2";
 import { formatearPrecioCOP } from "@/src/utils/precio";
-import { CreditCard } from "lucide-react";
+import { CreditCard, Package, Truck } from "lucide-react";
 import { capitalizarSoloPrimera } from "@/src/utils/texto";
 
 type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
@@ -44,16 +44,20 @@ export default function PanelCobro({
     const [procesando, setProcesando] = useState(false);
     const [propinaInput, setPropinaInput] = useState<string>("");
 
-    const totalConPropina = Number(ordenSeleccionada.total) + propina;
+    // SEPARAR TOTALES
+    const subtotalProductos = Number(ordenSeleccionada.subtotal_productos || 0);
+    const costoDomicilio = Number(ordenSeleccionada.costo_domicilio || 0);
+    const totalOrden = subtotalProductos + costoDomicilio;
+    const totalConPropina = totalOrden + propina;
 
     // Memoizar las funciones que se usan en el JSX
     const aplicarPropina = useCallback((opcion: number) => {
         setPropinaPorcentaje(opcion);
-        const total = Number(ordenSeleccionada.total) || 0;
-        const calc = Math.round((opcion / 100) * total);
+        // Calcular propina solo sobre productos, no sobre domicilio
+        const calc = Math.round((opcion / 100) * subtotalProductos);
         setPropina(calc);
         setPropinaInput("");
-    }, [ordenSeleccionada.total, setPropina, setPropinaPorcentaje]);
+    }, [subtotalProductos, setPropina, setPropinaPorcentaje]);
 
     const confirmarCobro = useCallback(async () => {
         if (!usuarioId || !metodoPago) {
@@ -68,10 +72,11 @@ export default function PanelCobro({
             return;
         }
 
-        const totalFinal = Number(ordenSeleccionada.total) + propina;
         setProcesando(true);
 
         try {
+            // ENVIAR SOLO LOS 3 PARÁMETROS ACTUALES
+            // TODO: Actualizar cobrarOrdenAction para manejar datos separados
             const result = await cobrarOrdenAction(
                 ordenSeleccionada.id,
                 usuarioId,
@@ -105,13 +110,17 @@ export default function PanelCobro({
                 icon: "success",
                 title: "¡Orden cobrada exitosamente!",
                 html: `
-          <div class="text-left space-y-2">
-            <p><strong>Orden:</strong> #${ordenSeleccionada.id.slice(-6)}</p>
-            <p><strong>Cliente:</strong> ${ordenSeleccionada.cliente_nombre}</p>
-            <p><strong>Total:</strong> ${formatearPrecioCOP(totalFinal)}</p>
-            ${propina > 0 ? `<p><strong>Propina:</strong> ${formatearPrecioCOP(propina)}</p>` : ""}
-          </div>
-        `,
+                    <div class="text-left space-y-2">
+                        <p><strong>Orden:</strong> #${ordenSeleccionada.id.slice(-6)}</p>
+                        <p><strong>Cliente:</strong> ${ordenSeleccionada.cliente_nombre}</p>
+                        <hr class="my-2">
+                        <p><strong>Productos:</strong> ${formatearPrecioCOP(subtotalProductos)}</p>
+                        ${costoDomicilio > 0 ? `<p><strong>Domicilio:</strong> ${formatearPrecioCOP(costoDomicilio)}</p>` : ""}
+                        ${propina > 0 ? `<p><strong>Propina:</strong> ${formatearPrecioCOP(propina)}</p>` : ""}
+                        <hr class="my-2">
+                        <p><strong>Total Final:</strong> ${formatearPrecioCOP(totalConPropina)}</p>
+                    </div>
+                `,
                 confirmButtonText: "Continuar",
                 confirmButtonColor: "#f97316",
             });
@@ -132,7 +141,7 @@ export default function PanelCobro({
         } finally {
             setProcesando(false);
         }
-    }, [usuarioId, metodoPago, ordenSeleccionada, propina, propinaPorcentaje, onSuccess, onRecargarOrdenes]);
+    }, [usuarioId, metodoPago, ordenSeleccionada, subtotalProductos, costoDomicilio, propina, propinaPorcentaje, totalConPropina, onSuccess, onRecargarOrdenes]);
 
     const handlePropinaInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -167,7 +176,7 @@ export default function PanelCobro({
         }
     }, [aplicarPropina, setPropina, setPropinaPorcentaje]);
 
-    // Memoizar el contenido del panel con todas las dependencias necesarias
+    // Memoizar el contenido del panel
     const panelContent = useMemo(() => {
         return (
             <div className="space-y-6">
@@ -179,16 +188,16 @@ export default function PanelCobro({
                     {ordenSeleccionada.cliente_telefono && (
                         <p className="text-sm text-gray-600">{ordenSeleccionada.cliente_telefono}</p>
                     )}
-                    <p className="text-xs text-gray-500">
-                        {ordenSeleccionada.tipo_orden === "domicilio" ? "Domicilio" : "En establecimiento"}
-                    </p>
+                    {ordenSeleccionada.cliente_direccion && ordenSeleccionada.tipo_orden === "domicilio" && (
+                        <p className="text-xs text-gray-500 mt-1">{ordenSeleccionada.cliente_direccion}</p>
+                    )}
                 </div>
 
                 {/* Productos */}
                 <div className="max-h-64 overflow-y-auto pr-2">
                     <h4 className="font-semibold text-gray-900 text-lg mb-2 flex items-center gap-2">
-                        <CreditCard className="text-orange-500" />
-                        Productos a cobrar
+                        <Package className="text-orange-500" />
+                        Productos
                     </h4>
                     <div className="space-y-2">
                         {ordenSeleccionada.orden_detalles?.map((detalle) => (
@@ -207,22 +216,46 @@ export default function PanelCobro({
                     </div>
                 </div>
 
-                {/* Totales */}
-                <div className="space-y-2 bg-orange-50 p-4 rounded-2xl border border-orange-200">
-                    <div className="flex justify-between text-gray-600 text-sm">
-                        <span>Subtotal</span>
-                        <span>{formatearPrecioCOP(Number(ordenSeleccionada.total))}</span>
+                {/* TOTALES SEPARADOS */}
+                <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                    {/* Subtotal Productos */}
+                    <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2">
+                            <Package size={16} className="text-blue-600" />
+                            <span className="font-medium text-blue-800">Productos</span>
+                        </div>
+                        <span className="font-bold text-blue-800">{formatearPrecioCOP(subtotalProductos)}</span>
                     </div>
 
-                    {propina > 0 && (
-                        <div className="flex justify-between text-gray-600 text-sm">
-                            <span>Propina {propinaPorcentaje ? `(${propinaPorcentaje}%)` : "(personalizada)"}</span>
-                            <span>{formatearPrecioCOP(propina)}</span>
+                    {/* Costo Domicilio */}
+                    {costoDomicilio > 0 && (
+                        <div className="flex justify-between items-center bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                            <div className="flex items-center gap-2">
+                                <Truck size={16} className="text-yellow-600" />
+                                <span className="font-medium text-yellow-800">
+                                    Domicilio {ordenSeleccionada.distancia_km ? `(${ordenSeleccionada.distancia_km}km)` : ""}
+                                </span>
+                            </div>
+                            <span className="font-bold text-yellow-800">{formatearPrecioCOP(costoDomicilio)}</span>
                         </div>
                     )}
 
-                    <div className="flex justify-between font-bold text-lg text-gray-800 border-t border-orange-300 pt-2">
-                        <span>Total a cobrar</span>
+                    {/* Propina */}
+                    {propina > 0 && (
+                        <div className="flex justify-between items-center bg-green-50 p-3 rounded-lg border border-green-200">
+                            <div className="flex items-center gap-2">
+                                <CreditCard size={16} className="text-green-600" />
+                                <span className="font-medium text-green-800">
+                                    Propina {propinaPorcentaje ? `(${propinaPorcentaje}%)` : "(personalizada)"}
+                                </span>
+                            </div>
+                            <span className="font-bold text-green-800">{formatearPrecioCOP(propina)}</span>
+                        </div>
+                    )}
+
+                    {/* Total Final */}
+                    <div className="flex justify-between font-bold text-lg text-gray-800 bg-orange-100 p-3 rounded-lg border-2 border-orange-300">
+                        <span>TOTAL A COBRAR</span>
                         <span>{formatearPrecioCOP(totalConPropina)}</span>
                     </div>
                 </div>
@@ -231,7 +264,9 @@ export default function PanelCobro({
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Propina */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Propina (opcional)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Propina (opcional) - Solo sobre productos
+                        </label>
 
                         {/* Botones de porcentaje */}
                         <div className="grid grid-cols-4 gap-2 mb-3">
@@ -283,6 +318,11 @@ export default function PanelCobro({
                                 ✓ Propina agregada: {formatearPrecioCOP(propina)}
                             </div>
                         )}
+
+                        {/* Información importante */}
+                        <div className="mt-2 text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                            ℹ️ La propina se calcula solo sobre el valor de los productos ({formatearPrecioCOP(subtotalProductos)})
+                        </div>
                     </div>
 
                     {/* Métodos de pago */}
@@ -306,6 +346,14 @@ export default function PanelCobro({
                                 </button>
                             ))}
                         </div>
+
+                        {/* Información de separación contable */}
+                        <div className="mt-3 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                            <p className="font-semibold mb-1">Separación contable:</p>
+                            <p>• Productos: Venta del restaurante</p>
+                            <p>• Domicilio: Servicio de entrega</p>
+                            <p>• Propina: Incentivo al repartidor</p>
+                        </div>
                     </div>
                 </div>
 
@@ -324,7 +372,7 @@ export default function PanelCobro({
                     ) : (
                         <>
                             <CreditCard size={24} />
-                            <span>CONFIRMAR COBRO</span>
+                            <span>CONFIRMAR COBRO - {formatearPrecioCOP(totalConPropina)}</span>
                         </>
                     )}
                 </button>
@@ -332,6 +380,8 @@ export default function PanelCobro({
         );
     }, [
         ordenSeleccionada,
+        subtotalProductos,
+        costoDomicilio,
         propina,
         propinaPorcentaje,
         propinaInput,

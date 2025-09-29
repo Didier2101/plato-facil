@@ -40,4 +40,10 @@ export interface OrdenCompleta {
     fecha_entrega?: string | null;
     // Detalles con personalizaciones
     orden_detalles?: OrdenDetalle[];
+    costo_domicilio?: number | null;
+    tiempo_preparacion?: number | null; // en minutos
+    subtotal_productos?: number | null;
+    metodo_pago?: 'efectivo' | 'tarjeta' | 'transferencia' | null;
+    total_final?: number | null; // total después de aplicar descuentos, impuestos, etc.
+    distancia_km?: number | null; // distancia para entrega a domicilio en km
 }

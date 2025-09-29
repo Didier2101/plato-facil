@@ -1,78 +1,165 @@
-"use server";
+// src/actions/login/actions.ts
+'use server';
 
-import { supabase } from "@/src/lib/supabaseClient";
-import type { LoginResult } from "@/src/types/auth";
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 
-function getErrorMessage(errorMessage: string): string {
-    switch (errorMessage) {
-        case "Invalid login credentials":
-            return "Email o contraseña incorrectos";
-        case "Email not confirmed":
-            return "Por favor confirma tu email antes de iniciar sesión";
-        case "Too many requests":
-            return "Demasiados intentos. Espera un momento antes de intentar nuevamente";
-        default:
-            return "Error de autenticación. Verifica tus credenciales.";
+export async function loginAction(formData: FormData) {
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    if (!email || !password) {
+        return {
+            success: false,
+            error: 'Email y contraseña son requeridos'
+        };
     }
-}
-
-export async function loginAction(formData: FormData): Promise<LoginResult> {
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
 
     try {
-        // autenticar con supabase
-        const { data: authData, error: authError } =
-            await supabase.auth.signInWithPassword({
-                email: email.trim(),
-                password,
-            });
+        // ✅ PASO 1: Await cookies()
+        const cookieStore = await cookies();
 
+        // ✅ PASO 2: Crear cliente de Supabase con @supabase/ssr
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll();
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options)
+                        );
+                    },
+                },
+            }
+        );
+
+        // ✅ PASO 3: Hacer login
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        // ✅ Manejo específico de errores de autenticación
         if (authError) {
-            return { success: false, error: getErrorMessage(authError.message) };
+            console.error('Error de autenticación:', authError);
+
+            // Detectar si el usuario está baneado
+            if (authError.message.includes('banned') || authError.code === 'user_banned') {
+                return {
+                    success: false,
+                    error: 'Tu cuenta ha sido desactivada. Contacta al administrador para más información.'
+                };
+            }
+
+            // Detectar credenciales inválidas
+            if (authError.message.includes('Invalid login credentials')) {
+                return {
+                    success: false,
+                    error: 'Correo electrónico o contraseña incorrectos'
+                };
+            }
+
+            // Error genérico
+            return {
+                success: false,
+                error: 'Error al iniciar sesión. Intenta de nuevo.'
+            };
         }
 
         if (!authData.user) {
-            return { success: false, error: "No se pudo autenticar el usuario" };
+            return {
+                success: false,
+                error: 'No se pudo obtener información del usuario'
+            };
         }
 
-        // buscar datos del usuario en la tabla `usuarios` incluyendo el campo activo
-        const { data: usuarioData, error: rolError } = await supabase
-            .from("usuarios")
-            .select("rol, nombre, email, activo")
-            .eq("id", authData.user.id)
+        // ✅ PASO 4: Obtener datos del usuario desde la tabla usuarios
+        const { data: usuario, error: usuarioError } = await supabase
+            .from('usuarios')
+            .select('id, email, nombre, rol, activo')
+            .eq('id', authData.user.id)
             .single();
 
-        if (rolError || !usuarioData) {
-            // Cerrar sesión si no encontramos datos del usuario
+        if (usuarioError || !usuario) {
+            console.error('Error obteniendo usuario:', usuarioError);
+
+            // Cerrar sesión si no se encuentra el usuario
             await supabase.auth.signOut();
+
             return {
                 success: false,
-                error: "Tu cuenta fue autenticada pero necesita configuración. Contacta al administrador.",
+                error: 'Usuario no encontrado en el sistema'
             };
         }
 
-        // Verificar si el usuario está activo
-        if (usuarioData.activo === false) {
-            // Cerrar sesión si el usuario está inactivo
+        // ✅ PASO 5: Verificar si el usuario está activo en la base de datos
+        if (!usuario.activo) {
+            // Cerrar sesión de Supabase Auth
             await supabase.auth.signOut();
+
             return {
                 success: false,
-                error: "Tu cuenta ha sido desactivada. Contacta al administrador para más información.",
+                error: 'Tu cuenta está desactivada. Contacta al administrador del sistema.'
             };
         }
 
+        // ✅ PASO 6: Validar que tenga un rol válido
+        const rolesValidos = ['dueno', 'admin', 'repartidor'];
+        if (!rolesValidos.includes(usuario.rol)) {
+            await supabase.auth.signOut();
+
+            return {
+                success: false,
+                error: 'Tu cuenta no tiene un rol válido asignado'
+            };
+        }
+
+        // ✅ PASO 7: Devolver datos del usuario autenticado
         return {
             success: true,
-            rol: usuarioData.rol as LoginResult["rol"],
             user: {
-                id: authData.user.id,
-                email: usuarioData.email ?? authData.user.email ?? "",
-                nombre: usuarioData.nombre ?? null,
+                id: usuario.id,
+                email: usuario.email,
+                nombre: usuario.nombre,
             },
+            rol: usuario.rol
         };
+
     } catch (error) {
-        console.error(error);
-        return { success: false, error: "Error inesperado. Intenta nuevamente." };
+        console.error('Error inesperado en login:', error);
+        return {
+            success: false,
+            error: 'Ocurrió un error inesperado. Por favor, intenta de nuevo.'
+        };
+    }
+}
+
+// ✅ NUEVA FUNCIÓN: Login con redirect automático
+export async function loginWithRedirect(formData: FormData) {
+    const result = await loginAction(formData);
+
+    if (!result.success) {
+        return result;
+    }
+
+    // Hacer redirect en el servidor según el rol
+    const { redirect } = await import('next/navigation');
+
+    switch (result.rol) {
+        case "dueno":
+            redirect("/dueno/reportes");
+        case "admin":
+            redirect("/admin/caja");
+        case "repartidor":
+            redirect("/repartidor/ordenes-listas");
+        default:
+            return {
+                success: false,
+                error: `Rol no reconocido: ${result.rol}`
+            };
     }
 }

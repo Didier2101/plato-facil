@@ -14,7 +14,7 @@ import {
     MapIcon,
     CreditCard
 } from 'lucide-react';
-import { obtenerOrdenesDomicilioAction } from '@/src/actions/obtenerOrdenesDomicilioAction';
+import { obtenerOrdenesAction } from '@/src/actions/obtenerOrdenesAction';
 import { actualizarEstadoOrdenAction } from '@/src/actions/actualizarEstadoOrdenAction';
 import { useUserStore } from '@/src/store/useUserStore';
 import Loading from '../ui/Loading';
@@ -22,64 +22,10 @@ import Loading from '../ui/Loading';
 import type { OrdenCompleta } from '@/src/types/orden';
 import PanelCobro from '../admin/caja/PanelCobro';
 
-// Interfaz específica para las órdenes que vienen de la acción
-interface OrdenDomicilio {
-    id: string;
-    cliente_nombre: string;
-    cliente_telefono?: string;
-    cliente_direccion: string;
-    total: number;
-    estado: 'lista' | 'en_camino' | 'llegue_a_destino' | 'entregada';
-    created_at: string;
-    updated_at: string;
-    productos: {
-        nombre: string;
-        cantidad: number;
-        precio_unitario: number;
-        subtotal: number;
-    }[];
-    notas_domiciliario?: string;
-    tipo_orden: 'domicilio';
-    orden_detalles?: {
-        id: string;
-        producto_nombre: string;
-        precio_unitario: number;
-        cantidad: number;
-        subtotal: number;
-    }[];
-}
-
-// Función helper para convertir OrdenDomicilio a OrdenCompleta
-const convertirOrdenParaCobro = (orden: OrdenDomicilio): OrdenCompleta => ({
-    id: orden.id,
-    cliente_nombre: orden.cliente_nombre,
-    cliente_telefono: orden.cliente_telefono,
-    cliente_direccion: orden.cliente_direccion,
-    cliente_notas: null,
-    total: orden.total,
-    estado: orden.estado,
-    tipo_orden: orden.tipo_orden,
-    created_at: orden.created_at,
-    updated_at: orden.updated_at,
-    usuario_vendedor_id: null,
-    usuario_entregador_id: null,
-    fecha_entrega: null,
-    orden_detalles: orden.orden_detalles?.map(detalle => ({
-        id: detalle.id,
-        orden_id: orden.id,
-        producto_id: 0, // No disponible en la interfaz OrdenDomicilio
-        producto_nombre: detalle.producto_nombre,
-        precio_unitario: detalle.precio_unitario,
-        cantidad: detalle.cantidad,
-        subtotal: detalle.subtotal,
-        notas_personalizacion: null,
-        created_at: orden.created_at,
-        orden_personalizaciones: undefined
-    }))
-});
+type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
 
 export default function DomiciliarioPanel() {
-    const [ordenes, setOrdenes] = useState<OrdenDomicilio[]>([]);
+    const [ordenes, setOrdenes] = useState<OrdenCompleta[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [actualizando, setActualizando] = useState<string | null>(null);
@@ -88,26 +34,32 @@ export default function DomiciliarioPanel() {
 
     // Estados para el cobro
     const [ordenParaCobrar, setOrdenParaCobrar] = useState<OrdenCompleta | null>(null);
-    const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta' | 'transferencia' | ''>('');
+    const [metodoPago, setMetodoPago] = useState<MetodoPago | ''>('');
     const [propina, setPropina] = useState(0);
     const [propinaPorcentaje, setPropinaPorcentaje] = useState<number | null>(null);
 
     // Obtener usuario del store
     const { id: usuarioId, nombre: usuarioNombre } = useUserStore();
 
-    // Cargar órdenes usando la función de servidor real
+    // Cargar órdenes usando obtenerOrdenesAction y filtrar para domicilios
     const cargarOrdenes = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
             console.log('Cargando órdenes...');
 
-            const result = await obtenerOrdenesDomicilioAction();
+            const result = await obtenerOrdenesAction();
             console.log('Resultado de cargar órdenes:', result);
 
             if (result.success && result.ordenes) {
-                setOrdenes(result.ordenes);
-                console.log(`Se cargaron ${result.ordenes.length} órdenes`);
+                // Filtrar solo domicilios con estados relevantes
+                const ordenesDomicilio = result.ordenes.filter(orden =>
+                    orden.tipo_orden === 'domicilio' &&
+                    ['lista', 'en_camino', 'llegue_a_destino'].includes(orden.estado)
+                );
+
+                setOrdenes(ordenesDomicilio);
+                console.log(`Se cargaron ${ordenesDomicilio.length} órdenes de domicilio`);
             } else {
                 setError(result.error || 'Error al cargar las órdenes');
                 console.error('Error en cargar órdenes:', result.error);
@@ -120,7 +72,7 @@ export default function DomiciliarioPanel() {
         }
     }, []);
 
-    // Actualizar estado de orden usando la función de servidor real
+    // Actualizar estado de orden
     const actualizarEstado = async (ordenId: string, nuevoEstado: 'en_camino' | 'llegue_a_destino') => {
         if (!usuarioId) {
             setError('No se ha identificado al repartidor');
@@ -143,16 +95,8 @@ export default function DomiciliarioPanel() {
             console.log('Resultado de actualizar estado:', result);
 
             if (result.success) {
-                // Actualizar localmente
-                setOrdenes(prev => prev.map(orden =>
-                    orden.id === ordenId
-                        ? {
-                            ...orden,
-                            estado: nuevoEstado,
-                            notas_domiciliario: notas[ordenId] || orden.notas_domiciliario
-                        }
-                        : orden
-                ));
+                // Recargar órdenes para obtener estado actualizado
+                await cargarOrdenes();
 
                 // Limpiar notas
                 setNotas(prev => {
@@ -360,13 +304,23 @@ export default function DomiciliarioPanel() {
 
                                             <div className="text-right">
                                                 <div className="text-lg font-bold text-green-600 mb-1">
-                                                    ${orden.total.toLocaleString('es-CO')}
+                                                    ${(orden.total_final || orden.total).toLocaleString('es-CO')}
+                                                </div>
+                                                {/* Mostrar desglose de costos */}
+                                                <div className="text-xs text-gray-500 space-y-0.5">
+                                                    <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
+                                                    {orden.costo_domicilio && orden.costo_domicilio > 0 && (
+                                                        <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
+                                                    )}
+                                                    {orden.distancia_km && (
+                                                        <div>Distancia: {orden.distancia_km}km</div>
+                                                    )}
                                                 </div>
                                                 <button
                                                     onClick={() => setMostrarDetalles(
                                                         mostrarDetalles === orden.id ? null : orden.id
                                                     )}
-                                                    className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                                                    className="text-blue-600 hover:text-blue-800 text-xs font-medium mt-1"
                                                 >
                                                     {mostrarDetalles === orden.id ? 'Ocultar' : 'Ver productos'}
                                                 </button>
@@ -374,15 +328,15 @@ export default function DomiciliarioPanel() {
                                         </div>
 
                                         {/* Detalles de productos */}
-                                        {mostrarDetalles === orden.id && (
+                                        {mostrarDetalles === orden.id && orden.orden_detalles && (
                                             <div className="mb-3 p-2 bg-gray-50 rounded-lg">
                                                 <h4 className="font-medium text-gray-700 mb-1 text-sm">Productos:</h4>
                                                 <div className="space-y-1">
-                                                    {orden.productos.map((producto, index) => (
-                                                        <div key={index} className="flex justify-between text-xs">
-                                                            <span>{producto.cantidad}x {producto.nombre}</span>
+                                                    {orden.orden_detalles.map((detalle) => (
+                                                        <div key={detalle.id} className="flex justify-between text-xs">
+                                                            <span>{detalle.cantidad}x {detalle.producto_nombre}</span>
                                                             <span className="font-medium">
-                                                                ${producto.subtotal.toLocaleString('es-CO')}
+                                                                ${detalle.subtotal.toLocaleString('es-CO')}
                                                             </span>
                                                         </div>
                                                     ))}
@@ -488,17 +442,18 @@ export default function DomiciliarioPanel() {
                                                             <span className="text-xs">{orden.cliente_telefono}</span>
                                                         </div>
                                                     )}
-                                                    {orden.notas_domiciliario && (
-                                                        <div className="bg-blue-50 p-2 rounded text-blue-800 text-xs">
-                                                            <strong>Notas:</strong> {orden.notas_domiciliario}
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
 
                                             <div className="text-right">
                                                 <div className="text-lg font-bold text-green-600 mb-1">
-                                                    ${orden.total.toLocaleString('es-CO')}
+                                                    ${(orden.total_final || orden.total).toLocaleString('es-CO')}
+                                                </div>
+                                                <div className="text-xs text-gray-500 space-y-0.5">
+                                                    <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
+                                                    {orden.costo_domicilio && orden.costo_domicilio > 0 && (
+                                                        <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -550,7 +505,7 @@ export default function DomiciliarioPanel() {
                     </div>
                 )}
 
-                {/* Órdenes Llegue a Destino - NUEVA SECCIÓN */}
+                {/* Órdenes Llegue a Destino */}
                 {ordenesLlegueDestino.length > 0 && (
                     <div className="mb-6">
                         <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
@@ -592,9 +547,15 @@ export default function DomiciliarioPanel() {
 
                                             <div className="text-right">
                                                 <div className="text-lg font-bold text-green-600 mb-1">
-                                                    ${orden.total.toLocaleString('es-CO')}
+                                                    ${(orden.total_final || orden.total).toLocaleString('es-CO')}
                                                 </div>
-                                                <div className="text-xs text-green-600 font-medium">
+                                                <div className="text-xs text-gray-500 space-y-0.5">
+                                                    <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
+                                                    {orden.costo_domicilio && orden.costo_domicilio > 0 && (
+                                                        <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-green-600 font-medium mt-1">
                                                     Cobrar y entregar
                                                 </div>
                                             </div>
@@ -602,7 +563,7 @@ export default function DomiciliarioPanel() {
 
                                         {/* Botón para abrir panel de cobro */}
                                         <button
-                                            onClick={() => setOrdenParaCobrar(convertirOrdenParaCobro(orden))}
+                                            onClick={() => setOrdenParaCobrar(orden)}
                                             className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium w-full"
                                         >
                                             <CreditCard size={16} />

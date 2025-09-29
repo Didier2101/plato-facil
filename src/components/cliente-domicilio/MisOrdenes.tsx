@@ -15,10 +15,11 @@ import {
 } from "lucide-react";
 import {
     buscarOrdenPorTelefonoAction,
-    cancelarOrdenAction,
+    // cancelarOrdenAction,
 } from "@/src/actions/buscarOrdenPorTelefonoAction";
 import { FaMotorcycle } from "react-icons/fa";
 import { useClienteStore } from "@/src/store/clienteStore";
+// import { div } from "framer-motion/client";
 
 // Tipos para el seguimiento
 interface OrdenEstado {
@@ -27,7 +28,7 @@ interface OrdenEstado {
     cliente_telefono?: string;
     cliente_direccion: string;
     total: number;
-    estado: "orden_tomada" | "lista" | "en_camino" | "entregada" | "cancelada";
+    estado: "orden_tomada" | "lista" | "en_camino" | "llegue_a_destino" | "entregada" | "cancelada";
     tipo_orden: "establecimiento" | "domicilio";
     created_at: string;
     updated_at: string;
@@ -39,28 +40,35 @@ interface OrdenEstado {
     puede_cancelar: boolean;
 }
 
-// Configuración de estados con colores naranja
+// Configuración de estados con gradiente de rojo a verde
 const estadosConfig = {
     orden_tomada: {
         label: "Preparando",
         icon: Clock,
-        color: "text-orange-600 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-500",
-        progressColor: "bg-orange-500",
+        color: "text-red-600 bg-red-50 border-red-200",
+        iconColor: "text-red-500",
+        progressColor: "bg-red-500",
     },
     lista: {
         label: "Lista",
         icon: CheckCircle,
-        color: "text-orange-700 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-600",
-        progressColor: "bg-orange-600",
+        color: "text-orange-600 bg-orange-50 border-orange-200",
+        iconColor: "text-orange-500",
+        progressColor: "bg-orange-500",
     },
     en_camino: {
         label: "En Camino",
         icon: Package,
-        color: "text-orange-800 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-700",
-        progressColor: "bg-orange-700",
+        color: "text-yellow-600 bg-yellow-50 border-yellow-200",
+        iconColor: "text-yellow-500",
+        progressColor: "bg-yellow-500",
+    },
+    llegue_a_destino: {
+        label: "Llegué a Destino",
+        icon: MapPin,
+        color: "text-blue-600 bg-blue-50 border-blue-200",
+        iconColor: "text-blue-500",
+        progressColor: "bg-blue-500",
     },
     entregada: {
         label: "Entregada",
@@ -72,14 +80,14 @@ const estadosConfig = {
     cancelada: {
         label: "Cancelada",
         icon: XCircle,
-        color: "text-red-600 bg-red-50 border-red-200",
-        iconColor: "text-red-500",
-        progressColor: "bg-red-500",
+        color: "text-gray-600 bg-gray-50 border-gray-200",
+        iconColor: "text-gray-500",
+        progressColor: "bg-gray-500",
     },
 };
 
 export default function MisOrdenes() {
-    const { telefono: telefonoStore, setCliente } = useClienteStore();
+    const { telefono: telefonoStore, setCliente, nombre } = useClienteStore();
     const [telefono, setTelefono] = useState(telefonoStore || "");
     const [orden, setOrden] = useState<OrdenEstado | null>(null);
     const [loading, setLoading] = useState(false);
@@ -87,41 +95,41 @@ export default function MisOrdenes() {
     const [, setUltimaActualizacion] = useState<Date | null>(null);
     const [actualizandoEnTiempoReal, setActualizandoEnTiempoReal] = useState(false);
     const [mostrandoCancelacion, setMostrandoCancelacion] = useState(false);
-    const [motivoCancelacion, setMotivoCancelacion] = useState("");
-    const [cancelando, setCancelando] = useState(false);
+    // const [motivoCancelacion, setMotivoCancelacion] = useState("");
+    // const [cancelando, setCancelando] = useState(false);
 
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
     const isComponentMounted = useRef(true);
 
-    const handleCancelarOrden = async () => {
-        if (!orden) return;
+    // const handleCancelarOrden = async () => {
+    //     if (!orden) return;
 
-        setCancelando(true);
+    //     setCancelando(true);
 
-        try {
-            const result = await cancelarOrdenAction({
-                ordenId: orden.id,
-                motivo: motivoCancelacion.trim() || undefined,
-            });
+    //     try {
+    //         const result = await cancelarOrdenAction({
+    //             ordenId: orden.id,
+    //             motivo: motivoCancelacion.trim() || undefined,
+    //         });
 
-            if (result.success) {
-                setOrden((prev) =>
-                    prev ? { ...prev, estado: "cancelada", puede_cancelar: false } : null
-                );
-                setMostrandoCancelacion(false);
-                setMotivoCancelacion("");
-                detenerActualizacionesEnTiempoReal();
-                mostrarNotificacion("Orden cancelada exitosamente", "red");
-            } else {
-                setError(result.error || "Error al cancelar la orden");
-            }
-        } catch (err) {
-            console.error("Error cancelando orden:", err);
-            setError("Error inesperado al cancelar la orden");
-        } finally {
-            setCancelando(false);
-        }
-    };
+    //         if (result.success) {
+    //             setOrden((prev) =>
+    //                 prev ? { ...prev, estado: "cancelada", puede_cancelar: false } : null
+    //             );
+    //             setMostrandoCancelacion(false);
+    //             setMotivoCancelacion("");
+    //             detenerActualizacionesEnTiempoReal();
+    //             mostrarNotificacion("Orden cancelada exitosamente", "red");
+    //         } else {
+    //             setError(result.error || "Error al cancelar la orden");
+    //         }
+    //     } catch (err) {
+    //         console.error("Error cancelando orden:", err);
+    //         setError("Error inesperado al cancelar la orden");
+    //     } finally {
+    //         setCancelando(false);
+    //     }
+    // };
 
     const buscarOrden = async (silencioso = false) => {
         if (!telefono.trim()) {
@@ -154,7 +162,7 @@ export default function MisOrdenes() {
                                 result.orden.estado as keyof typeof estadosConfig
                             ].label
                             }!`,
-                            "orange"
+                            getColorForNotification(result.orden.estado)
                         );
                     }
 
@@ -187,6 +195,17 @@ export default function MisOrdenes() {
         }
     };
 
+    const getColorForNotification = (estado: string): "red" | "orange" | "yellow" | "blue" | "green" => {
+        switch (estado) {
+            case "orden_tomada": return "red";
+            case "lista": return "orange";
+            case "en_camino": return "yellow";
+            case "llegue_a_destino": return "blue";
+            case "entregada": return "green";
+            default: return "orange";
+        }
+    };
+
     const iniciarActualizacionesEnTiempoReal = () => {
         if (pollingInterval.current) {
             clearInterval(pollingInterval.current);
@@ -195,7 +214,10 @@ export default function MisOrdenes() {
         setActualizandoEnTiempoReal(true);
 
         pollingInterval.current = setInterval(() => {
-            if (orden && orden.estado !== "entregada" && orden.estado !== "cancelada") {
+            if (orden &&
+                orden.estado !== "entregada" &&
+                orden.estado !== "cancelada" &&
+                orden.estado !== "llegue_a_destino") {
                 buscarOrden(true);
             } else {
                 detenerActualizacionesEnTiempoReal();
@@ -213,16 +235,17 @@ export default function MisOrdenes() {
 
     const mostrarNotificacion = (
         mensaje: string,
-        color: "orange" | "green" | "red"
+        color: "red" | "orange" | "yellow" | "blue" | "green"
     ) => {
         if (typeof window !== "undefined") {
             const notificacion = document.createElement("div");
-            const bgColor =
-                color === "orange"
-                    ? "bg-orange-500"
-                    : color === "green"
-                        ? "bg-green-500"
-                        : "bg-red-500";
+            const bgColor = {
+                red: "bg-red-500",
+                orange: "bg-orange-500",
+                yellow: "bg-yellow-500",
+                blue: "bg-blue-500",
+                green: "bg-green-500"
+            }[color];
 
             notificacion.className = `fixed top-4 left-4 right-4 ${bgColor} text-white px-4 py-3 rounded-xl shadow-2xl z-50 transform transition-all duration-300`;
             notificacion.innerHTML = `
@@ -283,6 +306,7 @@ export default function MisOrdenes() {
             orden_tomada: tipo === "domicilio" ? "25-35 min" : "15-20 min",
             lista: tipo === "domicilio" ? "Esperando repartidor" : "Lista para recoger",
             en_camino: "El repartidor está en camino",
+            llegue_a_destino: "El repartidor ha llegado",
         };
 
         return tiempos[estado as keyof typeof tiempos] || null;
@@ -292,12 +316,25 @@ export default function MisOrdenes() {
         return telefono.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3");
     };
 
+    // Función para obtener el color del gradiente de la barra de progreso
+    const getProgressBarColor = (estado: string) => {
+        switch (estado) {
+            case "orden_tomada": return "bg-red-500";
+            case "lista": return "bg-orange-500";
+            case "en_camino": return "bg-yellow-500";
+            case "llegue_a_destino": return "bg-blue-500";
+            case "entregada": return "bg-green-500";
+            case "cancelada": return "bg-gray-500";
+            default: return "bg-gray-500";
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white pb-32">
             {/* Header unificado */}
             <div className="bg-white border-b border-gray-200 px-6 py-6 sticky top-0 z-40">
                 <div className="max-w-4xl mx-auto flex items-center gap-4">
-                    <div className="bg-orange-500 p-3 rounded-xl">
+                    <div className="bg-gradient-to-r from-red-500 to-green-500 p-3 rounded-xl">
                         <Package className="text-2xl text-white" />
                     </div>
                     <div>
@@ -313,7 +350,7 @@ export default function MisOrdenes() {
 
             {/* Contenido */}
             <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
-                {/* Card búsqueda - MODIFICADA */}
+                {/* Card búsqueda */}
                 <div className="bg-white rounded-2xl p-6 shadow-md">
                     <div className="flex items-center justify-between mb-2">
                         <label className="block text-sm font-medium text-gray-700">
@@ -357,7 +394,7 @@ export default function MisOrdenes() {
                     <button
                         onClick={() => buscarOrden()}
                         disabled={loading || !telefono.trim()}
-                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-400 disabled:to-gray-400 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-md"
+                        className="w-full bg-gradient-to-r from-red-500 to-green-500 hover:from-red-600 hover:to-green-600 disabled:from-gray-400 disabled:to-gray-400 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-md"
                     >
                         {loading ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
@@ -443,84 +480,241 @@ export default function MisOrdenes() {
                                 )}
                             </div>
 
-                            {/* Barra progreso */}
-                            <div className="mb-4">
-                                <div className="flex justify-between text-xs text-gray-500 mb-2">
-                                    <span>Recibido</span>
-                                    <span>Entregado</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div
-                                        className={`h-2 rounded-full transition-all duration-500 ${orden.estado === "orden_tomada"
-                                            ? "w-1/4"
-                                            : orden.estado === "lista"
-                                                ? "w-1/2"
+                            {/* Barra de progreso SOLO para estados avanzados */}
+                            {(orden.estado === "lista" || orden.estado === "en_camino" || orden.estado === "llegue_a_destino" || orden.estado === "entregada") && (
+                                <div className="mb-4">
+                                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                                        <span>Inicio</span>
+                                        <span>Entrega</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div
+                                            className={`h-2 rounded-full transition-all duration-500 ${orden.estado === "lista"
+                                                ? "w-1/4"
                                                 : orden.estado === "en_camino"
-                                                    ? "w-3/4"
-                                                    : "w-full"
-                                            } ${estadosConfig[orden.estado].progressColor}`}
-                                    ></div>
+                                                    ? "w-1/2"
+                                                    : orden.estado === "llegue_a_destino"
+                                                        ? "w-3/4"
+                                                        : "w-full"
+                                                } ${getProgressBarColor(orden.estado)}`}
+                                        ></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Estados con animaciones */}
+                            <div className="space-y-3">
+                                {/* Estado: Orden Tomada */}
+                                <div className={`flex items-center gap-3 p-3 rounded-lg ${orden.estado === "orden_tomada"
+                                    ? "bg-red-50 border border-red-200"
+                                    : "bg-gray-50"
+                                    }`}>
+                                    <div className={`p-2 rounded-full ${orden.estado === "orden_tomada"
+                                        ? "bg-red-100 animate-pulse"
+                                        : orden.estado === "cancelada" || orden.estado === "entregada"
+                                            ? "bg-gray-100"
+                                            : "bg-green-100"
+                                        }`}>
+                                        <Clock size={16} className={
+                                            orden.estado === "orden_tomada"
+                                                ? "text-red-600"
+                                                : orden.estado === "cancelada" || orden.estado === "entregada"
+                                                    ? "text-gray-400"
+                                                    : "text-green-500"
+                                        } />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-medium ${orden.estado === "orden_tomada"
+                                            ? "text-red-700"
+                                            : orden.estado === "cancelada" || orden.estado === "entregada"
+                                                ? "text-gray-500"
+                                                : "text-green-600"
+                                            }`}>
+                                            Orden recibida, empieza la preparación.
+                                        </p>
+
+                                    </div>
+                                    {orden.estado === "orden_tomada" && (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-500 border-t-transparent"></div>
+                                    )}
+                                </div>
+
+                                {/* Estado: Lista */}
+                                <div className={`flex items-center gap-3 p-3 rounded-lg ${orden.estado === "lista"
+                                    ? "bg-orange-50 border border-orange-200"
+                                    : orden.estado === "orden_tomada"
+                                        ? "bg-gray-50 opacity-50"
+                                        : "bg-gray-50"
+                                    }`}>
+                                    <div className={`p-2 rounded-full ${orden.estado === "lista"
+                                        ? "bg-orange-100 animate-bounce"
+                                        : orden.estado === "orden_tomada"
+                                            ? "bg-gray-100"
+                                            : "bg-green-100"
+                                        }`}>
+                                        <CheckCircle size={16} className={
+                                            orden.estado === "lista"
+                                                ? "text-orange-600"
+                                                : orden.estado === "orden_tomada"
+                                                    ? "text-gray-400"
+                                                    : "text-green-500"
+                                        } />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-medium ${orden.estado === "lista"
+                                            ? "text-orange-700"
+                                            : orden.estado === "orden_tomada"
+                                                ? "text-gray-400"
+                                                : "text-green-600"
+                                            }`}>
+                                            Su orden se terminó de preparar, esperando al repartidor.
+                                        </p>
+
+                                    </div>
+                                    {orden.estado === "lista" && (
+                                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
+                                    )}
+                                </div>
+
+                                {/* Estado: En Camino (solo para domicilio) */}
+                                {orden.tipo_orden === "domicilio" && (
+                                    <div className={`flex items-center gap-3 p-3 rounded-lg ${orden.estado === "en_camino"
+                                        ? "bg-yellow-50 border border-yellow-200"
+                                        : (orden.estado === "orden_tomada" || orden.estado === "lista")
+                                            ? "bg-gray-50 opacity-50"
+                                            : "bg-gray-50"
+                                        }`}>
+                                        <div className={`p-2 rounded-full ${orden.estado === "en_camino"
+                                            ? "bg-yellow-100 animate-pulse"
+                                            : (orden.estado === "orden_tomada" || orden.estado === "lista")
+                                                ? "bg-gray-100"
+                                                : "bg-green-100"
+                                            }`}>
+                                            <FaMotorcycle size={16} className={
+                                                orden.estado === "en_camino"
+                                                    ? "text-yellow-600"
+                                                    : (orden.estado === "orden_tomada" || orden.estado === "lista")
+                                                        ? "text-gray-400"
+                                                        : "text-green-500"
+                                            } />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className={`text-sm font-medium ${orden.estado === "en_camino"
+                                                ? "text-yellow-700"
+                                                : (orden.estado === "orden_tomada" || orden.estado === "lista")
+                                                    ? "text-gray-400"
+                                                    : "text-green-600"
+                                                }`}>
+                                                El repartidor ya tiene tu orden y va en camino.
+                                            </p>
+
+                                        </div>
+                                        {orden.estado === "en_camino" && (
+                                            <div className="flex space-x-1">
+                                                <div className="w-1 h-1 bg-yellow-500 rounded-full animate-bounce"></div>
+                                                <div className="w-1 h-1 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                                <div className="w-1 h-1 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Estado: Llegué a Destino (solo para domicilio) */}
+                                {orden.tipo_orden === "domicilio" && (
+                                    <div className={`flex items-center gap-3 p-3 rounded-lg ${orden.estado === "llegue_a_destino"
+                                        ? "bg-blue-50 border border-blue-200"
+                                        : (orden.estado === "orden_tomada" || orden.estado === "lista" || orden.estado === "en_camino")
+                                            ? "bg-gray-50 opacity-50"
+                                            : "bg-gray-50"
+                                        }`}>
+                                        <div className={`p-2 rounded-full ${orden.estado === "llegue_a_destino"
+                                            ? "bg-blue-100 animate-pulse"
+                                            : (orden.estado === "orden_tomada" || orden.estado === "lista" || orden.estado === "en_camino")
+                                                ? "bg-gray-100"
+                                                : "bg-green-100"
+                                            }`}>
+                                            <MapPin size={16} className={
+                                                orden.estado === "llegue_a_destino"
+                                                    ? "text-blue-600"
+                                                    : (orden.estado === "orden_tomada" || orden.estado === "lista" || orden.estado === "en_camino")
+                                                        ? "text-gray-400"
+                                                        : "text-green-500"
+                                            } />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className={`text-sm font-medium ${orden.estado === "llegue_a_destino"
+                                                ? "text-blue-700"
+                                                : (orden.estado === "orden_tomada" || orden.estado === "lista" || orden.estado === "en_camino")
+                                                    ? "text-gray-400"
+                                                    : "text-green-600"
+                                                }`}>
+                                                El repartidor ha llegado a tu dirección.
+                                            </p>
+
+                                        </div>
+                                        {orden.estado === "llegue_a_destino" && (
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Estado: Entregada */}
+                                <div className={`flex items-center gap-3 p-3 rounded-lg ${orden.estado === "entregada"
+                                    ? "bg-green-50 border border-green-200"
+                                    : orden.estado === "cancelada"
+                                        ? "bg-red-50 border border-red-200"
+                                        : "bg-gray-50 opacity-50"
+                                    }`}>
+                                    <div className={`p-2 rounded-full ${orden.estado === "entregada"
+                                        ? "bg-green-100"
+                                        : orden.estado === "cancelada"
+                                            ? "bg-red-100"
+                                            : "bg-gray-100"
+                                        }`}>
+                                        <CheckCircle size={16} className={
+                                            orden.estado === "entregada"
+                                                ? "text-green-600"
+                                                : orden.estado === "cancelada"
+                                                    ? "text-red-600"
+                                                    : "text-gray-400"
+                                        } />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-medium ${orden.estado === "entregada"
+                                            ? "text-green-700"
+                                            : orden.estado === "cancelada"
+                                                ? "text-red-700"
+                                                : "text-gray-400"
+                                            }`}>
+                                            {orden.estado === "cancelada" ? "Orden Cancelada" : "Orden Entregada"}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            {orden.estado === "entregada"
+                                                ? `¡Disfruta tu pedido, ${nombre}!` // <--- ¡AQUÍ ESTÁ EL CAMBIO!
+                                                : orden.estado === "cancelada"
+                                                    ? "Pedido cancelado exitosamente"
+                                                    : "Pendiente"}
+                                        </p>
+                                    </div>
+                                    {orden.estado === "entregada" && (
+                                        <div className="text-green-500">✓</div>
+                                    )}
+                                    {orden.estado === "cancelada" && (
+                                        <div className="text-red-500">✕</div>
+                                    )}
                                 </div>
                             </div>
 
-                            {orden.puede_cancelar && !mostrandoCancelacion && (
+                            {orden.puede_cancelar && orden.estado !== "llegue_a_destino" && orden.estado !== "entregada" && !mostrandoCancelacion && (
                                 <button
                                     onClick={() => setMostrandoCancelacion(true)}
-                                    className="w-full py-3 border-2 border-red-500 text-red-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-50 transition-colors"
+                                    className="w-full py-3 border-2 border-red-500 text-red-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-50 transition-colors mt-4"
                                 >
                                     <XCircle size={18} />
                                     Cancelar Pedido
                                 </button>
                             )}
                         </div>
-
-                        {/* Modal de cancelación */}
-                        {mostrandoCancelacion && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                                <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-                                    <div className="text-center mb-4">
-                                        <XCircle size={48} className="text-red-500 mx-auto mb-2" />
-                                        <h3 className="text-lg font-bold text-gray-800">
-                                            Cancelar Pedido
-                                        </h3>
-                                        <p className="text-gray-600 text-sm mt-1">
-                                            ¿Estás seguro de que quieres cancelar este pedido?
-                                        </p>
-                                    </div>
-
-                                    <textarea
-                                        value={motivoCancelacion}
-                                        onChange={(e) => setMotivoCancelacion(e.target.value)}
-                                        placeholder="Motivo (opcional)"
-                                        className="w-full p-3 border border-gray-300 rounded-lg text-sm mb-4 resize-none"
-                                        rows={3}
-                                    />
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => {
-                                                setMostrandoCancelacion(false);
-                                                setMotivoCancelacion("");
-                                            }}
-                                            className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-lg font-medium"
-                                        >
-                                            Volver
-                                        </button>
-                                        <button
-                                            onClick={handleCancelarOrden}
-                                            disabled={cancelando}
-                                            className="flex-1 bg-red-500 text-white py-3 rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                                        >
-                                            {cancelando ? (
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                            ) : (
-                                                "Cancelar"
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
                         {/* Card dirección */}
                         {orden.tipo_orden === "domicilio" && (
@@ -648,7 +842,7 @@ export default function MisOrdenes() {
                         </p>
                         <button
                             onClick={() => buscarOrden()}
-                            className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-lg font-medium"
+                            className="mt-4 bg-gradient-to-r from-red-500 to-green-500 text-white px-6 py-2 rounded-lg font-medium"
                         >
                             Buscar ahora
                         </button>
@@ -667,30 +861,6 @@ export default function MisOrdenes() {
                     </div>
                 )}
             </div>
-
-            {/* Footer fijo para ayuda */}
-            {orden && (
-                <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 z-40">
-                    <div className="max-w-4xl mx-auto flex items-center justify-between">
-                        <div>
-                            <p className="text-sm">¿Problemas con tu pedido?</p>
-                            <p className="text-orange-100 text-xs">Estamos aquí para ayudarte</p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                if (orden.cliente_telefono) {
-                                    window.location.href = `tel:${orden.cliente_telefono.replace(/\s+/g, "")}`;
-                                } else {
-                                    mostrarNotificacion("Teléfono no disponible", "red");
-                                }
-                            }}
-                            className="bg-white text-orange-600 px-4 py-2 rounded-lg font-medium text-sm"
-                        >
-                            Contactar
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
-    );
-}
+    )
+};

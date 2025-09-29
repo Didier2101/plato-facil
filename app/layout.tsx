@@ -1,26 +1,21 @@
-import { Inter } from "next/font/google";
-import { SupabaseProvider } from "@/src/components/SupabaseProvider";
-import "./globals.css";
+import "@/app/globals.css";
+import type { Metadata } from "next";
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: 'swap',
-});
-
-export const metadata = {
-  title: "PlatoFácil",
-  description: "PlatoFácil admin and ordering",
+export const metadata: Metadata = {
+    title: "Plato Fácil",
+    description: "Sistema de gestión",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="es">
-      <body className={`${inter.className} antialiased min-h-screen bg-gray-50 text-slate-900`}>
-        <SupabaseProvider>
-          {children}
-        </SupabaseProvider>
-      </body>
-    </html>
-  );
+export default function RootLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    return (
+        <html lang="es" suppressHydrationWarning>
+            <body suppressHydrationWarning>
+                {children}
+            </body>
+        </html>
+    );
 }

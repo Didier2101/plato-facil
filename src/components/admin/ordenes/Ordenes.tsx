@@ -127,9 +127,7 @@ export default function Ordenes() {
         }
     };
 
-    // Formato tiempo transcurrido
-
-
+    // Color del tiempo transcurrido
     const getTimeColor = (fecha: string) => {
         const diffMins = Math.floor(
             (new Date().getTime() - new Date(fecha).getTime()) / 60000
@@ -139,7 +137,15 @@ export default function Ordenes() {
         return "text-red-600 bg-red-50";
     };
 
+    // Estadísticas para cocina
+    const ordenesUrgentes = ordenes.filter(orden => {
+        const diffMins = Math.floor(
+            (new Date().getTime() - new Date(orden.created_at).getTime()) / 60000
+        );
+        return diffMins >= 20;
+    }).length;
 
+    const ordenesDomicilio = ordenes.filter(orden => orden.tipo_orden === "domicilio").length;
 
     if (loading) {
         return (
@@ -153,9 +159,8 @@ export default function Ordenes() {
 
     return (
         <div className="p-6">
-            {/* Header */}
-
-            <div className="">
+            {/* Header mejorado para cocina */}
+            <div className="mb-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="bg-orange-500 p-3 rounded-xl">
@@ -168,12 +173,29 @@ export default function Ordenes() {
                             </p>
                         </div>
                     </div>
+
+                    {/* Estadísticas rápidas */}
+                    {ordenes.length > 0 && (
+                        <div className="flex gap-3">
+                            {ordenesUrgentes > 0 && (
+                                <div className="bg-red-100 text-red-800 px-3 py-2 rounded-lg">
+                                    <p className="text-xs font-medium">Urgentes</p>
+                                    <p className="font-bold">{ordenesUrgentes}</p>
+                                </div>
+                            )}
+                            {ordenesDomicilio > 0 && (
+                                <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg">
+                                    <p className="text-xs font-medium">Domicilios</p>
+                                    <p className="font-bold">{ordenesDomicilio}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
-
             {/* Contenido */}
-            <div className="mt-4">
+            <div className="">
                 {ordenes.length === 0 ? (
                     <div className="text-center py-16 bg-white rounded-xl shadow-sm">
                         <FaUtensils className="text-gray-300 text-5xl mx-auto mb-4" />
@@ -196,6 +218,7 @@ export default function Ordenes() {
                                 timeColor={getTimeColor(orden.created_at)}
                                 processingOrder={processingOrder}
                                 cambiarEstado={cambiarEstado}
+                                mostrarPrecios={false} // ✅ CLAVE: No mostrar precios en cocina
                             />
                         ))}
                     </div>

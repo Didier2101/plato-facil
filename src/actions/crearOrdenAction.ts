@@ -36,12 +36,17 @@ interface DatosDomicilio {
     distancia_km: number;
     duracion_estimada: number;
     direccion_formateada?: string;
+    // Agregar campos detallados para tracking
+    distancia_base_km: number;
+    costo_base: number;
+    distancia_exceso_km: number;
+    costo_exceso: number;
 }
 
 interface OrdenData {
     cliente: DatosCliente;
     productos: ProductoOrden[];
-    total: number;
+    total: number; // Este es solo el total de productos
     estado: string;
     tipo_orden: "establecimiento" | "domicilio";
     domicilio?: DatosDomicilio;
@@ -51,6 +56,14 @@ interface OrdenData {
 
 export async function crearOrdenAction(ordenData: OrdenData) {
     try {
+        // ✅ VALIDACIONES MEJORADAS - Campos obligatorios
+        if (!ordenData.cliente.nombre?.trim()) {
+            return {
+                success: false,
+                error: "El nombre del cliente es obligatorio"
+            };
+        }
+
         // Validar domicilio si es necesario
         if (ordenData.tipo_orden === "domicilio") {
             if (!ordenData.domicilio) {
@@ -60,11 +73,35 @@ export async function crearOrdenAction(ordenData: OrdenData) {
                 };
             }
 
+            if (!ordenData.cliente.telefono?.trim()) {
+                return {
+                    success: false,
+                    error: "El teléfono es obligatorio para pedidos a domicilio"
+                };
+            }
+
             if (!ordenData.cliente.direccion?.trim()) {
                 return {
                     success: false,
-                    error: "La dirección es requerida para pedidos a domicilio"
+                    error: "La dirección es obligatoria para pedidos a domicilio"
                 };
+            }
+
+            if (!ordenData.metodo_pago) {
+                return {
+                    success: false,
+                    error: "El método de pago es obligatorio para pedidos a domicilio"
+                };
+            }
+
+            if (ordenData.metodo_pago === "efectivo") {
+                const totalFinal = ordenData.total + ordenData.domicilio.costo_domicilio;
+                if (!ordenData.monto_entregado || ordenData.monto_entregado < totalFinal) {
+                    return {
+                        success: false,
+                        error: "El monto entregado debe ser suficiente para cubrir el total"
+                    };
+                }
             }
 
             // Verificar que el domicilio esté activo
@@ -81,26 +118,42 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             }
         }
 
-        // Calcular total final incluyendo domicilio
-        const totalFinal = ordenData.total + (ordenData.domicilio?.costo_domicilio || 0);
+        // Validar productos
+        if (!ordenData.productos || ordenData.productos.length === 0) {
+            return {
+                success: false,
+                error: "Debe incluir al menos un producto en la orden"
+            };
+        }
 
-        // ✅ SOLO UNA inserción de la orden - guardar método de pago como referencia
+        // ✅ SEPARAR COSTOS CORRECTAMENTE
+        const subtotalProductos = ordenData.total; // Solo productos
+        const costoDomicilio = ordenData.domicilio?.costo_domicilio || 0;
+        const totalFinal = subtotalProductos + costoDomicilio;
+
+        // ✅ CREAR ORDEN CON CAMPOS SEPARADOS
         const { data: orden, error: ordenError } = await supabaseAdmin
             .from("ordenes")
             .insert({
-                cliente_nombre: ordenData.cliente.nombre,
-                cliente_telefono: ordenData.cliente.telefono || null,
+                cliente_nombre: ordenData.cliente.nombre.trim(),
+                cliente_telefono: ordenData.cliente.telefono?.trim() || null,
                 cliente_direccion: ordenData.tipo_orden === "domicilio"
-                    ? (ordenData.domicilio?.direccion_formateada || ordenData.cliente.direccion)
+                    ? (ordenData.domicilio?.direccion_formateada || ordenData.cliente.direccion?.trim())
                     : "En establecimiento",
-                cliente_notas: ordenData.cliente.notas || null,
+                cliente_notas: ordenData.cliente.notas?.trim() || null,
+
+                // ✅ CAMPOS SEPARADOS SEGÚN NUEVA ESTRUCTURA
+                subtotal_productos: subtotalProductos,
+                costo_domicilio: costoDomicilio,
+                total_final: totalFinal,
+
+                // Campo legacy (mantener por compatibilidad)
                 total: totalFinal,
+
                 estado: ordenData.estado,
                 tipo_orden: ordenData.tipo_orden,
-                // ✅ Solo guardar método de pago como referencia, sin crear registro de pago
                 metodo_pago: ordenData.metodo_pago || null,
                 monto_entregado: ordenData.monto_entregado || null,
-                costo_domicilio: ordenData.domicilio?.costo_domicilio || 0,
                 distancia_km: ordenData.domicilio?.distancia_km || null,
                 duracion_estimada: ordenData.domicilio?.duracion_estimada || null,
                 created_at: new Date().toISOString()
@@ -124,7 +177,7 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             precio_unitario: producto.precio,
             cantidad: producto.cantidad,
             subtotal: producto.subtotal,
-            notas_personalizacion: producto.notas || null
+            notas_personalizacion: producto.notas?.trim() || null
         }));
 
         const { data: detallesCreados, error: detallesError } = await supabaseAdmin
@@ -191,13 +244,19 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             }
         }
 
+        // ✅ CALCULAR CAMBIO CORRECTAMENTE
+        const cambioADevolver = ordenData.metodo_pago === "efectivo" && ordenData.monto_entregado
+            ? ordenData.monto_entregado - totalFinal
+            : null;
+
         return {
             success: true,
             orden: {
                 id: orden.id,
-                total: orden.total,
-                total_productos: ordenData.total,
-                costo_domicilio: ordenData.domicilio?.costo_domicilio || 0,
+                // ✅ RETORNAR VALORES SEPARADOS
+                subtotal_productos: subtotalProductos,
+                costo_domicilio: costoDomicilio,
+                total_final: totalFinal,
                 distancia_km: ordenData.domicilio?.distancia_km,
                 estado: orden.estado,
                 tipo_orden: orden.tipo_orden,
@@ -205,9 +264,8 @@ export async function crearOrdenAction(ordenData: OrdenData) {
                 productos_personalizados: personalizacionesData.length,
                 // Información adicional útil
                 metodo_pago: ordenData.metodo_pago,
-                cambio_a_devolver: ordenData.metodo_pago === "efectivo" && ordenData.monto_entregado
-                    ? ordenData.monto_entregado - totalFinal
-                    : null
+                cambio_a_devolver: cambioADevolver,
+                monto_entregado: ordenData.monto_entregado
             }
         };
 
