@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, AnimatePresence } from "framer-motion";
 import { useCarritoStore } from "@/src/store/carritoStore";
 import { useClienteStore } from "@/src/store/clienteStore";
 import { crearOrdenAction } from "@/src/actions/crearOrdenAction";
@@ -11,14 +12,15 @@ import {
     FaTrash,
     FaUser,
     FaPhone,
-    FaStickyNote,
+
     FaCreditCard,
     FaMoneyBillWave,
     FaShoppingCart,
     FaUtensils,
     FaTruck,
     FaSpinner,
-    FaMapMarkerAlt
+    FaMapMarkerAlt,
+    FaTimes
 } from "react-icons/fa";
 import MapaUbicacion from "../domicilio/MapaUbicacion";
 
@@ -54,6 +56,8 @@ interface DatosDomicilio {
     costo_base: number;
     distancia_exceso_km: number;
     costo_exceso: number;
+    latitud_destino: number;  // ← Agregar
+    longitud_destino: number; // ← Agregar
 }
 
 interface OrdenData {
@@ -77,7 +81,6 @@ interface UbicacionConfirmada {
     distancia_km: number;
     costo_domicilio: number;
     duracion_estimada: number;
-    // Agregar estos campos para que coincida con MapaUbicacion
     distancia_base_km: number;
     costo_base: number;
     distancia_exceso_km: number;
@@ -136,7 +139,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
         });
     };
 
-
     // Manejo de confirmación de ubicación desde MapaUbicacion
     const handleUbicacionConfirmada = (ubicacion: UbicacionConfirmada) => {
         setDatosDomicilio({
@@ -146,7 +148,9 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
             distancia_base_km: ubicacion.distancia_base_km,
             costo_base: ubicacion.costo_base,
             distancia_exceso_km: ubicacion.distancia_exceso_km,
-            costo_exceso: ubicacion.costo_exceso
+            costo_exceso: ubicacion.costo_exceso,
+            latitud_destino: ubicacion.coordenadas.lat,   // ← Agregar
+            longitud_destino: ubicacion.coordenadas.lng   // ← Agregar
         });
     };
 
@@ -314,348 +318,373 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
         }
     };
 
-
     return (
-        <>
+        <AnimatePresence>
             {/* Overlay */}
-            <div
-                className="fixed inset-0 bg-black/50 z-40"
+            <motion.div
+                key="overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black z-40"
                 onClick={handleClose}
             />
 
-            {/* Panel desde abajo */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-50 max-h-[90vh] flex flex-col overflow-hidden">
-                {/* Handle de arrastre */}
-                <div className="flex justify-center pt-2 pb-1">
-                    <div
-                        className="w-16 h-1.5 bg-gray-300 rounded-full cursor-pointer"
-                        onClick={handleClose}
-                    />
-                </div>
+            {/* Panel */}
+            <motion.div
+                key="panel"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ duration: 0.3 }}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                onDragEnd={(_, info) => {
+                    if (info.offset.y > 100) {
+                        onClose();
+                    }
+                }}
+                className="
+          mx-auto 
+          fixed left-0 right-0 
+          bottom-0 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2
+          bg-white rounded-t-3xl lg:rounded-3xl 
+          shadow-2xl z-50 
+          max-h-[90vh] flex flex-col 
+          lg:max-w-2xl
+          h-full lg:h-auto
+        "
+            >
+                {/* Barra deslizable en móvil */}
+                <div className="lg:hidden w-16 h-1.5 bg-gray-300 rounded-full mx-auto mt-2 mb-4" />
 
-                {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-orange-500 text-white px-3 py-2 rounded-lg">
-                                {tipo === "domicilio" ? <FaTruck className="text-lg" /> : <FaShoppingCart className="text-lg" />}
+                {/* Botón X en desktop */}
+                <button
+                    onClick={handleClose}
+                    className="hidden lg:block absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                >
+                    <FaTimes size={20} />
+                </button>
+
+                {/* Contenedor principal con scroll */}
+                <div className="flex-1 flex flex-col min-h-0">
+                    {/* Header */}
+                    <div className="px-6 py-4 border-b border-gray-200">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-orange-500 text-white p-3 rounded-xl">
+                                    {tipo === "domicilio" ? <FaTruck className="text-lg" /> : <FaShoppingCart className="text-lg" />}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">
+                                        {tipo === "domicilio" ? "Pedido a domicilio" : "Nueva orden"}
+                                    </h2>
+                                    <p className="text-sm text-gray-600">
+                                        {productos.length} productos en el carrito
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900">
-                                    {tipo === "domicilio" ? "Pedido a domicilio" : "Nueva orden"}
-                                </h2>
-                                <p className="text-sm text-gray-600">
-                                    {productos.length} productos en el carrito
-                                </p>
-                            </div>
+
+                            {productos.length > 0 && (
+                                <button
+                                    onClick={handleLimpiarTodo}
+                                    className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                    title="Limpiar carrito"
+                                >
+                                    <FaTrash size={16} />
+                                </button>
+                            )}
                         </div>
 
+                        {/* Total en el header */}
                         {productos.length > 0 && (
-                            <button
-                                onClick={handleLimpiarTodo}
-                                className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
-                                title="Limpiar carrito"
-                            >
-                                <FaTrash size={16} />
-                            </button>
-                        )}
-                    </div>
+                            <div className="mt-4 space-y-2">
+                                <div className="flex justify-between items-center text-sm text-gray-600">
+                                    <span>Subtotal productos</span>
+                                    <span>${total.toLocaleString("es-CO")}</span>
+                                </div>
 
-                    {/* Total en el header */}
-                    {productos.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                            <div className="flex justify-between items-center text-sm text-gray-600">
-                                <span>Subtotal productos</span>
-                                <span>${total.toLocaleString("es-CO")}</span>
-                            </div>
+                                {datosDomicilio && (
+                                    <div className="flex justify-between items-center text-sm text-blue-600">
+                                        <span className="flex items-center gap-1">
+                                            <FaTruck size={12} />
+                                            Domicilio ({datosDomicilio.distancia_km} km)
+                                        </span>
+                                        <span>${datosDomicilio.costo_domicilio.toLocaleString("es-CO")}</span>
+                                    </div>
+                                )}
 
-                            {datosDomicilio && (
-                                <div className="flex justify-between items-center text-sm text-blue-600">
-                                    <span className="flex items-center gap-1">
-                                        <FaTruck size={12} />
-                                        Domicilio ({datosDomicilio.distancia_km} km)
+                                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                                    <span className="text-gray-900 font-medium">Total final</span>
+                                    <span className="text-2xl font-bold text-green-600">
+                                        ${totalFinal.toLocaleString("es-CO")}
                                     </span>
-                                    <span>${datosDomicilio.costo_domicilio.toLocaleString("es-CO")}</span>
-                                </div>
-                            )}
-
-                            <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                                <span className="text-gray-900 font-medium">Total final</span>
-                                <span className="text-2xl font-bold text-green-600">
-                                    ${totalFinal.toLocaleString("es-CO")}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Contenido scrollable */}
-                <div className="flex-1 overflow-y-auto">
-                    {productos.length === 0 ? (
-                        <div className="text-center py-12 px-4">
-                            <FaShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Tu carrito está vacío</h3>
-                            <p className="text-sm text-gray-500">Agrega productos para continuar</p>
-                        </div>
-                    ) : (
-                        <div className="p-6 space-y-4">
-                            {/* Sección de ubicación para domicilio - Solo para calcular costo */}
-                            {tipo === "domicilio" && (
-                                <MapaUbicacion
-                                    onUbicacionConfirmada={handleUbicacionConfirmada}
-                                    onLimpiar={handleLimpiarUbicacion}
-                                    ubicacionActual={datosDomicilio ? {
-                                        coordenadas: { lat: 0, lng: 0 },
-                                        distancia_km: datosDomicilio.distancia_km,
-                                        costo_domicilio: datosDomicilio.costo_domicilio,
-                                        duracion_estimada: datosDomicilio.duracion_estimada,
-                                        distancia_base_km: datosDomicilio.distancia_base_km,
-                                        costo_base: datosDomicilio.costo_base,
-                                        distancia_exceso_km: datosDomicilio.distancia_exceso_km,
-                                        costo_exceso: datosDomicilio.costo_exceso
-                                    } : null}
-                                />
-                            )}
-
-                            {/* Sección de productos */}
-                            <div className="space-y-4">
-                                <h4 className="font-semibold text-gray-900 text-lg flex items-center gap-2">
-                                    <FaUtensils className="text-orange-500" />
-                                    Productos seleccionados
-                                </h4>
-
-                                {productos.map((p) => (
-                                    <div
-                                        key={p.personalizacion_id || `${p.id}-${Math.random()}`}
-                                        className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden"
-                                    >
-                                        <div className="p-4">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="flex-1">
-                                                    <h5 className="font-semibold text-sm text-gray-900">{p.nombre}</h5>
-                                                    <p className="text-sm text-gray-600">${p.precio.toLocaleString("es-CO")} c/u</p>
-                                                </div>
-
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => p.personalizacion_id && actualizarCantidad(p.personalizacion_id, p.cantidad - 1)}
-                                                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
-                                                        >
-                                                            <FaMinus size={12} />
-                                                        </button>
-                                                        <div className="bg-gray-100 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                                                            {p.cantidad}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => p.personalizacion_id && actualizarCantidad(p.personalizacion_id, p.cantidad + 1)}
-                                                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
-                                                        >
-                                                            <FaPlus size={12} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right flex flex-col items-end">
-                                                    <p className="font-bold text-sm text-gray-900">
-                                                        ${(p.precio * p.cantidad).toLocaleString("es-CO")}
-                                                    </p>
-                                                    <button
-                                                        onClick={() => p.personalizacion_id && removerProducto(p.personalizacion_id)}
-                                                        className="text-xs text-red-500 hover:text-red-700 mt-1 transition-colors"
-                                                    >
-                                                        <FaTrash />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Personalizaciones */}
-                                            {(p.ingredientes_personalizados && p.ingredientes_personalizados.some(ing => !ing.incluido && !ing.obligatorio)) || p.notas ? (
-                                                <div className="mt-4 pt-3 border-t border-gray-200">
-                                                    {p.ingredientes_personalizados && p.ingredientes_personalizados.filter(ing => !ing.incluido && !ing.obligatorio).length > 0 && (
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <p className="text-sm font-medium text-red-700">Sin:</p>
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {p.ingredientes_personalizados
-                                                                    .filter(ing => !ing.incluido && !ing.obligatorio)
-                                                                    .map(ing => (
-                                                                        <span
-                                                                            key={ing.ingrediente_id}
-                                                                            className="text-xs text-red-700"
-                                                                        >
-                                                                            {ing.nombre},
-                                                                        </span>
-                                                                    ))
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {p.notas && (
-                                                        <div className="text-sm text-blue-700 mt-2 p-2 bg-blue-50 rounded-lg">
-                                                            <span className="font-medium">Notas:</span> {p.notas}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Datos del cliente */}
-                            <div className="pt-4 border-t border-gray-200">
-                                <h4 className="font-semibold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                                    <FaUser className="text-orange-500" />
-                                    Datos del cliente
-                                </h4>
-                                <div className="space-y-3">
-                                    <div className="relative">
-                                        <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                        <input
-                                            type="text"
-                                            placeholder="Nombre del cliente *"
-                                            value={nombre}
-                                            onChange={(e) => setCliente({ nombre: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                            required
-                                        />
-
-                                    </div>
-
-                                    <div className="relative">
-                                        <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                        <input
-                                            type="text"
-                                            placeholder="Teléfono *"
-                                            value={telefono}
-                                            onChange={(e) => setCliente({ telefono: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                            required={tipo === "domicilio"}
-                                        />
-                                    </div>
-
-                                    {tipo === "domicilio" && (
-                                        <>
-                                            <div className="relative">
-                                                <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Dirección exacta de entrega *"
-                                                    value={direccion}
-                                                    onChange={(e) => setCliente({ direccion: e.target.value })}
-                                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                />
-                                            </div>
-                                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                                                <p className="text-xs text-blue-700">
-                                                    <strong>Importante:</strong> Escribe la dirección completa y exacta donde debe llegar el pedido.
-                                                    Ejemplo: Calle 123 #45-67, Apto 301, Edificio Torres del Parque, Barrio Chapinero
-                                                </p>
-                                            </div>
-
-                                            <div className="relative">
-                                                <FaStickyNote className="absolute left-3 top-4 text-gray-400" size={14} />
-                                                <select
-                                                    value={metodoPago}
-                                                    onChange={(e) => setMetodoPago(e.target.value as "efectivo" | "tarjeta" | "transferencia" | "")}
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                    required={tipo === "domicilio"}
-                                                >
-                                                    <option value="">Seleccionar método de pago *</option>
-                                                    <option value="efectivo">💵 Efectivo</option>
-                                                    <option value="tarjeta">💳 Tarjeta</option>
-                                                    <option value="transferencia">📱 Transferencia</option>
-                                                </select>
-                                            </div>
-
-                                            {/* Información de pago */}
-                                            <div className="pt-4 border-t border-gray-200">
-                                                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                                    <FaCreditCard className="text-orange-500" />
-                                                    Información de pago
-                                                </h4>
-                                                <select
-                                                    value={metodoPago}
-                                                    onChange={(e) => setMetodoPago(e.target.value as "efectivo" | "tarjeta" | "transferencia" | "")}
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                >
-                                                    <option value="">Seleccionar método de pago</option>
-                                                    <option value="efectivo">💵 Efectivo</option>
-                                                    <option value="tarjeta">💳 Tarjeta</option>
-                                                    <option value="transferencia">📱 Transferencia</option>
-                                                </select>
-
-                                                {metodoPago === "efectivo" && (
-                                                    <div className="mt-3 space-y-3">
-                                                        <div className="relative">
-                                                            <FaMoneyBillWave className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                                            <input
-                                                                type="number"
-                                                                placeholder="¿Con cuánto paga el cliente?"
-                                                                value={montoEntregado}
-                                                                onChange={(e) => setMontoEntregado(e.target.value ? Number(e.target.value) : "")}
-                                                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                            />
-                                                        </div>
-                                                        {cambio !== null && cambio >= 0 && (
-                                                            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                                                                <p className="text-sm text-green-700">
-                                                                    Cambio a devolver:{" "}
-                                                                    <span className="font-bold text-green-800">
-                                                                        ${cambio.toLocaleString("es-CO")}
-                                                                    </span>
-                                                                </p>
-                                                            </div>
-                                                        )}
-                                                        {cambio !== null && cambio < 0 && (
-                                                            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                                                                <p className="text-sm text-red-700">
-                                                                    Faltan:{" "}
-                                                                    <span className="font-bold text-red-800">
-                                                                        ${Math.abs(cambio).toLocaleString("es-CO")}
-                                                                    </span>
-                                                                </p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Footer con botón */}
-                {productos.length > 0 && (
-                    <div className="p-6 border-t border-gray-200 bg-white">
-                        <button
-                            onClick={handleProcesarOrden}
-                            disabled={procesando || (tipo === "domicilio" && !datosDomicilio)}
-                            className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white py-3 px-4 rounded-xl font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            {procesando ? (
-                                <FaSpinner className="animate-spin" />
-                            ) : (
-                                <>
-                                    {tipo === "domicilio" ? <FaTruck /> : <FaShoppingCart />}
-                                    {tipo === "domicilio" && !datosDomicilio
-                                        ? "Calcula el costo de domicilio primero"
-                                        : "Confirmar pedido"
-                                    }
-                                </>
-                            )}
-                        </button>
-
-                        {tipo === "domicilio" && !datosDomicilio && (
-                            <p className="text-center text-sm text-gray-500 mt-2">
-                                Selecciona tu ubicación en el mapa para calcular el costo de envío
-                            </p>
                         )}
                     </div>
-                )}
-            </div>
-        </>
+
+                    {/* Contenido con scroll */}
+                    <div className="flex-1 overflow-y-auto scrollbar-none px-6 space-y-6 mt-2 lg:mt-4 pb-4">
+                        {productos.length === 0 ? (
+                            <div className="text-center py-12 px-4">
+                                <FaShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">Tu carrito está vacío</h3>
+                                <p className="text-sm text-gray-500">Agrega productos para continuar</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Sección de ubicación para domicilio */}
+                                {tipo === "domicilio" && (
+                                    <div className="space-y-4">
+                                        <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                                            <FaMapMarkerAlt className="text-orange-500" />
+                                            Ubicación de entrega
+                                        </h4>
+                                        <MapaUbicacion
+                                            onUbicacionConfirmada={handleUbicacionConfirmada}
+                                            onLimpiar={handleLimpiarUbicacion}
+                                            ubicacionActual={datosDomicilio ? {
+                                                coordenadas: { lat: 0, lng: 0 },
+                                                distancia_km: datosDomicilio.distancia_km,
+                                                costo_domicilio: datosDomicilio.costo_domicilio,
+                                                duracion_estimada: datosDomicilio.duracion_estimada,
+                                                distancia_base_km: datosDomicilio.distancia_base_km,
+                                                costo_base: datosDomicilio.costo_base,
+                                                distancia_exceso_km: datosDomicilio.distancia_exceso_km,
+                                                costo_exceso: datosDomicilio.costo_exceso
+                                            } : null}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Sección de productos */}
+                                <div className="space-y-4">
+                                    <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                                        <FaUtensils className="text-orange-500" />
+                                        Productos seleccionados
+                                    </h4>
+
+                                    {productos.map((p) => (
+                                        <div
+                                            key={p.personalizacion_id || `${p.id}-${Math.random()}`}
+                                            className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden"
+                                        >
+                                            <div className="p-4">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex-1">
+                                                        <h5 className="font-semibold text-sm text-gray-900">{p.nombre}</h5>
+                                                        <p className="text-sm text-gray-600">${p.precio.toLocaleString("es-CO")} c/u</p>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => p.personalizacion_id && actualizarCantidad(p.personalizacion_id, p.cantidad - 1)}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                                            >
+                                                                <FaMinus size={12} />
+                                                            </button>
+                                                            <div className="bg-gray-100 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                                                                {p.cantidad}
+                                                            </div>
+                                                            <button
+                                                                onClick={() => p.personalizacion_id && actualizarCantidad(p.personalizacion_id, p.cantidad + 1)}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                                            >
+                                                                <FaPlus size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right flex flex-col items-end">
+                                                        <p className="font-bold text-sm text-gray-900">
+                                                            ${(p.precio * p.cantidad).toLocaleString("es-CO")}
+                                                        </p>
+                                                        <button
+                                                            onClick={() => p.personalizacion_id && removerProducto(p.personalizacion_id)}
+                                                            className="text-xs text-red-500 hover:text-red-700 mt-1 transition-colors"
+                                                        >
+                                                            <FaTrash />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Personalizaciones */}
+                                                {(p.ingredientes_personalizados && p.ingredientes_personalizados.some(ing => !ing.incluido && !ing.obligatorio)) || p.notas ? (
+                                                    <div className="mt-4 pt-3 border-t border-gray-200">
+                                                        {p.ingredientes_personalizados && p.ingredientes_personalizados.filter(ing => !ing.incluido && !ing.obligatorio).length > 0 && (
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <p className="text-sm font-medium text-red-700">Sin:</p>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {p.ingredientes_personalizados
+                                                                        .filter(ing => !ing.incluido && !ing.obligatorio)
+                                                                        .map(ing => (
+                                                                            <span
+                                                                                key={ing.ingrediente_id}
+                                                                                className="text-xs text-red-700"
+                                                                            >
+                                                                                {ing.nombre},
+                                                                            </span>
+                                                                        ))
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {p.notas && (
+                                                            <div className="text-sm text-blue-700 mt-2 p-2 bg-blue-50 rounded-lg">
+                                                                <span className="font-medium">Notas:</span> {p.notas}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Datos del cliente */}
+                                <div className="pt-4 border-t border-gray-200">
+                                    <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                        <FaUser className="text-orange-500" />
+                                        Datos del cliente
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div className="relative">
+                                            <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                                            <input
+                                                type="text"
+                                                placeholder="Nombre del cliente *"
+                                                value={nombre}
+                                                onChange={(e) => setCliente({ nombre: e.target.value })}
+                                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="relative">
+                                            <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                                            <input
+                                                type="text"
+                                                placeholder="Teléfono *"
+                                                value={telefono}
+                                                onChange={(e) => setCliente({ telefono: e.target.value })}
+                                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                required={tipo === "domicilio"}
+                                            />
+                                        </div>
+
+                                        {tipo === "domicilio" && (
+                                            <>
+                                                <div className="relative">
+                                                    <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Dirección exacta de entrega *"
+                                                        value={direccion}
+                                                        onChange={(e) => setCliente({ direccion: e.target.value })}
+                                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                    />
+                                                </div>
+                                                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                                    <p className="text-xs text-blue-700">
+                                                        <strong>Importante:</strong> Escribe la dirección completa y exacta donde debe llegar el pedido.
+                                                        Ejemplo: Calle 123 #45-67, Apto 301, Edificio Torres del Parque, Barrio Chapinero
+                                                    </p>
+                                                </div>
+
+                                                {/* Información de pago */}
+                                                <div className="pt-4 border-t border-gray-200">
+                                                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                                        <FaCreditCard className="text-orange-500" />
+                                                        Información de pago
+                                                    </h4>
+                                                    <select
+                                                        value={metodoPago}
+                                                        onChange={(e) => setMetodoPago(e.target.value as "efectivo" | "tarjeta" | "transferencia" | "")}
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                    >
+                                                        <option value="">Seleccionar método de pago</option>
+                                                        <option value="efectivo">💵 Efectivo</option>
+                                                        <option value="tarjeta">💳 Tarjeta</option>
+                                                        <option value="transferencia">📱 Transferencia</option>
+                                                    </select>
+
+                                                    {metodoPago === "efectivo" && (
+                                                        <div className="mt-3 space-y-3">
+                                                            <div className="relative">
+                                                                <FaMoneyBillWave className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder="¿Con cuánto paga el cliente?"
+                                                                    value={montoEntregado}
+                                                                    onChange={(e) => setMontoEntregado(e.target.value ? Number(e.target.value) : "")}
+                                                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                                />
+                                                            </div>
+                                                            {cambio !== null && cambio >= 0 && (
+                                                                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                                                                    <p className="text-sm text-green-700">
+                                                                        Cambio a devolver:{" "}
+                                                                        <span className="font-bold text-green-800">
+                                                                            ${cambio.toLocaleString("es-CO")}
+                                                                        </span>
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                            {cambio !== null && cambio < 0 && (
+                                                                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                                                                    <p className="text-sm text-red-700">
+                                                                        Faltan:{" "}
+                                                                        <span className="font-bold text-red-800">
+                                                                            ${Math.abs(cambio).toLocaleString("es-CO")}
+                                                                        </span>
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Footer fijo abajo */}
+                    {productos.length > 0 && (
+                        <div className="p-6 border-t border-gray-100 bg-white rounded-b-3xl flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto">
+                            <div className="text-sm text-gray-600">
+                                {tipo === "domicilio" && !datosDomicilio && (
+                                    <p className="text-center">
+                                        Selecciona la ubicación en el mapa para calcular el costo de envío
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={handleProcesarOrden}
+                                disabled={procesando || (tipo === "domicilio" && !datosDomicilio)}
+                                className="flex-1 sm:flex-none bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+                            >
+                                {procesando ? (
+                                    <FaSpinner className="animate-spin" />
+                                ) : (
+                                    <>
+                                        {tipo === "domicilio" ? <FaTruck /> : <FaShoppingCart />}
+                                        {tipo === "domicilio" && !datosDomicilio
+                                            ? "Calcula el domicilio primero"
+                                            : "Confirmar pedido"
+                                        }
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+        </AnimatePresence>
     );
 }

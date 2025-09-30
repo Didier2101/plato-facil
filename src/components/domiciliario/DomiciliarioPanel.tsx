@@ -2,30 +2,35 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    MapPin,
-    Phone,
-    Clock,
-    Package,
-    Truck,
-    Navigation,
-    User,
-    RefreshCw,
-    AlertCircle,
-    MapIcon,
-    CreditCard
-} from 'lucide-react';
+    FaTruck,
+    FaPhone,
+    FaClock,
+    FaBox,
+    FaMapMarkerAlt,
+    FaUser,
+    FaSync,
+    FaExclamationTriangle,
+    FaMap,
+    FaCreditCard,
+    FaMotorcycle,
+    FaSpinner
+} from 'react-icons/fa';
 import { obtenerOrdenesAction } from '@/src/actions/obtenerOrdenesAction';
 import { actualizarEstadoOrdenAction } from '@/src/actions/actualizarEstadoOrdenAction';
-import { useUserStore } from '@/src/store/useUserStore';
 import Loading from '../ui/Loading';
-
 import type { OrdenCompleta } from '@/src/types/orden';
 import PanelCobro from '../admin/caja/PanelCobro';
 
 type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
+interface CajaListaProps {
+    usuarioId: string;
+}
 
-export default function DomiciliarioPanel() {
+export default function DomiciliarioPanel({ usuarioId }: CajaListaProps) {
     const [ordenes, setOrdenes] = useState<OrdenCompleta[]>([]);
+    const [metodoPago, setMetodoPago] = useState<MetodoPago | ''>('');
+    const [propina, setPropina] = useState(0);
+    const [propinaPorcentaje, setPropinaPorcentaje] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [actualizando, setActualizando] = useState<string | null>(null);
@@ -34,12 +39,6 @@ export default function DomiciliarioPanel() {
 
     // Estados para el cobro
     const [ordenParaCobrar, setOrdenParaCobrar] = useState<OrdenCompleta | null>(null);
-    const [metodoPago, setMetodoPago] = useState<MetodoPago | ''>('');
-    const [propina, setPropina] = useState(0);
-    const [propinaPorcentaje, setPropinaPorcentaje] = useState<number | null>(null);
-
-    // Obtener usuario del store
-    const { id: usuarioId, nombre: usuarioNombre } = useUserStore();
 
     // Cargar órdenes usando obtenerOrdenesAction y filtrar para domicilios
     const cargarOrdenes = useCallback(async () => {
@@ -124,9 +123,6 @@ export default function DomiciliarioPanel() {
     // Función para manejar el cobro exitoso
     const handleCobroExitoso = () => {
         setOrdenParaCobrar(null);
-        setMetodoPago('');
-        setPropina(0);
-        setPropinaPorcentaje(null);
         cargarOrdenes(); // Recargar las órdenes
     };
 
@@ -153,9 +149,13 @@ export default function DomiciliarioPanel() {
         }
     };
 
-    // Abrir mapa con dirección
-    const abrirMapa = (direccion: string) => {
-        const url = `https://maps.google.com/maps?q=${encodeURIComponent(direccion)}`;
+    // ✅ FUNCIÓN ACTUALIZADA: Abrir mapa con coordenadas GPS o dirección de texto
+    const abrirMapa = (orden: OrdenCompleta) => {
+        // Priorizar coordenadas exactas si existen
+        const url = orden.latitud_destino && orden.longitud_destino
+            ? `https://maps.google.com/?q=${orden.latitud_destino},${orden.longitud_destino}`
+            : `https://maps.google.com/maps?q=${encodeURIComponent(orden.cliente_direccion)}`;
+
         window.open(url, '_blank');
     };
 
@@ -185,7 +185,7 @@ export default function DomiciliarioPanel() {
     if (loading) {
         return (
             <Loading
-                texto="Cargando ordenes..."
+                texto="Cargando órdenes..."
                 tamaño="mediano"
                 color="orange-500"
             />
@@ -194,52 +194,79 @@ export default function DomiciliarioPanel() {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
-            {/* Header móvil */}
-            <div className="bg-white shadow-sm sticky top-0 z-30">
-                <div className="px-4 py-4">
+            {/* Header */}
+            <div className="bg-white border-b border-gray-200 px-6 py-6">
+                <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-blue-100 rounded-xl">
-                                <Truck className="w-6 h-6 text-blue-600" />
+                        <div className="flex items-center gap-4">
+                            <div className="bg-orange-500 p-4 rounded-xl">
+                                <FaTruck className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold text-gray-800">Panel Delivery</h1>
-                                <p className="text-xs text-gray-600">
-                                    {usuarioNombre ? `Hola, ${usuarioNombre}` : 'Repartidor'}
-                                </p>
+                                <h1 className="text-3xl font-bold text-gray-900">Panel de Domicilios</h1>
+                                <p className="text-gray-600 mt-1">Gestiona las entregas de domicilio</p>
                             </div>
                         </div>
 
                         <button
                             onClick={() => cargarOrdenes()}
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition-colors text-sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-xl transition-colors"
                         >
-                            <RefreshCw size={16} />
+                            <FaSync className="text-lg" />
                         </button>
                     </div>
 
-                    {/* Resumen móvil */}
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    {/* Resumen */}
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Primer Card: Listas */}
+                        <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
                             <div className="flex items-center justify-between">
-                                <span className="text-yellow-800 font-medium text-xs">Listas</span>
-                                <span className="bg-yellow-200 text-yellow-900 px-2 py-1 rounded-full text-xs font-bold">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-yellow-500 p-2 rounded-lg">
+                                        <FaBox className="text-white text-lg" />
+                                    </div>
+                                    <div>
+                                        <p className="text-yellow-800 font-semibold">Listas</p>
+                                        <p className="text-yellow-600 text-sm">Para entregar</p>
+                                    </div>
+                                </div>
+                                <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-lg font-bold">
                                     {ordenesListas.length}
                                 </span>
                             </div>
                         </div>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+
+                        {/* Segundo Card: En Camino */}
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                             <div className="flex items-center justify-between">
-                                <span className="text-blue-800 font-medium text-xs">En Camino</span>
-                                <span className="bg-blue-200 text-blue-900 px-2 py-1 rounded-full text-xs font-bold">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-blue-500 p-2 rounded-lg">
+                                        <FaMotorcycle className="text-white text-lg" />
+                                    </div>
+                                    <div>
+                                        <p className="text-blue-800 font-semibold">En Camino</p>
+                                        <p className="text-blue-600 text-sm">En entrega</p>
+                                    </div>
+                                </div>
+                                <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-lg font-bold">
                                     {ordenesEnCamino.length}
                                 </span>
                             </div>
                         </div>
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+
+                        {/* Tercer Card: En Destino */}
+                        <div className="bg-green-50 rounded-xl p-4 border border-green-200">
                             <div className="flex items-center justify-between">
-                                <span className="text-green-800 font-medium text-xs">En Destino</span>
-                                <span className="bg-green-200 text-green-900 px-2 py-1 rounded-full text-xs font-bold">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-green-500 p-2 rounded-lg">
+                                        <FaMapMarkerAlt className="text-white text-lg" />
+                                    </div>
+                                    <div>
+                                        <p className="text-green-800 font-semibold">En Destino</p>
+                                        <p className="text-green-600 text-sm">Para cobrar</p>
+                                    </div>
+                                </div>
+                                <span className="bg-green-500 text-white px-3 py-1 rounded-full text-lg font-bold">
                                     {ordenesLlegueDestino.length}
                                 </span>
                             </div>
@@ -248,156 +275,159 @@ export default function DomiciliarioPanel() {
                 </div>
             </div>
 
-            <div className="px-3 py-4">
+            <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
                 {error && (
-                    <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
-                        <div className="flex items-center gap-2 text-red-800 text-sm">
-                            <AlertCircle size={16} />
-                            <span>{error}</span>
+                    <div className="bg-red-50 rounded-xl p-6 border border-red-200">
+                        <div className="flex items-center gap-3 text-red-800">
+                            <FaExclamationTriangle className="text-xl" />
+                            <span className="font-medium">{error}</span>
                         </div>
                     </div>
                 )}
 
                 {/* Órdenes Listas */}
                 {ordenesListas.length > 0 && (
-                    <div className="mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            <Package size={18} className="text-yellow-600" />
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                             Listas para Entregar
                         </h2>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {ordenesListas.map((orden) => (
-                                <div key={orden.id} className="bg-white rounded-xl shadow-sm border border-yellow-200">
-                                    <div className="p-4">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <h3 className="text-base font-semibold text-gray-800">
-                                                        Orden #{orden.id.slice(-6)}
-                                                    </h3>
-                                                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
-                                                        Lista
-                                                    </span>
+                                <div key={orden.id} className="bg-yellow-50 rounded-xl border border-yellow-200 p-6">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-4 mb-3">
+                                                <div className="bg-yellow-500 text-white px-4 py-2 rounded-lg font-bold">
+                                                    #{orden.id.slice(-6)}
                                                 </div>
-
-                                                <div className="space-y-1 text-sm text-gray-600">
-                                                    <div className="flex items-center gap-2">
-                                                        <User size={14} />
-                                                        <span className="font-medium">{orden.cliente_nombre}</span>
-                                                    </div>
-                                                    <div className="flex items-start gap-2">
-                                                        <MapPin size={14} className="mt-0.5 flex-shrink-0" />
-                                                        <span className="text-xs">{orden.cliente_direccion}</span>
-                                                    </div>
-                                                    {orden.cliente_telefono && (
-                                                        <div className="flex items-center gap-2">
-                                                            <Phone size={14} />
-                                                            <span className="text-xs">{orden.cliente_telefono}</span>
-                                                        </div>
-                                                    )}
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                        <Clock size={14} />
-                                                        <span>{formatearFecha(orden.created_at)}</span>
-                                                    </div>
-                                                </div>
+                                                <span className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded-full text-sm font-medium border border-yellow-200">
+                                                    Lista para entregar
+                                                </span>
                                             </div>
 
-                                            <div className="text-right">
-                                                <div className="text-lg font-bold text-green-600 mb-1">
-                                                    ${(orden.total_final || orden.total).toLocaleString('es-CO')}
+                                            <div className="space-y-2 text-gray-700">
+                                                <div className="flex items-center gap-3">
+                                                    <FaUser className="text-orange-500" />
+                                                    <span className="font-semibold">{orden.cliente_nombre}</span>
                                                 </div>
-                                                {/* Mostrar desglose de costos */}
-                                                <div className="text-xs text-gray-500 space-y-0.5">
-                                                    <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
-                                                    {orden.costo_domicilio && orden.costo_domicilio > 0 && (
-                                                        <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
-                                                    )}
-                                                    {orden.distancia_km && (
-                                                        <div>Distancia: {orden.distancia_km}km</div>
-                                                    )}
+                                                <div className="flex items-start gap-3">
+                                                    <FaMapMarkerAlt className="text-orange-500 mt-1 flex-shrink-0" />
+                                                    <span className="text-sm">{orden.cliente_direccion}</span>
                                                 </div>
-                                                <button
-                                                    onClick={() => setMostrarDetalles(
-                                                        mostrarDetalles === orden.id ? null : orden.id
-                                                    )}
-                                                    className="text-blue-600 hover:text-blue-800 text-xs font-medium mt-1"
-                                                >
-                                                    {mostrarDetalles === orden.id ? 'Ocultar' : 'Ver productos'}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Detalles de productos */}
-                                        {mostrarDetalles === orden.id && orden.orden_detalles && (
-                                            <div className="mb-3 p-2 bg-gray-50 rounded-lg">
-                                                <h4 className="font-medium text-gray-700 mb-1 text-sm">Productos:</h4>
-                                                <div className="space-y-1">
-                                                    {orden.orden_detalles.map((detalle) => (
-                                                        <div key={detalle.id} className="flex justify-between text-xs">
-                                                            <span>{detalle.cantidad}x {detalle.producto_nombre}</span>
-                                                            <span className="font-medium">
-                                                                ${detalle.subtotal.toLocaleString('es-CO')}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Notas opcionales */}
-                                        <div className="mb-3">
-                                            <textarea
-                                                value={notas[orden.id] || ''}
-                                                onChange={(e) => setNotas(prev => ({
-                                                    ...prev,
-                                                    [orden.id]: e.target.value
-                                                }))}
-                                                placeholder="Notas (piso, apartamento, referencias...)"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-xs"
-                                                rows={2}
-                                            />
-                                        </div>
-
-                                        {/* Acciones móviles */}
-                                        <div className="flex flex-col gap-2">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => abrirMapa(orden.cliente_direccion)}
-                                                    className="flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg transition-colors text-xs font-medium flex-1"
-                                                >
-                                                    <Navigation size={14} />
-                                                    Mapa
-                                                </button>
-
                                                 {orden.cliente_telefono && (
-                                                    <button
-                                                        onClick={() => llamarCliente(orden.cliente_telefono!)}
-                                                        className="flex items-center justify-center gap-1 bg-green-100 hover:bg-green-200 text-green-800 px-3 py-2 rounded-lg transition-colors text-xs font-medium flex-1"
-                                                    >
-                                                        <Phone size={14} />
-                                                        Llamar
-                                                    </button>
+                                                    <div className="flex items-center gap-3">
+                                                        <FaPhone className="text-orange-500" />
+                                                        <span className="text-sm">{orden.cliente_telefono}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <FaClock className="text-orange-500" />
+                                                    <span>{formatearFecha(orden.created_at)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-green-600 mb-2">
+                                                ${(orden.total_final || orden.total).toLocaleString('es-CO')}
+                                            </div>
+                                            <div className="text-sm text-gray-500 space-y-1">
+                                                <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
+                                                {orden.costo_domicilio && orden.costo_domicilio > 0 && (
+                                                    <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
+                                                )}
+                                                {orden.distancia_km && (
+                                                    <div>Distancia: {orden.distancia_km}km</div>
                                                 )}
                                             </div>
-
                                             <button
-                                                onClick={() => actualizarEstado(orden.id, 'en_camino')}
-                                                disabled={actualizando === orden.id}
-                                                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium w-full"
-                                            >
-                                                {actualizando === orden.id ? (
-                                                    <>
-                                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                                                        Tomando...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Truck size={16} />
-                                                        Tomar Orden
-                                                    </>
+                                                onClick={() => setMostrarDetalles(
+                                                    mostrarDetalles === orden.id ? null : orden.id
                                                 )}
+                                                className="text-orange-600 hover:text-orange-800 text-sm font-medium mt-2"
+                                            >
+                                                {mostrarDetalles === orden.id ? 'Ocultar productos' : 'Ver productos'}
                                             </button>
                                         </div>
+                                    </div>
+
+                                    {/* Detalles de productos */}
+                                    {mostrarDetalles === orden.id && orden.orden_detalles && (
+                                        <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+                                            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                                <FaBox className="text-orange-500" />
+                                                Productos
+                                            </h4>
+                                            <div className="space-y-2">
+                                                {orden.orden_detalles.map((detalle) => (
+                                                    <div key={detalle.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                                        <span className="font-medium">{detalle.cantidad}x {detalle.producto_nombre}</span>
+                                                        <span className="font-bold text-green-600">
+                                                            ${detalle.subtotal.toLocaleString('es-CO')}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Notas opcionales */}
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Notas de entrega
+                                        </label>
+                                        <textarea
+                                            value={notas[orden.id] || ''}
+                                            onChange={(e) => setNotas(prev => ({
+                                                ...prev,
+                                                [orden.id]: e.target.value
+                                            }))}
+                                            placeholder="Piso, apartamento, referencias, instrucciones especiales..."
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
+                                            rows={3}
+                                        />
+                                    </div>
+
+                                    {/* Acciones */}
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="flex gap-3 flex-1">
+                                            <button
+                                                onClick={() => abrirMapa(orden)}
+                                                className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg transition-colors font-medium flex-1"
+                                            >
+                                                <FaMap className="text-lg" />
+                                                Mapa
+                                            </button>
+
+                                            {orden.cliente_telefono && (
+                                                <button
+                                                    onClick={() => llamarCliente(orden.cliente_telefono!)}
+                                                    className="flex items-center justify-center gap-2 bg-green-100 hover:bg-green-200 text-green-700 px-4 py-3 rounded-lg transition-colors font-medium flex-1"
+                                                >
+                                                    <FaPhone className="text-lg" />
+                                                    Llamar
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            onClick={() => actualizarEstado(orden.id, 'en_camino')}
+                                            disabled={actualizando === orden.id}
+                                            className="flex items-center justify-center gap-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-6 py-3 rounded-lg transition-colors font-semibold flex-1 sm:flex-none"
+                                        >
+                                            {actualizando === orden.id ? (
+                                                <>
+                                                    <FaSpinner className="animate-spin text-lg" />
+                                                    Tomando orden...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <FaTruck className="text-lg" />
+                                                    Tomar Orden
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -407,97 +437,95 @@ export default function DomiciliarioPanel() {
 
                 {/* Órdenes En Camino */}
                 {ordenesEnCamino.length > 0 && (
-                    <div className="mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            <Truck size={18} className="text-blue-600" />
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                             En Camino
                         </h2>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {ordenesEnCamino.map((orden) => (
-                                <div key={orden.id} className="bg-white rounded-xl shadow-sm border border-blue-200">
-                                    <div className="p-4">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <h3 className="text-base font-semibold text-gray-800">
-                                                        Orden #{orden.id.slice(-6)}
-                                                    </h3>
-                                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                                                        En Camino
-                                                    </span>
+                                <div key={orden.id} className="bg-blue-50 rounded-xl border border-blue-200 p-6">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-4 mb-3">
+                                                <div className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold">
+                                                    #{orden.id.slice(-6)}
                                                 </div>
-
-                                                <div className="space-y-1 text-sm text-gray-600">
-                                                    <div className="flex items-center gap-2">
-                                                        <User size={14} />
-                                                        <span className="font-medium">{orden.cliente_nombre}</span>
-                                                    </div>
-                                                    <div className="flex items-start gap-2">
-                                                        <MapPin size={14} className="mt-0.5 flex-shrink-0" />
-                                                        <span className="text-xs">{orden.cliente_direccion}</span>
-                                                    </div>
-                                                    {orden.cliente_telefono && (
-                                                        <div className="flex items-center gap-2">
-                                                            <Phone size={14} />
-                                                            <span className="text-xs">{orden.cliente_telefono}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <span className="bg-blue-100 text-blue-800 px-3 py-2 rounded-full text-sm font-medium border border-blue-200">
+                                                    En camino
+                                                </span>
                                             </div>
 
-                                            <div className="text-right">
-                                                <div className="text-lg font-bold text-green-600 mb-1">
-                                                    ${(orden.total_final || orden.total).toLocaleString('es-CO')}
+                                            <div className="space-y-2 text-gray-700">
+                                                <div className="flex items-center gap-3">
+                                                    <FaUser className="text-orange-500" />
+                                                    <span className="font-semibold">{orden.cliente_nombre}</span>
                                                 </div>
-                                                <div className="text-xs text-gray-500 space-y-0.5">
-                                                    <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
-                                                    {orden.costo_domicilio && orden.costo_domicilio > 0 && (
-                                                        <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
-                                                    )}
+                                                <div className="flex items-start gap-3">
+                                                    <FaMapMarkerAlt className="text-orange-500 mt-1 flex-shrink-0" />
+                                                    <span className="text-sm">{orden.cliente_direccion}</span>
                                                 </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Acciones móviles */}
-                                        <div className="flex flex-col gap-2">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => abrirMapa(orden.cliente_direccion)}
-                                                    className="flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg transition-colors text-xs font-medium flex-1"
-                                                >
-                                                    <Navigation size={14} />
-                                                    Mapa
-                                                </button>
-
                                                 {orden.cliente_telefono && (
-                                                    <button
-                                                        onClick={() => llamarCliente(orden.cliente_telefono!)}
-                                                        className="flex items-center justify-center gap-1 bg-green-100 hover:bg-green-200 text-green-800 px-3 py-2 rounded-lg transition-colors text-xs font-medium flex-1"
-                                                    >
-                                                        <Phone size={14} />
-                                                        Llamar
-                                                    </button>
+                                                    <div className="flex items-center gap-3">
+                                                        <FaPhone className="text-orange-500" />
+                                                        <span className="text-sm">{orden.cliente_telefono}</span>
+                                                    </div>
                                                 )}
                                             </div>
-
-                                            <button
-                                                onClick={() => actualizarEstado(orden.id, 'llegue_a_destino')}
-                                                disabled={actualizando === orden.id}
-                                                className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium w-full"
-                                            >
-                                                {actualizando === orden.id ? (
-                                                    <>
-                                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                                                        Llegando...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <MapIcon size={16} />
-                                                        Llegué a Destino
-                                                    </>
-                                                )}
-                                            </button>
                                         </div>
+
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-green-600 mb-2">
+                                                ${(orden.total_final || orden.total).toLocaleString('es-CO')}
+                                            </div>
+                                            <div className="text-sm text-gray-500 space-y-1">
+                                                <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
+                                                {orden.costo_domicilio && orden.costo_domicilio > 0 && (
+                                                    <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Acciones */}
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="flex gap-3 flex-1">
+                                            <button
+                                                onClick={() => abrirMapa(orden)}
+                                                className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg transition-colors font-medium flex-1"
+                                            >
+                                                <FaMap className="text-lg" />
+                                                Mapa
+                                            </button>
+
+                                            {orden.cliente_telefono && (
+                                                <button
+                                                    onClick={() => llamarCliente(orden.cliente_telefono!)}
+                                                    className="flex items-center justify-center gap-2 bg-green-100 hover:bg-green-200 text-green-700 px-4 py-3 rounded-lg transition-colors font-medium flex-1"
+                                                >
+                                                    <FaPhone className="text-lg" />
+                                                    Llamar
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            onClick={() => actualizarEstado(orden.id, 'llegue_a_destino')}
+                                            disabled={actualizando === orden.id}
+                                            className="flex items-center justify-center gap-3 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white px-6 py-3 rounded-lg transition-colors font-semibold flex-1 sm:flex-none"
+                                        >
+                                            {actualizando === orden.id ? (
+                                                <>
+                                                    <FaSpinner className="animate-spin text-lg" />
+                                                    Llegando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <FaMapMarkerAlt className="text-lg" />
+                                                    Llegué a Destino
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -507,69 +535,67 @@ export default function DomiciliarioPanel() {
 
                 {/* Órdenes Llegue a Destino */}
                 {ordenesLlegueDestino.length > 0 && (
-                    <div className="mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            <CreditCard size={18} className="text-green-600" />
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                             En Destino - Listo para Cobrar
                         </h2>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {ordenesLlegueDestino.map((orden) => (
-                                <div key={orden.id} className="bg-white rounded-xl shadow-sm border border-green-200">
-                                    <div className="p-4">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <h3 className="text-base font-semibold text-gray-800">
-                                                        Orden #{orden.id.slice(-6)}
-                                                    </h3>
-                                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                                        En Destino
-                                                    </span>
+                                <div key={orden.id} className="bg-green-50 rounded-xl border border-green-200 p-6">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-4 mb-3">
+                                                <div className="bg-green-500 text-white px-4 py-2 rounded-lg font-bold">
+                                                    #{orden.id.slice(-6)}
                                                 </div>
-
-                                                <div className="space-y-1 text-sm text-gray-600">
-                                                    <div className="flex items-center gap-2">
-                                                        <User size={14} />
-                                                        <span className="font-medium">{orden.cliente_nombre}</span>
-                                                    </div>
-                                                    <div className="flex items-start gap-2">
-                                                        <MapPin size={14} className="mt-0.5 flex-shrink-0" />
-                                                        <span className="text-xs">{orden.cliente_direccion}</span>
-                                                    </div>
-                                                    {orden.cliente_telefono && (
-                                                        <div className="flex items-center gap-2">
-                                                            <Phone size={14} />
-                                                            <span className="text-xs">{orden.cliente_telefono}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <span className="bg-green-100 text-green-800 px-3 py-2 rounded-full text-sm font-medium border border-green-200">
+                                                    En destino
+                                                </span>
                                             </div>
 
-                                            <div className="text-right">
-                                                <div className="text-lg font-bold text-green-600 mb-1">
-                                                    ${(orden.total_final || orden.total).toLocaleString('es-CO')}
+                                            <div className="space-y-2 text-gray-700">
+                                                <div className="flex items-center gap-3">
+                                                    <FaUser className="text-orange-500" />
+                                                    <span className="font-semibold">{orden.cliente_nombre}</span>
                                                 </div>
-                                                <div className="text-xs text-gray-500 space-y-0.5">
-                                                    <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
-                                                    {orden.costo_domicilio && orden.costo_domicilio > 0 && (
-                                                        <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
-                                                    )}
+                                                <div className="flex items-start gap-3">
+                                                    <FaMapMarkerAlt className="text-orange-500 mt-1 flex-shrink-0" />
+                                                    <span className="text-sm">{orden.cliente_direccion}</span>
                                                 </div>
-                                                <div className="text-xs text-green-600 font-medium mt-1">
-                                                    Cobrar y entregar
-                                                </div>
+                                                {orden.cliente_telefono && (
+                                                    <div className="flex items-center gap-3">
+                                                        <FaPhone className="text-orange-500" />
+                                                        <span className="text-sm">{orden.cliente_telefono}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {/* Botón para abrir panel de cobro */}
-                                        <button
-                                            onClick={() => setOrdenParaCobrar(orden)}
-                                            className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium w-full"
-                                        >
-                                            <CreditCard size={16} />
-                                            Cobrar y Entregar
-                                        </button>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-green-600 mb-2">
+                                                ${(orden.total_final || orden.total).toLocaleString('es-CO')}
+                                            </div>
+                                            <div className="text-sm text-gray-500 space-y-1">
+                                                <div>Productos: ${(orden.subtotal_productos || 0).toLocaleString('es-CO')}</div>
+                                                {orden.costo_domicilio && orden.costo_domicilio > 0 && (
+                                                    <div>Domicilio: ${orden.costo_domicilio.toLocaleString('es-CO')}</div>
+                                                )}
+                                            </div>
+                                            <div className="text-sm text-green-600 font-semibold mt-2">
+                                                Cobrar y entregar
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    {/* Botón para abrir panel de cobro */}
+                                    <button
+                                        onClick={() => setOrdenParaCobrar(orden)}
+                                        className="flex items-center justify-center gap-3 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors font-semibold w-full"
+                                    >
+                                        <FaCreditCard className="text-lg" />
+                                        Cobrar y Entregar
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -578,17 +604,17 @@ export default function DomiciliarioPanel() {
 
                 {/* Estado vacío */}
                 {ordenes.length === 0 && !loading && (
-                    <div className="text-center py-8">
-                        <div className="w-16 h-16 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
-                            <Truck size={24} className="text-gray-400" />
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
+                        <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                            <FaTruck className="text-3xl text-gray-400" />
                         </div>
-                        <h3 className="text-base font-semibold text-gray-800 mb-2">No hay órdenes disponibles</h3>
-                        <p className="text-gray-600 text-xs mb-4">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay órdenes disponibles</h3>
+                        <p className="text-gray-600 mb-6">
                             No hay órdenes de domicilio listas para entregar en este momento.
                         </p>
                         <button
                             onClick={cargarOrdenes}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
                         >
                             Actualizar
                         </button>
@@ -610,7 +636,12 @@ export default function DomiciliarioPanel() {
                     onSuccess={handleCobroExitoso}
                     onRecargarOrdenes={cargarOrdenes}
                     isMobile={true}
-                    onClose={() => setOrdenParaCobrar(null)}
+                    onClose={() => {
+                        setOrdenParaCobrar(null);
+                        setMetodoPago('');
+                        setPropina(0);
+                        setPropinaPorcentaje(null);
+                    }}
                 />
             )}
         </div>

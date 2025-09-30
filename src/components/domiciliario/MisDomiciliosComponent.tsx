@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useUserStore } from '@/src/store/useUserStore';
+
 import {
     Truck,
     DollarSign,
@@ -51,8 +51,10 @@ interface FiltrosFecha {
     fechaInicio: string;
     fechaFin: string;
 }
-
-export default function MisDomiciliosComponent() {
+interface CajaListaProps {
+    usuarioId: string;
+}
+export default function MisDomiciliosComponent({ usuarioId }: CajaListaProps) {
     const [domicilios, setDomicilios] = useState<MiDomicilio[]>([]);
     const [domiciliosFiltrados, setDomiciliosFiltrados] = useState<MiDomicilio[]>([]);
     const [estadisticas, setEstadisticas] = useState<MisEstadisticas | null>(null);
@@ -65,7 +67,7 @@ export default function MisDomiciliosComponent() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [mostrarFiltros, setMostrarFiltros] = useState(true);
-    const { id: usuarioId, nombre: usuarioNombre } = useUserStore();
+
 
     // Estado para filtros - Inicialmente vacío para mostrar todos
     const [filtros, setFiltros] = useState<FiltrosFecha>({
@@ -297,20 +299,15 @@ export default function MisDomiciliosComponent() {
                             <div className="p-2 bg-orange-100 rounded-xl">
                                 <Truck className="w-6 h-6 text-orange-600" />
                             </div>
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-800">Mis Domicilios</h1>
-                                <p className="text-xs text-gray-600">
-                                    {usuarioNombre ? `Bienvenido, ${usuarioNombre}` : 'Historial de entregas'}
-                                </p>
-                            </div>
+
                         </div>
 
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setMostrarFiltros(!mostrarFiltros)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${mostrarFiltros
-                                        ? 'bg-orange-500 text-white'
-                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    ? 'bg-orange-500 text-white'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                                     }`}
                             >
                                 <Filter size={16} />

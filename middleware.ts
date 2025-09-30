@@ -8,7 +8,7 @@ export async function middleware(req: NextRequest) {
     const pathname = req.nextUrl.pathname;
 
     // ✅ RUTAS PÚBLICAS: No aplicar middleware
-    const publicRoutes = ['/login', '/register', '/'];
+    const publicRoutes = ['/login', '/unauthorized'];
     if (publicRoutes.includes(pathname)) {
         return res;
     }

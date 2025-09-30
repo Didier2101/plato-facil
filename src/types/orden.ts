@@ -46,4 +46,7 @@ export interface OrdenCompleta {
     metodo_pago?: 'efectivo' | 'tarjeta' | 'transferencia' | null;
     total_final?: number | null; // total después de aplicar descuentos, impuestos, etc.
     distancia_km?: number | null; // distancia para entrega a domicilio en km
+    // ✅ NUEVOS CAMPOS DE COORDENADAS
+    latitud_destino?: number | null;
+    longitud_destino?: number | null;
 }

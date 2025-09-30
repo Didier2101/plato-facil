@@ -1,16 +1,13 @@
-// src/actions/auth/logoutAction.ts
+// src/actions/login/auth.ts
 'use server';
 
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { redirect } from 'next/navigation';
 
 export async function logoutAction() {
     try {
-        // ✅ PASO 1: Await cookies()
         const cookieStore = await cookies();
 
-        // ✅ PASO 2: Crear cliente de Supabase con @supabase/ssr (igual que en login)
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,7 +25,6 @@ export async function logoutAction() {
             }
         );
 
-        // ✅ PASO 3: Cerrar sesión (esto limpiará las cookies automáticamente)
         const { error } = await supabase.auth.signOut();
 
         if (error) {
@@ -48,15 +44,4 @@ export async function logoutAction() {
             error: 'Error inesperado. Inténtalo de nuevo.'
         };
     }
-}
-
-// ✅ ALTERNATIVA: Logout con redirect automático
-export async function logoutWithRedirect() {
-    const result = await logoutAction();
-
-    if (result.success) {
-        redirect('/login');
-    }
-
-    return result;
 }

@@ -3,7 +3,9 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@supabase/ssr';
 
-export async function checkRole(requiredRole: string) {
+type UserRole = 'dueno' | 'admin' | 'repartidor';
+
+export async function checkRole(requiredRole: UserRole) {
     // ✅ PASO 1: Await cookies()
     const cookieStore = await cookies();
 
@@ -29,18 +31,18 @@ export async function checkRole(requiredRole: string) {
         }
     );
 
-    // ✅ PASO 3: Verificar sesión
-    const { data: { session } } = await supabase.auth.getSession();
+    // ✅ PASO 3: Verificar usuario de forma SEGURA
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (authError || !user) {
         redirect('/login');
     }
 
-    // ✅ PASO 4: Verificar rol del usuario
+    // ✅ PASO 4: Verificar rol del usuario Y obtener sus datos
     const { data: usuario, error } = await supabase
         .from('usuarios')
-        .select('rol, activo')
-        .eq('id', session.user.id)
+        .select('id, email, nombre, rol, activo')
+        .eq('id', user.id)
         .single();
 
     if (error || !usuario) {
@@ -56,5 +58,14 @@ export async function checkRole(requiredRole: string) {
         redirect('/login?error=acceso_denegado');
     }
 
-    return { session, usuario };
+    // ✅ Retornar datos completos del usuario
+    return {
+        user: {
+            id: usuario.id,
+            email: usuario.email,
+            nombre: usuario.nombre,
+            rol: usuario.rol as UserRole,
+            activo: usuario.activo,
+        }
+    };
 }

@@ -243,7 +243,7 @@ export default function ProductoDetalleModal({
                     {/* Footer fijo abajo */}
                     <div
                         className="
-              p-6 border-t bg-white 
+              p-6 border-t border-gray-100 shadow-2xl bg-white 
               rounded-b-3xl flex flex-col sm:flex-row items-center justify-between gap-4
               mt-auto
             "

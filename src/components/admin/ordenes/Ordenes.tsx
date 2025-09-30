@@ -71,7 +71,7 @@ export default function Ordenes() {
             texto = `Orden #${orden.id.slice(-6)} - ${orden.cliente_nombre}`;
             confirmText = "Sí, está lista";
             icon = "question";
-            color = "#10b981";
+            color = "#f97316";
         } else {
             titulo = "¿Eliminar orden?";
             texto = `Se eliminará la orden #${orden.id.slice(-6)} - ${orden.cliente_nombre}`;
@@ -167,7 +167,7 @@ export default function Ordenes() {
                             <FaUtensils className="text-white text-xl" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Cocina</h1>
+                            <h1 className="text-2xl font-bold text-gray-900">Ordenes para preparar</h1>
                             <p className="text-gray-600">
                                 {ordenes.length} {ordenes.length === 1 ? 'orden' : 'órdenes'} pendiente{ordenes.length === 1 ? '' : 's'}
                             </p>

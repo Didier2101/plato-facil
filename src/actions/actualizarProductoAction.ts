@@ -1,8 +1,5 @@
 "use server";
 import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
-import { writeFile, mkdir, unlink } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
 
 interface DatosActualizacion {
     nombre: string;
@@ -26,7 +23,6 @@ export async function actualizarProductoAction(
 
         // Determinar si es FormData o objeto directo
         if (datos instanceof FormData) {
-            // Extraer datos del FormData
             datosActualizacion = {
                 nombre: datos.get("nombre") as string,
                 descripcion: datos.get("descripcion") as string,
@@ -60,64 +56,125 @@ export async function actualizarProductoAction(
 
         let imagenUrl = productoActual.imagen_url; // Mantener la imagen actual por defecto
 
-        // Procesar nueva imagen si existe
+        // 🔹 Procesar nueva imagen con Supabase Storage
         if (nuevaImagen && nuevaImagen.size > 0) {
+            console.log("Procesando nueva imagen:", {
+                name: nuevaImagen.name,
+                size: nuevaImagen.size,
+                type: nuevaImagen.type
+            });
+
             // Validar tipo de archivo
             const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
             if (!allowedTypes.includes(nuevaImagen.type)) {
                 return {
                     success: false,
-                    error: "Tipo de archivo no permitido. Solo se permiten: JPG, PNG, WEBP"
+                    error: "Tipo de archivo no permitido. Solo JPG, PNG o WEBP"
                 };
             }
 
             // Validar tamaño (máximo 5MB)
-            const maxSize = 5 * 1024 * 1024; // 5MB
+            const maxSize = 5 * 1024 * 1024;
             if (nuevaImagen.size > maxSize) {
                 return {
                     success: false,
-                    error: "La imagen es demasiado grande. Máximo 5MB"
+                    error: "La imagen es demasiado grande (máx 5MB)"
                 };
             }
 
             try {
-                // Crear directorio si no existe
-                const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'productos');
-                if (!existsSync(uploadDir)) {
-                    await mkdir(uploadDir, { recursive: true });
+                // Generar nombre único para el archivo
+                const fileExt = nuevaImagen.name.split(".").pop()?.toLowerCase() || 'jpg';
+                const timestamp = Date.now();
+                const randomId = Math.random().toString(36).substring(2);
+                const fileName = `producto-${timestamp}-${randomId}.${fileExt}`;
+
+                console.log("Subiendo nueva imagen a Supabase:", fileName);
+
+                // Convertir File a ArrayBuffer
+                const arrayBuffer = await nuevaImagen.arrayBuffer();
+
+                if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+                    return { success: false, error: "Error al procesar el archivo de imagen" };
                 }
 
-                // Generar nombre único para el archivo
-                const fileExt = nuevaImagen.name.split('.').pop();
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-                const filePath = path.join(uploadDir, fileName);
+                // Subir nueva imagen a Supabase Storage
+                const { error: uploadError } = await supabaseAdmin.storage
+                    .from('productos')
+                    .upload(fileName, arrayBuffer, {
+                        contentType: nuevaImagen.type,
+                        cacheControl: '3600',
+                        upsert: false
+                    });
 
-                // Convertir archivo a buffer y guardarlo
-                const bytes = await nuevaImagen.arrayBuffer();
-                const buffer = Buffer.from(bytes);
+                if (uploadError) {
+                    console.error("Error al subir nueva imagen:", uploadError);
 
-                await writeFile(filePath, buffer);
+                    let errorMessage = "Error al subir la nueva imagen";
+                    if (uploadError.message.includes('Bucket not found')) {
+                        errorMessage = "El bucket 'productos' no existe en Supabase Storage";
+                    } else if (uploadError.message.includes('not allowed') || uploadError.message.includes('permission')) {
+                        errorMessage = "No tienes permisos para subir archivos";
+                    } else {
+                        errorMessage = `Error de Storage: ${uploadError.message}`;
+                    }
 
-                // Eliminar imagen anterior si existe
-                if (productoActual.imagen_url) {
+                    return { success: false, error: errorMessage };
+                }
+
+                // Obtener URL pública de la nueva imagen
+                const { data: urlData } = supabaseAdmin.storage
+                    .from('productos')
+                    .getPublicUrl(fileName);
+
+                if (!urlData?.publicUrl) {
+                    return { success: false, error: "Error al obtener URL de la nueva imagen" };
+                }
+
+                const nuevaImagenUrl = urlData.publicUrl;
+                console.log("Nueva imagen subida exitosamente:", nuevaImagenUrl);
+
+                // 🔹 Eliminar imagen anterior de Supabase Storage si existe
+                if (productoActual.imagen_url && productoActual.imagen_url.includes('supabase')) {
                     try {
-                        const oldFilePath = path.join(process.cwd(), 'public', productoActual.imagen_url);
-                        await unlink(oldFilePath);
+                        // Extraer el nombre del archivo de la URL
+                        const oldFileName = productoActual.imagen_url.split('/').pop();
+
+                        if (oldFileName) {
+                            console.log("Eliminando imagen anterior:", oldFileName);
+
+                            const { error: deleteError } = await supabaseAdmin.storage
+                                .from('productos')
+                                .remove([oldFileName]);
+
+                            if (deleteError) {
+                                console.warn("No se pudo eliminar la imagen anterior:", deleteError);
+                            } else {
+                                console.log("Imagen anterior eliminada exitosamente");
+                            }
+                        }
                     } catch (cleanupError) {
-                        console.warn("No se pudo eliminar la imagen anterior:", cleanupError);
+                        console.warn("Error al limpiar imagen anterior:", cleanupError);
+                        // No fallar la actualización por esto
                     }
                 }
 
-                // Generar URL relativa para la base de datos
-                imagenUrl = `/uploads/productos/${fileName}`;
+                imagenUrl = nuevaImagenUrl;
 
             } catch (uploadError) {
-                console.error("Error guardando nueva imagen:", uploadError);
-                return { success: false, error: "Error al guardar la nueva imagen" };
+                console.error("Error procesando imagen:", uploadError);
+
+                if (uploadError instanceof TypeError) {
+                    return { success: false, error: "Error de conexión al subir la imagen" };
+                } else if (uploadError instanceof Error) {
+                    return { success: false, error: `Error al procesar imagen: ${uploadError.message}` };
+                }
+
+                return { success: false, error: "Error desconocido al procesar la imagen" };
             }
         }
 
-        // Actualizar el producto en la base de datos
+        // 🔹 Actualizar el producto en la base de datos
         const { data: producto, error: updateError } = await supabaseAdmin
             .from("productos")
             .update({
@@ -141,13 +198,20 @@ export async function actualizarProductoAction(
         if (updateError) {
             console.error("Error actualizando producto:", updateError);
 
-            // Si hubo error y se subió nueva imagen, limpiar
+            // Si hubo error y se subió nueva imagen, eliminarla
             if (nuevaImagen && imagenUrl && imagenUrl !== productoActual.imagen_url) {
                 try {
-                    const filePath = path.join(process.cwd(), 'public', imagenUrl);
-                    await unlink(filePath);
+                    const fileName = imagenUrl.split('/').pop();
+                    if (fileName) {
+                        await supabaseAdmin.storage
+                            .from('productos')
+                            .remove([fileName])
+                            .catch(cleanupError => {
+                                console.error("Error limpiando imagen:", cleanupError);
+                            });
+                    }
                 } catch (cleanupError) {
-                    console.error("Error limpiando nueva imagen:", cleanupError);
+                    console.error("Error en rollback de imagen:", cleanupError);
                 }
             }
 
@@ -156,6 +220,8 @@ export async function actualizarProductoAction(
                 error: `Error actualizando producto: ${updateError.message}`
             };
         }
+
+        console.log("Producto actualizado exitosamente:", producto.id);
 
         return {
             success: true,
@@ -176,9 +242,11 @@ export async function actualizarProductoAction(
 
     } catch (error) {
         console.error("Error inesperado actualizando producto:", error);
-        return {
-            success: false,
-            error: "Error interno del servidor"
-        };
+
+        if (error instanceof Error) {
+            return { success: false, error: `Error interno: ${error.message}` };
+        }
+
+        return { success: false, error: "Error interno del servidor" };
     }
 }

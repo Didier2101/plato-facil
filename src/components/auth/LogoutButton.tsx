@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, LogOut } from "lucide-react";
 import Swal from "sweetalert2";
@@ -13,12 +13,12 @@ interface LogoutButtonProps {
 
 export default function LogoutButton({ isExpanded = true }: LogoutButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
+    const [isPending, startTransition] = useTransition();
+    const clearUser = useUserStore((state) => state.clearUser);
     const router = useRouter();
-    const clearUser = useUserStore((state) => state.clearUser); // Obtener función clearUser
 
     const handleLogout = async () => {
         try {
-            // Mostrar confirmación
             const result = await Swal.fire({
                 title: '¿Cerrar sesión?',
                 text: 'Tu sesión será cerrada',
@@ -35,71 +35,76 @@ export default function LogoutButton({ isExpanded = true }: LogoutButtonProps) {
 
             setIsLoading(true);
 
-            // Ejecutar server action
-            const result_logout = await logoutAction();
-
-            if (!result_logout.success) {
-                throw new Error(result_logout.error);
-            }
-
-            // IMPORTANTE: Limpiar el store de usuario
+            // Limpiar store y localStorage
             clearUser();
-
-            // Eliminar completamente la entrada del localStorage
             localStorage.removeItem('user-storage');
 
-            // Mostrar éxito
-            await Swal.fire({
-                title: '¡Hasta luego!',
-                text: 'Sesión cerrada correctamente',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-            });
+            startTransition(async () => {
+                try {
+                    const logoutResult = await logoutAction();
 
-            // Redirigir
-            router.push('/login');
+                    if (logoutResult.success) {
+                        // Redirect desde el cliente con router.push
+                        router.push('/login');
+                    } else {
+                        setIsLoading(false);
+                        Swal.fire({
+                            title: 'Error',
+                            text: logoutResult.error || 'No se pudo cerrar la sesión',
+                            icon: 'error',
+                            confirmButtonColor: '#ef4444',
+                        });
+                    }
+                } catch {
+                    setIsLoading(false);
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Error al cerrar sesión',
+                        icon: 'error',
+                        confirmButtonColor: '#ef4444',
+                    });
+                }
+            });
 
         } catch (error) {
             console.error('Error al cerrar sesión:', error);
+            setIsLoading(false);
             Swal.fire({
-                title: '❌ Error',
+                title: 'Error',
                 text: error instanceof Error ? error.message : 'No se pudo cerrar la sesión',
                 icon: 'error',
-                confirmButtonText: 'Intentar de nuevo'
+                confirmButtonColor: '#ef4444'
             });
-        } finally {
-            setIsLoading(false);
         }
     };
+
+    const loading = isLoading || isPending;
 
     return (
         <button
             onClick={handleLogout}
-            disabled={isLoading}
+            disabled={loading}
             className={`flex items-center px-3 py-3 rounded-xl transition-all duration-300 w-full
-                ${isLoading
+                ${loading
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100"
                 }
                 ${isExpanded ? "gap-4" : "gap-2 justify-center"}`}
             title={isExpanded ? "" : "Cerrar sesión"}
         >
-            {/* Icon */}
             <div className={`flex-shrink-0 w-8 flex items-center justify-center ${isExpanded ? "" : "-mr-1"}`}>
-                {isLoading ? (
+                {loading ? (
                     <Loader2 size={20} className="animate-spin" />
                 ) : (
                     <LogOut />
                 )}
             </div>
 
-            {/* Label */}
             <span
                 className={`transition-all duration-300 whitespace-nowrap font-medium ${isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"
                     }`}
             >
-                {isLoading ? "Cerrando..." : "Cerrar sesión"}
+                {loading ? "Cerrando..." : "Cerrar sesión"}
             </span>
         </button>
     );

@@ -36,17 +36,18 @@ interface DatosDomicilio {
     distancia_km: number;
     duracion_estimada: number;
     direccion_formateada?: string;
-    // Agregar campos detallados para tracking
     distancia_base_km: number;
     costo_base: number;
     distancia_exceso_km: number;
     costo_exceso: number;
+    latitud_destino: number;  // ← NUEVO
+    longitud_destino: number; // ← NUEVO
 }
 
 interface OrdenData {
     cliente: DatosCliente;
     productos: ProductoOrden[];
-    total: number; // Este es solo el total de productos
+    total: number;
     estado: string;
     tipo_orden: "establecimiento" | "domicilio";
     domicilio?: DatosDomicilio;
@@ -127,11 +128,11 @@ export async function crearOrdenAction(ordenData: OrdenData) {
         }
 
         // ✅ SEPARAR COSTOS CORRECTAMENTE
-        const subtotalProductos = ordenData.total; // Solo productos
+        const subtotalProductos = ordenData.total;
         const costoDomicilio = ordenData.domicilio?.costo_domicilio || 0;
         const totalFinal = subtotalProductos + costoDomicilio;
 
-        // ✅ CREAR ORDEN CON CAMPOS SEPARADOS
+        // ✅ CREAR ORDEN CON CAMPOS SEPARADOS + COORDENADAS
         const { data: orden, error: ordenError } = await supabaseAdmin
             .from("ordenes")
             .insert({
@@ -156,6 +157,11 @@ export async function crearOrdenAction(ordenData: OrdenData) {
                 monto_entregado: ordenData.monto_entregado || null,
                 distancia_km: ordenData.domicilio?.distancia_km || null,
                 duracion_estimada: ordenData.domicilio?.duracion_estimada || null,
+
+                // ✅ NUEVOS CAMPOS DE COORDENADAS
+                latitud_destino: ordenData.domicilio?.latitud_destino || null,
+                longitud_destino: ordenData.domicilio?.longitud_destino || null,
+
                 created_at: new Date().toISOString()
             })
             .select()
@@ -187,7 +193,6 @@ export async function crearOrdenAction(ordenData: OrdenData) {
 
         if (detallesError) {
             console.error("Error creando detalles de orden:", detallesError);
-            // Rollback - eliminar la orden creada
             await supabaseAdmin.from("ordenes").delete().eq("id", orden.id);
             return {
                 success: false,
@@ -209,7 +214,6 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             if (producto.ingredientes_personalizados && producto.ingredientes_personalizados.length > 0) {
                 const ordenDetalleId = detallesCreados[index].id;
 
-                // SOLO GUARDAR INGREDIENTES EXCLUIDOS (incluido = false y no obligatorios)
                 producto.ingredientes_personalizados
                     .filter(ingrediente => !ingrediente.incluido && !ingrediente.obligatorio)
                     .forEach(ingrediente => {
@@ -217,7 +221,7 @@ export async function crearOrdenAction(ordenData: OrdenData) {
                             orden_detalle_id: ordenDetalleId,
                             ingrediente_id: ingrediente.ingrediente_id,
                             ingrediente_nombre: ingrediente.nombre,
-                            incluido: false, // Siempre false para ingredientes excluidos
+                            incluido: false,
                             obligatorio: ingrediente.obligatorio
                         });
                     });
@@ -232,8 +236,6 @@ export async function crearOrdenAction(ordenData: OrdenData) {
 
             if (personalizacionError) {
                 console.error("Error creando personalizaciones:", personalizacionError);
-
-                // Rollback completo
                 await supabaseAdmin.from("orden_detalles").delete().eq("orden_id", orden.id);
                 await supabaseAdmin.from("ordenes").delete().eq("id", orden.id);
 
@@ -253,7 +255,6 @@ export async function crearOrdenAction(ordenData: OrdenData) {
             success: true,
             orden: {
                 id: orden.id,
-                // ✅ RETORNAR VALORES SEPARADOS
                 subtotal_productos: subtotalProductos,
                 costo_domicilio: costoDomicilio,
                 total_final: totalFinal,
@@ -262,7 +263,6 @@ export async function crearOrdenAction(ordenData: OrdenData) {
                 tipo_orden: orden.tipo_orden,
                 created_at: orden.created_at,
                 productos_personalizados: personalizacionesData.length,
-                // Información adicional útil
                 metodo_pago: ordenData.metodo_pago,
                 cambio_a_devolver: cambioADevolver,
                 monto_entregado: ordenData.monto_entregado

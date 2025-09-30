@@ -11,7 +11,6 @@ import {
     FaExclamationTriangle,
 } from "react-icons/fa";
 import { OrdenCompleta } from "@/src/types/orden";
-import { useEffect, useState } from "react";
 import { capitalizarSoloPrimera } from "@/src/utils/texto";
 import { formatearPrecioCOP } from "@/src/utils/precio";
 
@@ -25,6 +24,7 @@ type Props = {
     cambiarEstado: (id: string, accion: "lista" | "cancelar") => void;
     mostrarPrecios?: boolean;
     mostrarPreciosSeparados?: boolean;
+    modoSeleccion?: boolean;
 };
 
 export default function OrdenCard({
@@ -37,22 +37,20 @@ export default function OrdenCard({
     cambiarEstado,
     mostrarPrecios = true,
     mostrarPreciosSeparados = false,
+    modoSeleccion = false,
 }: Props) {
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
-    }, []);
-
     // Calcular totales usando SOLO campos de la base de datos
     const totalItems = orden.orden_detalles?.reduce((total, detalle) => total + detalle.cantidad, 0) || 0;
     const tienePersonalizaciones = orden.orden_detalles?.some(d =>
         d.orden_personalizaciones?.some(p => !p.incluido) ||
         d.notas_personalizacion
     );
+
+    // Handler para el toggle que previene propagación
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        toggleExpanded(orden.id);
+    };
 
     return (
         <motion.div
@@ -61,8 +59,8 @@ export default function OrdenCard({
         >
             {/* Header */}
             <div
-                className="p-6 cursor-pointer hover:bg-gray-50"
-                onClick={() => toggleExpanded(orden.id)}
+                className={`p-6 ${!modoSeleccion ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                onClick={!modoSeleccion ? handleToggle : undefined}
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -97,13 +95,18 @@ export default function OrdenCard({
                         </div>
                     </div>
 
-                    {/* Expandir */}
-                    <motion.div
-                        animate={{ rotate: isExpanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <FaChevronDown className="text-gray-400" />
-                    </motion.div>
+                    {/* Expandir - Solo visible en modo cocina */}
+                    {!modoSeleccion && (
+                        <motion.button
+                            onClick={handleToggle}
+                            animate={{ rotate: isExpanded ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            aria-label="Expandir detalles"
+                        >
+                            <FaChevronDown className="text-gray-400" />
+                        </motion.button>
+                    )}
                 </div>
 
                 {/* Cliente y información principal */}
@@ -179,39 +182,169 @@ export default function OrdenCard({
                         </div>
                     </div>
                 </div>
+
+                {/* En modo caja, mostrar detalles siempre visibles */}
+                {modoSeleccion && orden.orden_detalles && orden.orden_detalles.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="space-y-2">
+                            {orden.orden_detalles.map((detalle) => (
+                                <div key={detalle.id} className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-700 flex items-center gap-2">
+                                        <span className="bg-orange-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                            {detalle.cantidad}
+                                        </span>
+                                        {detalle.producto_nombre}
+                                    </span>
+                                    {mostrarPrecios && (
+                                        <span className="text-gray-600 font-medium">
+                                            {formatearPrecioCOP(detalle.precio_unitario * detalle.cantidad)}
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Contenido expandible */}
-            <AnimatePresence>
-                {isExpanded && isMobile && (
-                    <>
-                        {/* Overlay */}
-                        <motion.div
-                            key={`overlay-${orden.id}`}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.5 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="fixed inset-0 bg-black z-40"
-                            onClick={() => toggleExpanded(orden.id)}
-                        />
+            {/* Contenido expandible - SOLO EN MODO COCINA */}
+            {!modoSeleccion && (
+                <>
+                    {/* Panel móvil y tablet */}
+                    <AnimatePresence>
+                        {isExpanded && (
+                            <>
+                                {/* Overlay - Solo móvil y tablet */}
+                                <motion.div
+                                    key={`overlay-mobile-${orden.id}`}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 0.5 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="fixed inset-0 bg-black z-40 lg:hidden"
+                                    onClick={handleToggle}
+                                />
 
-                        {/* Panel móvil */}
-                        <motion.div
-                            key={`panel-${orden.id}`}
-                            initial={{ y: "100%" }}
-                            animate={{ y: 0 }}
-                            exit={{ y: "100%" }}
-                            transition={{ duration: 0.3 }}
-                            className="fixed bottom-0 left-0 right-0 bg-gray-50 rounded-t-3xl shadow-2xl z-50 overflow-auto max-h-[90vh] scrollbar-none"
-                        >
-                            <div
-                                className="w-16 h-1.5 bg-gray-300 rounded-full mx-auto mt-2 mb-4"
-                                onClick={() => toggleExpanded(orden.id)}
-                            />
+                                {/* Panel móvil y tablet */}
+                                <motion.div
+                                    key={`panel-mobile-${orden.id}`}
+                                    initial={{ y: "100%" }}
+                                    animate={{ y: 0 }}
+                                    exit={{ y: "100%" }}
+                                    transition={{ duration: 0.3 }}
+                                    className="fixed bottom-0 left-0 right-0 bg-gray-50 rounded-t-3xl shadow-2xl z-50 overflow-auto max-h-[90vh] scrollbar-none lg:hidden"
+                                >
+                                    <div
+                                        className="w-16 h-1.5 bg-gray-300 rounded-full mx-auto mt-2 mb-4 cursor-pointer"
+                                        onClick={handleToggle}
+                                    />
 
-                            <div className="px-6 pb-6 space-y-4">
-                                <h4 className="font-semibold text-gray-900 text-lg mb-2 flex items-center gap-2">
+                                    <div className="px-6 pb-6 space-y-4">
+                                        <h4 className="font-semibold text-gray-900 text-lg mb-2 flex items-center gap-2">
+                                            <FaUtensils className="text-orange-500" />
+                                            Productos
+                                        </h4>
+
+                                        {orden.orden_detalles?.map((detalle) => (
+                                            <div key={detalle.id} className="border-b border-gray-200 pb-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h5 className="font-semibold text-gray-900">
+                                                        {detalle.producto_nombre}
+                                                    </h5>
+                                                    <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                                                        {detalle.cantidad}
+                                                    </div>
+                                                </div>
+
+                                                {/* Personalizaciones excluidas */}
+                                                {detalle.orden_personalizaciones &&
+                                                    detalle.orden_personalizaciones.filter(p => !p.incluido).length > 0 && (
+                                                        <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                                                            <p className="text-sm font-bold text-red-800 mb-2">
+                                                                NO incluir:
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {detalle.orden_personalizaciones
+                                                                    .filter(p => !p.incluido)
+                                                                    .map(p => (
+                                                                        <span
+                                                                            key={p.ingrediente_id}
+                                                                            className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-full font-medium"
+                                                                        >
+                                                                            {p.ingrediente_nombre}
+                                                                        </span>
+                                                                    ))
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                {/* Notas del producto */}
+                                                {detalle.notas_personalizacion && (
+                                                    <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                        <p className="text-sm font-bold text-blue-800 mb-2">
+                                                            Instrucciones especiales:
+                                                        </p>
+                                                        <p className="text-sm text-blue-700 font-medium">
+                                                            {detalle.notas_personalizacion}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Botones solo en cocina */}
+                                    {processingOrder !== undefined && (
+                                        <div className="p-6 border-t border-gray-200 bg-white">
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        cambiarEstado(orden.id, "lista");
+                                                    }}
+                                                    disabled={processingOrder === orden.id}
+                                                    className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    {processingOrder === orden.id ? (
+                                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                                                    ) : (
+                                                        <>
+                                                            <FaCheckCircle />
+                                                            Orden Lista
+                                                        </>
+                                                    )}
+                                                </button>
+
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        cambiarEstado(orden.id, "cancelar");
+                                                    }}
+                                                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold transition-colors"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Panel desktop */}
+                    <AnimatePresence>
+                        {isExpanded && (
+                            <motion.div
+                                key={`panel-desktop-${orden.id}`}
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="border-t border-gray-200 bg-gray-50 px-6 pb-6 space-y-4 hidden lg:block"
+                            >
+                                <h4 className="font-semibold mt-4 text-gray-900 text-lg mb-2 flex items-center gap-2">
                                     <FaUtensils className="text-orange-500" />
                                     Productos
                                 </h4>
@@ -219,21 +352,18 @@ export default function OrdenCard({
                                 {orden.orden_detalles?.map((detalle) => (
                                     <div key={detalle.id} className="border-b border-gray-200 pb-4">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h5 className="font-semibold text-gray-900">
+                                            <h5 className="font-semibold text-gray-900 text-lg">
                                                 {detalle.producto_nombre}
                                             </h5>
-                                            <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                                            <div className="bg-orange-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
                                                 {detalle.cantidad}
                                             </div>
                                         </div>
 
-                                        {/* Personalizaciones excluidas */}
                                         {detalle.orden_personalizaciones &&
                                             detalle.orden_personalizaciones.filter(p => !p.incluido).length > 0 && (
                                                 <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
-                                                    <p className="text-sm font-bold text-red-800 mb-2">
-                                                        NO incluir:
-                                                    </p>
+                                                    <p className="text-sm font-bold text-red-800 mb-2">NO incluir:</p>
                                                     <div className="flex flex-wrap gap-2">
                                                         {detalle.orden_personalizaciones
                                                             .filter(p => !p.incluido)
@@ -250,7 +380,6 @@ export default function OrdenCard({
                                                 </div>
                                             )}
 
-                                        {/* Notas del producto */}
                                         {detalle.notas_personalizacion && (
                                             <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
                                                 <p className="text-sm font-bold text-blue-800 mb-2">
@@ -263,12 +392,10 @@ export default function OrdenCard({
                                         )}
                                     </div>
                                 ))}
-                            </div>
 
-                            {/* Botones solo en cocina */}
-                            {processingOrder !== undefined && (
-                                <div className="p-6 border-t border-gray-200 bg-white">
-                                    <div className="flex gap-3">
+                                {/* Botones solo en cocina */}
+                                {processingOrder !== undefined && (
+                                    <div className="flex gap-3 mt-6">
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -297,104 +424,12 @@ export default function OrdenCard({
                                             Cancelar
                                         </button>
                                     </div>
-                                </div>
-                            )}
-                        </motion.div>
-                    </>
-                )}
-
-                {!isMobile && isExpanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="border-t border-gray-200 bg-gray-50 px-6 pb-6 space-y-4"
-                    >
-                        <h4 className="font-semibold mt-4 text-gray-900 text-lg mb-2 flex items-center gap-2">
-                            <FaUtensils className="text-orange-500" />
-                            Productos
-                        </h4>
-
-                        {orden.orden_detalles?.map((detalle) => (
-                            <div key={detalle.id} className="border-b border-gray-200 pb-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h5 className="font-semibold text-gray-900 text-lg">
-                                        {detalle.producto_nombre}
-                                    </h5>
-                                    <div className="bg-orange-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
-                                        {detalle.cantidad}
-                                    </div>
-                                </div>
-
-                                {detalle.orden_personalizaciones &&
-                                    detalle.orden_personalizaciones.filter(p => !p.incluido).length > 0 && (
-                                        <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
-                                            <p className="text-sm font-bold text-red-800 mb-2">NO incluir:</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {detalle.orden_personalizaciones
-                                                    .filter(p => !p.incluido)
-                                                    .map(p => (
-                                                        <span
-                                                            key={p.ingrediente_id}
-                                                            className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-full font-medium"
-                                                        >
-                                                            {p.ingrediente_nombre}
-                                                        </span>
-                                                    ))
-                                                }
-                                            </div>
-                                        </div>
-                                    )}
-
-                                {detalle.notas_personalizacion && (
-                                    <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                        <p className="text-sm font-bold text-blue-800 mb-2">
-                                            Instrucciones especiales:
-                                        </p>
-                                        <p className="text-sm text-blue-700 font-medium">
-                                            {detalle.notas_personalizacion}
-                                        </p>
-                                    </div>
                                 )}
-                            </div>
-                        ))}
-
-                        {/* Botones solo en cocina */}
-                        {processingOrder !== undefined && (
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        cambiarEstado(orden.id, "lista");
-                                    }}
-                                    disabled={processingOrder === orden.id}
-                                    className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                                >
-                                    {processingOrder === orden.id ? (
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                                    ) : (
-                                        <>
-                                            <FaCheckCircle />
-                                            Orden Lista
-                                        </>
-                                    )}
-                                </button>
-
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        cambiarEstado(orden.id, "cancelar");
-                                    }}
-                                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
+                            </motion.div>
                         )}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    </AnimatePresence>
+                </>
+            )}
         </motion.div>
     );
 }
