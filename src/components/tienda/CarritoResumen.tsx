@@ -5,14 +5,13 @@ import { useCarritoStore } from "@/src/store/carritoStore";
 import { useClienteStore } from "@/src/store/clienteStore";
 import { crearOrdenAction } from "@/src/actions/crearOrdenAction";
 import Swal from "sweetalert2";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     FaMinus,
     FaPlus,
     FaTrash,
     FaUser,
     FaPhone,
-
     FaCreditCard,
     FaMoneyBillWave,
     FaShoppingCart,
@@ -56,8 +55,8 @@ interface DatosDomicilio {
     costo_base: number;
     distancia_exceso_km: number;
     costo_exceso: number;
-    latitud_destino: number;  // ← Agregar
-    longitud_destino: number; // ← Agregar
+    latitud_destino: number;
+    longitud_destino: number;
 }
 
 interface OrdenData {
@@ -94,7 +93,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     const [procesando, setProcesando] = useState(false);
     const [notasCliente, setNotasCliente] = useState("");
     const [metodoPago, setMetodoPago] = useState<"efectivo" | "tarjeta" | "transferencia" | "">("");
-
     const [montoEntregado, setMontoEntregado] = useState<number | "">("");
     const [datosDomicilio, setDatosDomicilio] = useState<DatosDomicilio | null>(null);
 
@@ -104,6 +102,15 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     const cambio = metodoPago === "efectivo" && montoEntregado !== ""
         ? Number(montoEntregado) - totalFinal
         : null;
+
+    // Bloquear scroll cuando el carrito está abierto
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
 
     // Función para limpiar datos del formulario
     const limpiarDatosCliente = () => {
@@ -149,8 +156,8 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
             costo_base: ubicacion.costo_base,
             distancia_exceso_km: ubicacion.distancia_exceso_km,
             costo_exceso: ubicacion.costo_exceso,
-            latitud_destino: ubicacion.coordenadas.lat,   // ← Agregar
-            longitud_destino: ubicacion.coordenadas.lng   // ← Agregar
+            latitud_destino: ubicacion.coordenadas.lat,
+            longitud_destino: ubicacion.coordenadas.lng
         });
     };
 
@@ -171,7 +178,7 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
             return;
         }
 
-        // Validaciones específicas para domicilio - más estrictas
+        // Validaciones específicas para domicilio
         if (tipo === "domicilio") {
             if (!datosDomicilio) {
                 Swal.fire("Calcular domicilio", "Debes calcular el costo de domicilio primero", "warning");
@@ -188,13 +195,11 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                 return;
             }
 
-            // ✅ NUEVO: Validar método de pago obligatorio para domicilios
             if (!metodoPago) {
                 Swal.fire("Método de pago requerido", "Selecciona cómo va a pagar el cliente", "warning");
                 return;
             }
 
-            // ✅ MEJORADO: Validación más clara para efectivo
             if (metodoPago === "efectivo") {
                 if (montoEntregado === "" || Number(montoEntregado) <= 0) {
                     Swal.fire("Monto inválido", "Debes indicar con cuánto dinero va a pagar el cliente", "warning");
@@ -229,13 +234,13 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
 
             const ordenData: OrdenData = {
                 cliente: {
-                    nombre: nombre.trim(), // ✅ Limpieza de datos
+                    nombre: nombre.trim(),
                     telefono: telefono?.trim() || undefined,
                     direccion: tipo === "domicilio" ? direccion?.trim() : "En establecimiento",
                     notas: notasCliente?.trim() || undefined,
                 },
                 productos: productosOrden,
-                total, // Este es solo el subtotal de productos
+                total,
                 estado: "orden_tomada",
                 tipo_orden: tipo,
                 domicilio: datosDomicilio || undefined,
@@ -251,7 +256,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                     return p.ingredientes_personalizados.some(ing => !ing.incluido && !ing.obligatorio) || p.notas;
                 }).length;
 
-                // ✅ MEJORADO: Mostrar información separada en el éxito
                 Swal.fire({
                     icon: "success",
                     title: "Orden creada exitosamente",
@@ -303,11 +307,10 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                     width: '400px'
                 }).then(() => {
                     limpiarCarrito();
-                    limpiarDatosCliente(); // ✅ Limpiar también datos del cliente
+                    limpiarDatosCliente();
                     onClose();
                 });
             } else {
-                // ✅ MEJORADO: Mostrar errores más claros del backend
                 Swal.fire("Error", result.error || "No se pudo crear la orden", "error");
             }
         } catch (err) {
@@ -562,20 +565,21 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                             />
                                         </div>
 
-                                        <div className="relative">
-                                            <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                            <input
-                                                type="text"
-                                                placeholder="Teléfono *"
-                                                value={telefono}
-                                                onChange={(e) => setCliente({ telefono: e.target.value })}
-                                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                required={tipo === "domicilio"}
-                                            />
-                                        </div>
+
 
                                         {tipo === "domicilio" && (
                                             <>
+                                                <div className="relative">
+                                                    <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Teléfono *"
+                                                        value={telefono}
+                                                        onChange={(e) => setCliente({ telefono: e.target.value })}
+                                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                        required={tipo === "domicilio"}
+                                                    />
+                                                </div>
                                                 <div className="relative">
                                                     <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
                                                     <input

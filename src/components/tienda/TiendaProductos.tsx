@@ -92,7 +92,7 @@ export default function TiendaProductos() {
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">
-                        Tienda
+                        Tienda - haz tu orden
                     </h1>
                     <p className="text-gray-600">
                         {productos.length}{" "}

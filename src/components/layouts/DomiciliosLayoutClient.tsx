@@ -110,7 +110,7 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const links: LinkItem[] = [
-        { href: "/crear-orden-domicilio", label: "Hacer Pedido", icon: FaHome },
+        { href: "/domicilios", label: "Hacer Pedido", icon: FaHome },
         { href: "/mis-ordenes", label: "Mis Órdenes", icon: FaClipboardList },
         { href: "/informacion", label: "Información", icon: FaInfoCircle },
     ];

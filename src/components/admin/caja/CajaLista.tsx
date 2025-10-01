@@ -137,7 +137,7 @@ export default function CajaLista({ usuarioId }: CajaListaProps) {
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Caja</h1>
                         <p className="text-gray-600">
-                            {ordenes.length} {ordenes.length === 1 ? 'domicilio' : 'domicilios'} para cobrar
+                            {ordenes.length} {ordenes.length === 1 ? 'orden' : 'ordenes'} para cobrar
                         </p>
                     </div>
                 </div>
