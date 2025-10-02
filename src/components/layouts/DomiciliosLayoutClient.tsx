@@ -21,7 +21,6 @@ function DomiciliosNavLink({
     mobile = false,
     collapsed = false,
 }: LinkItem & { active: boolean; mobile?: boolean; collapsed?: boolean }) {
-    // ... (el código del NavLink se mantiene igual)
     // Navegación móvil (bottom bar)
     if (mobile) {
         return (
@@ -124,8 +123,8 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
             {/* ✅ NUEVO: Componente de notificaciones */}
             <UserWelcomeNotification />
 
-            {/* Navegación inferior móvil */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white shadow-xl z-50 border-t border-gray-200 md:hidden">
+            {/* Navegación inferior móvil y tablet */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white shadow-xl z-50 border-t border-gray-200 lg:hidden">
                 <div className="flex justify-around items-center py-3 px-4 relative">
                     {links.map((link) => (
                         <DomiciliosNavLink
@@ -138,9 +137,9 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
                 </div>
             </div>
 
-            {/* Sidebar Desktop */}
+            {/* Sidebar Desktop (solo para lg en adelante) */}
             <aside
-                className={`hidden md:flex flex-col bg-white shadow-sm border-r border-gray-200 transition-all duration-300
+                className={`hidden lg:flex flex-col bg-white shadow-sm border-r border-gray-200 transition-all duration-300
     ${sidebarCollapsed ? 'w-20' : 'w-72'}
   fixed top-0 left-0 h-screen z-40`}
             >
@@ -218,8 +217,8 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
 
             {/* Contenido principal */}
             <main
-                className={`flex-1 min-w-0 overflow-x-hidden mb-20 md:mb-0 transition-all duration-300
-    ${sidebarCollapsed ? "md:ml-20" : "md:ml-72"}`}
+                className={`flex-1 min-w-0 overflow-x-hidden mb-20 lg:mb-0 transition-all duration-300
+    ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"}`}
             >
                 <div className="w-full h-full min-w-0 overflow-x-hidden">
                     {children}

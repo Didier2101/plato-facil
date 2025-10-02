@@ -800,33 +800,7 @@ export default function MisOrdenes() {
                             )}
                         </div>
 
-                        {/* Ayuda */}
-                        <div className="bg-white rounded-2xl p-6 shadow-md">
-                            <h4 className="font-bold text-gray-800 mb-3">¿Necesitas ayuda?</h4>
-                            <div className="space-y-2">
-                                <button
-                                    onClick={() => {
-                                        if (orden.cliente_telefono) {
-                                            window.location.href = `tel:${orden.cliente_telefono.replace(/\s+/g, "")}`;
-                                        } else {
-                                            mostrarNotificacion("Teléfono no disponible", "red");
-                                        }
-                                    }}
-                                    className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                                >
-                                    <Phone size={18} className="text-orange-500" />
-                                    <span className="text-gray-700">Llamar al restaurante</span>
-                                </button>
 
-                                <button
-                                    onClick={() => mostrarNotificacion("Contacto al repartidor no disponible en esta demo", "orange")}
-                                    className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                                >
-                                    <FaMotorcycle size={18} className="text-orange-500" />
-                                    <span className="text-gray-700">Contactar repartidor</span>
-                                </button>
-                            </div>
-                        </div>
                     </>
                 )}
 
