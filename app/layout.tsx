@@ -1,4 +1,5 @@
-import { Metadata } from "next";
+import "@/app/globals.css";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
     title: "Kavvo - Tu propia app de domicilios",
@@ -42,7 +43,23 @@ export const metadata: Metadata = {
             { url: "/assets/logo-kavvo-solo.png", sizes: "16x16", type: "image/png" },
         ],
         apple: [
-            { url: "/assets/logo-kavvo-solo.png", sizes: "180x180", type: "image/png" },
+            {
+                url: "/assets/logo-kavvo-solo.png",
+                sizes: "180x180",
+                type: "image/png",
+            },
         ],
     },
 };
+
+export default function RootLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    return (
+        <html lang="es">
+            <body suppressHydrationWarning>{children}</body>
+        </html>
+    );
+}
