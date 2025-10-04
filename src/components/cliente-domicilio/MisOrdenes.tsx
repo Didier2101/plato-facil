@@ -19,6 +19,7 @@ import {
 } from "@/src/actions/buscarOrdenPorTelefonoAction";
 import { FaMotorcycle } from "react-icons/fa";
 import { useClienteStore } from "@/src/store/clienteStore";
+import Loading from "../ui/Loading";
 // import { div } from "framer-motion/client";
 
 // Tipos para el seguimiento
@@ -328,13 +329,22 @@ export default function MisOrdenes() {
             default: return "bg-gray-500";
         }
     };
+    if (loading) {
+        return (
+            <Loading
+                texto="Cargando órdenes..."
+                tamaño="mediano"
+                color="orange-500"
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white pb-32">
             {/* Header unificado */}
             <div className="bg-white border-b border-gray-200 px-6 py-6 sticky top-0 z-40">
                 <div className="max-w-4xl mx-auto flex items-center gap-4">
-                    <div className="bg-gradient-to-r from-red-500 to-green-500 p-3 rounded-xl">
+                    <div className="bg-orange-500 p-3 rounded-xl">
                         <Package className="text-2xl text-white" />
                     </div>
                     <div>
@@ -394,7 +404,7 @@ export default function MisOrdenes() {
                     <button
                         onClick={() => buscarOrden()}
                         disabled={loading || !telefono.trim()}
-                        className="w-full bg-gradient-to-r from-red-500 to-green-500 hover:from-red-600 hover:to-green-600 disabled:from-gray-400 disabled:to-gray-400 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-md"
+                        className="w-full bg-orange-500 disabled:from-gray-400 disabled:to-gray-400 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-md"
                     >
                         {loading ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
@@ -816,7 +826,7 @@ export default function MisOrdenes() {
                         </p>
                         <button
                             onClick={() => buscarOrden()}
-                            className="mt-4 bg-gradient-to-r from-red-500 to-green-500 text-white px-6 py-2 rounded-lg font-medium"
+                            className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-lg font-medium"
                         >
                             Buscar ahora
                         </button>

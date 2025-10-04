@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /$
+Allow: /domicilios
+Allow: /informacion
+Allow: /mis-ordenes
+Allow: /establecimiento
+Allow: /login
+
+Disallow: /admin
+Disallow: /dueno
+Disallow: /repartidor
+Disallow: /caja
+Disallow: /ordenes
+Disallow: /productos
+Disallow: /tienda
+Disallow: /configuraciones
+Disallow: /reportes
+Disallow: /usuarios
+
+Sitemap: https://kavvo.store/sitemap.xml

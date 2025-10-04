@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiUsers, FiBarChart2, FiUser, FiSettings, FiMenu, FiX } from "react-icons/fi";
+import { FiUsers, FiBarChart2, FiUser, FiSettings, FiMenu } from "react-icons/fi";
 import LogoutButton from "@/src/components/auth/LogoutButton";
 import { formatearNombrePropio } from "@/src/utils/texto";
 import Logo from "@/src/components/ui/Logo";
+import { BiChevronLeft } from "react-icons/bi";
 
 interface LinkItem {
     href: string;
@@ -193,7 +194,7 @@ export default function DuenoLayoutClient({ children, user }: DuenoLayoutClientP
   fixed top-0 left-0 h-screen z-40`}
             >
                 {/* Header */}
-                <div className={`relative ${sidebarCollapsed ? 'p-4' : 'p-6'}`}>
+                <div className={`relative  ${sidebarCollapsed ? 'p-4' : 'p-6'}`}>
                     {!sidebarCollapsed ? (
                         <Logo collapsed={false} />
                     ) : (
@@ -212,11 +213,11 @@ export default function DuenoLayoutClient({ children, user }: DuenoLayoutClientP
                     {!sidebarCollapsed && (
                         <button
                             onClick={toggleSidebar}
-                            className="absolute top-6 right-6 w-8 h-8 bg-gray-100 hover:bg-gray-200 
+                            className="absolute top-2 right-2 w-8 h-8 bg-gray-100 hover:bg-gray-200 
                                      rounded-lg flex items-center justify-center transition-colors"
                             title="Contraer menú"
                         >
-                            <FiX className="text-gray-700 text-sm" />
+                            <BiChevronLeft className="text-gray-700 text-sm" />
                         </button>
                     )}
                 </div>

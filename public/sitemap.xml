@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://kavvo.store/</loc>
+    <lastmod>2025-10-04</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://kavvo.store/domicilios</loc>
+    <lastmod>2025-10-04</lastmod>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kavvo.store/informacion</loc>
+    <lastmod>2025-10-04</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kavvo.store/mis-ordenes</loc>
+    <lastmod>2025-10-04</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kavvo.store/establecimiento</loc>
+    <lastmod>2025-10-04</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kavvo.store/login</loc>
+    <lastmod>2025-10-04</lastmod>
+    <priority>0.5</priority>
+  </url>
+</urlset>

@@ -31,7 +31,7 @@ export default function Logo({ collapsed = false }: LogoProps) {
                 });
             } else {
                 setConfiguracion({
-                    nombre_restaurante: 'PlatoFácil'
+                    nombre_restaurante: 'Restaurante'
                 });
             }
         } catch (error) {
@@ -82,30 +82,6 @@ export default function Logo({ collapsed = false }: LogoProps) {
     const logoUrl = configuracion?.logo_url;
     const puedeMostrarImagen = logoUrl && !imageError && isValidImageUrl(logoUrl);
 
-    if (collapsed) {
-        return (
-            <div className="flex justify-center">
-                {puedeMostrarImagen ? (
-                    <div className="relative w-12 h-12">
-                        <Image
-                            src={logoUrl}
-                            alt={`Logo ${nombreRestaurante}`}
-                            fill
-                            className="rounded-xl object-cover border-2 border-white/20"
-                            onError={handleImageError}
-                            sizes="48px"
-                            priority={true}
-                            unoptimized={true}
-                        />
-                    </div>
-                ) : (
-                    <div className="bg-white/20 p-4 rounded-xl backdrop-blur-sm">
-                        <BsFillBookmarkStarFill className="text-white text-2xl" />
-                    </div>
-                )}
-            </div>
-        );
-    }
 
     return (
         <div className="flex flex-col items-center gap-4">
@@ -115,7 +91,7 @@ export default function Logo({ collapsed = false }: LogoProps) {
                         src={logoUrl}
                         alt={`Logo ${nombreRestaurante}`}
                         fill
-                        className="rounded-xl object-cover border-2 border-white/20 shadow-lg"
+                        className="rounded-xl object-cover"
                         onError={handleImageError}
                         sizes="64px"
                         priority={true}
@@ -127,11 +103,6 @@ export default function Logo({ collapsed = false }: LogoProps) {
                     <BsFillBookmarkStarFill className="text-white text-2xl" />
                 </div>
             )}
-
-            <div>
-
-                <p className="text-gray-800 text-2xl font-bold">{nombreRestaurante}</p>
-            </div>
         </div>
     );
 }
