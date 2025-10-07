@@ -235,8 +235,8 @@ const LocationPicker = ({
     const [loading, setLoading] = useState(false);
     const [mapLoaded, setMapLoaded] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState({
-        lat: currentLat || 4.7110,
-        lng: currentLng || -74.0721
+        lat: currentLat,
+        lng: currentLng
     });
     const mapRef = useRef<ConfigLeafletMap | null>(null);
     const markerRef = useRef<ConfigLeafletLayer | null>(null);
