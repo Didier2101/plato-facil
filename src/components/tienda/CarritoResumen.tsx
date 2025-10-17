@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCarritoStore } from "@/src/store/carritoStore";
 import { useClienteStore } from "@/src/store/clienteStore";
 import { crearOrdenAction } from "@/src/actions/crearOrdenAction";
+import { calcularDomicilioPorCoordenadasAction } from "@/src/actions/calculoDomicilioAction";
 import Swal from "sweetalert2";
 import { useState, useEffect } from "react";
 import {
@@ -19,9 +20,13 @@ import {
     FaTruck,
     FaSpinner,
     FaMapMarkerAlt,
-    FaTimes
+    FaTimes,
+    FaRoute,
+    FaClock,
+    FaArrowLeft
 } from "react-icons/fa";
-import MapaUbicacion from "../domicilio/MapaUbicacion";
+import ModalDatosCliente from "../cliente-domicilio/ModalDatosCliente";
+
 
 // Interfaces
 interface ProductoOrden {
@@ -75,26 +80,18 @@ interface CarritoResumenProps {
     tipo: "establecimiento" | "domicilio";
 }
 
-interface UbicacionConfirmada {
-    coordenadas: { lat: number; lng: number };
-    distancia_km: number;
-    costo_domicilio: number;
-    duracion_estimada: number;
-    distancia_base_km: number;
-    costo_base: number;
-    distancia_exceso_km: number;
-    costo_exceso: number;
-}
-
 export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     const { productos, total, actualizarCantidad, removerProducto, limpiarCarrito } = useCarritoStore();
-    const { nombre, telefono, direccion, setCliente } = useClienteStore();
+    const { cliente } = useClienteStore();
 
     const [procesando, setProcesando] = useState(false);
     const [notasCliente, setNotasCliente] = useState("");
     const [metodoPago, setMetodoPago] = useState<"efectivo" | "tarjeta" | "transferencia" | "">("");
     const [montoEntregado, setMontoEntregado] = useState<number | "">("");
     const [datosDomicilio, setDatosDomicilio] = useState<DatosDomicilio | null>(null);
+    const [calculandoDomicilio, setCalculandoDomicilio] = useState(false);
+    const [errorDomicilio, setErrorDomicilio] = useState("");
+    const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
 
     // Calcular total final incluyendo domicilio
     const totalFinal = total + (datosDomicilio?.costo_domicilio || 0);
@@ -102,6 +99,36 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     const cambio = metodoPago === "efectivo" && montoEntregado !== ""
         ? Number(montoEntregado) - totalFinal
         : null;
+
+    // ✅ Función para verificar si el cliente tiene todos los datos necesarios
+    const verificarDatosCliente = () => {
+        const datosRequeridos = [
+            { campo: 'nombre', valor: cliente?.nombre, mensaje: 'nombre' },
+            { campo: 'telefono', valor: cliente?.telefono, mensaje: 'teléfono' },
+        ];
+
+        // Para domicilio, también requerimos dirección
+        if (tipo === "domicilio") {
+            datosRequeridos.push({ campo: 'direccion', valor: cliente?.direccion, mensaje: 'dirección' });
+        }
+
+        const datosFaltantes = datosRequeridos.filter(dato => !dato.valor?.trim());
+
+        if (datosFaltantes.length > 0) {
+            const camposFaltantes = datosFaltantes.map(dato => dato.mensaje).join(', ');
+            Swal.fire({
+                icon: "warning",
+                title: "Datos incompletos",
+                text: `Faltan los siguientes datos: ${camposFaltantes}`,
+                confirmButtonColor: "#f97316",
+            }).then(() => {
+                setMostrarModalCliente(true);
+            });
+            return false;
+        }
+
+        return true;
+    };
 
     // Bloquear scroll cuando el carrito está abierto
     useEffect(() => {
@@ -112,21 +139,104 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
         };
     }, []);
 
-    // Función para limpiar datos del formulario
-    const limpiarDatosCliente = () => {
-        setCliente({ nombre: "", telefono: "", direccion: "" });
-        setNotasCliente("");
-        setMetodoPago("");
-        setMontoEntregado("");
-        setDatosDomicilio(null);
+    // ✅ Calcular automáticamente al cargar el componente si es domicilio
+    useEffect(() => {
+        if (tipo === "domicilio" && !datosDomicilio && !calculandoDomicilio && !errorDomicilio) {
+            calcularDomicilioAutomatico();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tipo]);
+
+    const calcularDomicilioAutomatico = async () => {
+        // Verificar soporte de geolocalización
+        if (!navigator.geolocation) {
+            setErrorDomicilio('Tu navegador no soporta geolocalización');
+            return;
+        }
+
+        setCalculandoDomicilio(true);
+        setErrorDomicilio('');
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+
+                try {
+                    const resultado = await calcularDomicilioPorCoordenadasAction({
+                        lat: latitude,
+                        lng: longitude
+                    });
+
+                    if (resultado.success && resultado.ruta) {
+                        if (resultado.ruta.fuera_de_cobertura) {
+                            setErrorDomicilio(`Tu ubicación está fuera de nuestra zona de cobertura (${resultado.ruta.distancia_km} km)`);
+                            setCalculandoDomicilio(false);
+                            return;
+                        }
+
+                        setDatosDomicilio({
+                            costo_domicilio: resultado.ruta.costo_domicilio,
+                            distancia_km: resultado.ruta.distancia_km,
+                            duracion_estimada: resultado.ruta.duracion_minutos,
+                            distancia_base_km: resultado.ruta.distancia_base_km,
+                            costo_base: resultado.ruta.costo_base,
+                            distancia_exceso_km: resultado.ruta.distancia_exceso_km,
+                            costo_exceso: resultado.ruta.costo_exceso,
+                            latitud_destino: latitude,
+                            longitud_destino: longitude
+                        });
+                    } else {
+                        setErrorDomicilio(resultado.error || 'No se pudo calcular el costo de domicilio');
+                    }
+                } catch {
+                    setErrorDomicilio('Error calculando el costo de domicilio');
+                } finally {
+                    setCalculandoDomicilio(false);
+                }
+            },
+            (error) => {
+                setCalculandoDomicilio(false);
+
+                let mensajeError = '';
+
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        mensajeError = 'Debes permitir el acceso a tu ubicación para calcular el costo del domicilio';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        mensajeError = 'No se pudo obtener tu ubicación. Asegúrate de que tu GPS esté activado';
+                        break;
+                    case error.TIMEOUT:
+                        mensajeError = 'Tiempo agotado obteniendo ubicación';
+                        break;
+                    default:
+                        mensajeError = 'Error obteniendo ubicación';
+                }
+
+                setErrorDomicilio(mensajeError);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 30000,
+                maximumAge: 0
+            }
+        );
     };
 
-    // Función para cerrar modal
+    const recalcularDomicilio = () => {
+        setDatosDomicilio(null);
+        setErrorDomicilio('');
+        calcularDomicilioAutomatico();
+    };
+
     const handleClose = () => {
         onClose();
     };
 
-    // Función para limpiar todo (carrito + formulario)
+    const handleCloseModalCliente = () => {
+        setMostrarModalCliente(false);
+    };
+
     const handleLimpiarTodo = () => {
         Swal.fire({
             title: "¿Estás seguro?",
@@ -140,39 +250,18 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
         }).then((result) => {
             if (result.isConfirmed) {
                 limpiarCarrito();
-                limpiarDatosCliente();
                 Swal.fire("Carrito limpio", "Se ha vaciado el carrito", "success");
             }
         });
     };
 
-    // Manejo de confirmación de ubicación desde MapaUbicacion
-    const handleUbicacionConfirmada = (ubicacion: UbicacionConfirmada) => {
-        setDatosDomicilio({
-            costo_domicilio: ubicacion.costo_domicilio,
-            distancia_km: ubicacion.distancia_km,
-            duracion_estimada: ubicacion.duracion_estimada,
-            distancia_base_km: ubicacion.distancia_base_km,
-            costo_base: ubicacion.costo_base,
-            distancia_exceso_km: ubicacion.distancia_exceso_km,
-            costo_exceso: ubicacion.costo_exceso,
-            latitud_destino: ubicacion.coordenadas.lat,
-            longitud_destino: ubicacion.coordenadas.lng
-        });
-    };
-
-    // Manejo de limpiar ubicación desde MapaUbicacion
-    const handleLimpiarUbicacion = () => {
-        setDatosDomicilio(null);
-    };
-
     const handleProcesarOrden = async () => {
-        // Validaciones básicas mejoradas
-        if (!nombre.trim()) {
-            Swal.fire("Nombre requerido", "Debes ingresar el nombre del cliente", "warning");
+        // ✅ Primero verificar datos del cliente
+        if (!verificarDatosCliente()) {
             return;
         }
 
+        // Validaciones básicas
         if (productos.length === 0) {
             Swal.fire("Carrito vacío", "Agrega productos antes de continuar", "warning");
             return;
@@ -181,17 +270,7 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
         // Validaciones específicas para domicilio
         if (tipo === "domicilio") {
             if (!datosDomicilio) {
-                Swal.fire("Calcular domicilio", "Debes calcular el costo de domicilio primero", "warning");
-                return;
-            }
-
-            if (!telefono?.trim()) {
-                Swal.fire("Teléfono requerido", "El teléfono es obligatorio para domicilios", "warning");
-                return;
-            }
-
-            if (!direccion?.trim()) {
-                Swal.fire("Dirección requerida", "Debes escribir la dirección exacta de entrega", "warning");
+                Swal.fire("Calculando domicilio", "Espera a que se calcule el costo de domicilio", "warning");
                 return;
             }
 
@@ -234,9 +313,9 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
 
             const ordenData: OrdenData = {
                 cliente: {
-                    nombre: nombre.trim(),
-                    telefono: telefono?.trim() || undefined,
-                    direccion: tipo === "domicilio" ? direccion?.trim() : "En establecimiento",
+                    nombre: cliente!.nombre.trim(),
+                    telefono: cliente!.telefono?.trim() || undefined,
+                    direccion: tipo === "domicilio" ? cliente!.direccion?.trim() : "En establecimiento",
                     notas: notasCliente?.trim() || undefined,
                 },
                 productos: productosOrden,
@@ -294,7 +373,7 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                         ${metodoPago === "efectivo" && result.orden?.cambio_a_devolver !== null && result.orden?.cambio_a_devolver !== undefined && result.orden?.cambio_a_devolver > 0 ? `
                             <div class="bg-green-50 rounded-lg p-3 mb-3">
                                 <p class="text-sm text-green-700">
-                                    <span class="font-medium">Cambio a devolver:</span> ${result.orden.cambio_a_devolver.toLocaleString("es-CO")}
+                                    <span class="font-medium">Cambio a devolver:</span> $${result.orden.cambio_a_devolver.toLocaleString("es-CO")}
                                 </p>
                             </div>
                         ` : ''}
@@ -307,14 +386,12 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                     width: '400px'
                 }).then(() => {
                     limpiarCarrito();
-                    limpiarDatosCliente();
                     onClose();
                 });
             } else {
                 Swal.fire("Error", result.error || "No se pudo crear la orden", "error");
             }
-        } catch (err) {
-            console.error("Error procesando orden:", err);
+        } catch {
             Swal.fire("Error", "Ocurrió un error procesando la orden", "error");
         } finally {
             setProcesando(false);
@@ -322,373 +399,436 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     };
 
     return (
-        <AnimatePresence>
-            {/* Overlay */}
-            <motion.div
-                key="overlay"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black z-40"
-                onClick={handleClose}
-            />
-
-            {/* Panel */}
-            <motion.div
-                key="panel"
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ duration: 0.3 }}
-                drag="y"
-                dragConstraints={{ top: 0, bottom: 0 }}
-                onDragEnd={(_, info) => {
-                    if (info.offset.y > 100) {
-                        onClose();
-                    }
-                }}
-                className="
-          mx-auto 
-          fixed left-0 right-0 
-          bottom-0 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2
-          bg-white rounded-t-3xl lg:rounded-3xl 
-          shadow-2xl z-50 
-          max-h-[90vh] flex flex-col 
-          lg:max-w-2xl
-          h-full lg:h-auto
-        "
-            >
-                {/* Barra deslizable en móvil */}
-                <div className="lg:hidden w-16 h-1.5 bg-gray-300 rounded-full mx-auto mt-2 mb-4" />
-
-                {/* Botón X en desktop */}
-                <button
+        <>
+            <AnimatePresence>
+                {/* Overlay con animación de entrada/salida */}
+                <motion.div
+                    key="overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="fixed inset-0 bg-black/50 z-50"
                     onClick={handleClose}
-                    className="hidden lg:block absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                />
+
+                {/* Modal principal */}
+                <motion.div
+                    key="modal"
+                    initial={{
+                        x: "100%",
+                        opacity: 0
+                    }}
+                    animate={{
+                        x: 0,
+                        opacity: 1
+                    }}
+                    exit={{
+                        x: "100%",
+                        opacity: 0
+                    }}
+                    transition={{
+                        duration: 0.4,
+                        ease: "easeInOut"
+                    }}
+                    className="
+                    fixed inset-0 lg:inset-auto 
+                    lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2
+                    bg-white z-50 
+                    lg:rounded-3xl lg:shadow-2xl
+                    lg:max-w-2xl lg:w-full lg:max-h-[90vh]
+                    flex flex-col
+                "
                 >
-                    <FaTimes size={20} />
-                </button>
-
-                {/* Contenedor principal con scroll */}
-                <div className="flex-1 flex flex-col min-h-0">
-                    {/* Header */}
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-orange-500 text-white p-3 rounded-xl">
-                                    {tipo === "domicilio" ? <FaTruck className="text-lg" /> : <FaShoppingCart className="text-lg" />}
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900">
-                                        {tipo === "domicilio" ? "Pedido a domicilio" : "Nueva orden"}
-                                    </h2>
-                                    <p className="text-sm text-gray-600">
-                                        {productos.length} productos en el carrito
-                                    </p>
-                                </div>
-                            </div>
-
-                            {productos.length > 0 && (
-                                <button
-                                    onClick={handleLimpiarTodo}
-                                    className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
-                                    title="Limpiar carrito"
-                                >
-                                    <FaTrash size={16} />
-                                </button>
-                            )}
+                    {/* Header fijo */}
+                    <div className="flex-shrink-0 border-b border-gray-200 bg-white lg:rounded-t-3xl">
+                        {/* Header móvil - Botón flecha y título */}
+                        <div className="lg:hidden flex items-center gap-3 p-4">
+                            <button
+                                onClick={handleClose}
+                                className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                            >
+                                <FaArrowLeft className="text-gray-700 text-lg" />
+                            </button>
+                            <h2 className="text-lg font-semibold text-gray-900 truncate">
+                                {tipo === "domicilio" ? "Pedido a domicilio" : "Nueva orden"}
+                            </h2>
                         </div>
 
-                        {/* Total en el header */}
-                        {productos.length > 0 && (
-                            <div className="mt-4 space-y-2">
-                                <div className="flex justify-between items-center text-sm text-gray-600">
-                                    <span>Subtotal productos</span>
-                                    <span>${total.toLocaleString("es-CO")}</span>
-                                </div>
-
-                                {datosDomicilio && (
-                                    <div className="flex justify-between items-center text-sm text-blue-600">
-                                        <span className="flex items-center gap-1">
-                                            <FaTruck size={12} />
-                                            Domicilio ({datosDomicilio.distancia_km} km)
-                                        </span>
-                                        <span>${datosDomicilio.costo_domicilio.toLocaleString("es-CO")}</span>
-                                    </div>
-                                )}
-
-                                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                                    <span className="text-gray-900 font-medium">Total final</span>
-                                    <span className="text-2xl font-bold text-green-600">
-                                        ${totalFinal.toLocaleString("es-CO")}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
+                        {/* Header desktop - Botón X */}
+                        <div className="hidden lg:flex items-center justify-between p-6">
+                            <h2 className="text-xl font-bold text-gray-900 truncate">
+                                {tipo === "domicilio" ? "Pedido a domicilio" : "Nueva orden"}
+                            </h2>
+                            <button
+                                onClick={handleClose}
+                                className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                            >
+                                <FaTimes className="text-gray-700 text-lg" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Contenido con scroll */}
-                    <div className="flex-1 overflow-y-auto scrollbar-none px-6 space-y-6 mt-2 lg:mt-4 pb-4">
-                        {productos.length === 0 ? (
-                            <div className="text-center py-12 px-4">
-                                <FaShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">Tu carrito está vacío</h3>
-                                <p className="text-sm text-gray-500">Agrega productos para continuar</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Sección de ubicación para domicilio */}
-                                {tipo === "domicilio" && (
-                                    <div className="space-y-4">
-                                        <h4 className="font-semibold text-gray-800 flex items-center gap-2">
-                                            <FaMapMarkerAlt className="text-orange-500" />
-                                            Ubicación de entrega
-                                        </h4>
-                                        <MapaUbicacion
-                                            onUbicacionConfirmada={handleUbicacionConfirmada}
-                                            onLimpiar={handleLimpiarUbicacion}
-                                            ubicacionActual={datosDomicilio ? {
-                                                coordenadas: { lat: 0, lng: 0 },
-                                                distancia_km: datosDomicilio.distancia_km,
-                                                costo_domicilio: datosDomicilio.costo_domicilio,
-                                                duracion_estimada: datosDomicilio.duracion_estimada,
-                                                distancia_base_km: datosDomicilio.distancia_base_km,
-                                                costo_base: datosDomicilio.costo_base,
-                                                distancia_exceso_km: datosDomicilio.distancia_exceso_km,
-                                                costo_exceso: datosDomicilio.costo_exceso
-                                            } : null}
-                                        />
+                    <div className="flex-1 overflow-y-auto scrollbar-hide">
+                        <div className="p-6 space-y-6">
+                            {/* Resumen del pedido */}
+                            <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-orange-500 text-white p-2 rounded-lg">
+                                            {tipo === "domicilio" ? <FaTruck className="text-lg" /> : <FaShoppingCart className="text-lg" />}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-gray-900">
+                                                {tipo === "domicilio" ? "Pedido a domicilio" : "Nueva orden"}
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                {cliente?.nombre ? `Cliente: ${cliente.nombre}` : `${productos.length} productos en el carrito`}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {productos.length > 0 && (
+                                        <button
+                                            onClick={handleLimpiarTodo}
+                                            className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                            title="Limpiar carrito"
+                                        >
+                                            <FaTrash size={16} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Total en el header */}
+                                {productos.length > 0 && (
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center text-sm text-gray-600">
+                                            <span>Subtotal productos</span>
+                                            <span>${total.toLocaleString("es-CO")}</span>
+                                        </div>
+
+                                        {datosDomicilio && (
+                                            <div className="flex justify-between items-center text-sm text-blue-600">
+                                                <span className="flex items-center gap-1">
+                                                    <FaTruck size={12} />
+                                                    Domicilio ({datosDomicilio.distancia_km} km)
+                                                </span>
+                                                <span>${datosDomicilio.costo_domicilio.toLocaleString("es-CO")}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                                            <span className="text-gray-900 font-medium">Total final</span>
+                                            <span className="text-2xl font-bold text-green-600">
+                                                ${totalFinal.toLocaleString("es-CO")}
+                                            </span>
+                                        </div>
                                     </div>
                                 )}
+                            </div>
 
-                                {/* Sección de productos */}
-                                <div className="space-y-4">
-                                    <h4 className="font-semibold text-gray-800 flex items-center gap-2">
-                                        <FaUtensils className="text-orange-500" />
-                                        Productos seleccionados
-                                    </h4>
-
-                                    {productos.map((p) => (
-                                        <div
-                                            key={p.personalizacion_id || `${p.id}-${Math.random()}`}
-                                            className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden"
-                                        >
-                                            <div className="p-4">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <div className="flex-1">
-                                                        <h5 className="font-semibold text-sm text-gray-900">{p.nombre}</h5>
-                                                        <p className="text-sm text-gray-600">${p.precio.toLocaleString("es-CO")} c/u</p>
-                                                    </div>
-
+                            {productos.length === 0 ? (
+                                <div className="text-center py-12 px-4">
+                                    <FaShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Tu carrito está vacío</h3>
+                                    <p className="text-sm text-gray-500">Agrega productos para continuar</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Estado del cálculo automático para domicilio */}
+                                    {tipo === "domicilio" && (
+                                        <div className="space-y-4">
+                                            {calculandoDomicilio ? (
+                                                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => p.personalizacion_id && actualizarCantidad(p.personalizacion_id, p.cantidad - 1)}
-                                                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
-                                                            >
-                                                                <FaMinus size={12} />
-                                                            </button>
-                                                            <div className="bg-gray-100 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                                                                {p.cantidad}
-                                                            </div>
-                                                            <button
-                                                                onClick={() => p.personalizacion_id && actualizarCantidad(p.personalizacion_id, p.cantidad + 1)}
-                                                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
-                                                            >
-                                                                <FaPlus size={12} />
-                                                            </button>
+                                                        <FaSpinner className="animate-spin text-blue-600" size={20} />
+                                                        <div>
+                                                            <h4 className="font-semibold text-blue-900">Calculando costo de domicilio</h4>
+                                                            <p className="text-sm text-blue-700">Obteniendo tu ubicación...</p>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right flex flex-col items-end">
-                                                        <p className="font-bold text-sm text-gray-900">
-                                                            ${(p.precio * p.cantidad).toLocaleString("es-CO")}
-                                                        </p>
+                                                </div>
+                                            ) : datosDomicilio ? (
+                                                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h4 className="font-semibold text-green-900 flex items-center gap-2">
+                                                            <FaTruck className="text-green-600" />
+                                                            Costo de domicilio calculado
+                                                        </h4>
                                                         <button
-                                                            onClick={() => p.personalizacion_id && removerProducto(p.personalizacion_id)}
-                                                            className="text-xs text-red-500 hover:text-red-700 mt-1 transition-colors"
+                                                            onClick={recalcularDomicilio}
+                                                            className="text-xs text-blue-600 hover:text-blue-800 underline"
                                                         >
-                                                            <FaTrash />
+                                                            Recalcular
                                                         </button>
                                                     </div>
-                                                </div>
-
-                                                {/* Personalizaciones */}
-                                                {(p.ingredientes_personalizados && p.ingredientes_personalizados.some(ing => !ing.incluido && !ing.obligatorio)) || p.notas ? (
-                                                    <div className="mt-4 pt-3 border-t border-gray-200">
-                                                        {p.ingredientes_personalizados && p.ingredientes_personalizados.filter(ing => !ing.incluido && !ing.obligatorio).length > 0 && (
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <p className="text-sm font-medium text-red-700">Sin:</p>
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {p.ingredientes_personalizados
-                                                                        .filter(ing => !ing.incluido && !ing.obligatorio)
-                                                                        .map(ing => (
-                                                                            <span
-                                                                                key={ing.ingrediente_id}
-                                                                                className="text-xs text-red-700"
-                                                                            >
-                                                                                {ing.nombre},
-                                                                            </span>
-                                                                        ))
-                                                                    }
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {p.notas && (
-                                                            <div className="text-sm text-blue-700 mt-2 p-2 bg-blue-50 rounded-lg">
-                                                                <span className="font-medium">Notas:</span> {p.notas}
-                                                            </div>
-                                                        )}
+                                                    <div className="grid grid-cols-3 gap-4 text-center">
+                                                        <div className="bg-white rounded-lg p-3">
+                                                            <FaRoute className="mx-auto text-blue-600 mb-1" />
+                                                            <p className="text-xs text-gray-600">Distancia</p>
+                                                            <p className="font-bold text-blue-900">{datosDomicilio.distancia_km} km</p>
+                                                        </div>
+                                                        <div className="bg-white rounded-lg p-3">
+                                                            <FaClock className="mx-auto text-green-600 mb-1" />
+                                                            <p className="text-xs text-gray-600">Tiempo</p>
+                                                            <p className="font-bold text-green-900">{datosDomicilio.duracion_estimada} min</p>
+                                                        </div>
+                                                        <div className="bg-white rounded-lg p-3">
+                                                            <span className="text-orange-600 text-lg block">$</span>
+                                                            <p className="text-xs text-gray-600">Costo</p>
+                                                            <p className="font-bold text-orange-900">${datosDomicilio.costo_domicilio.toLocaleString('es-CO')}</p>
+                                                        </div>
                                                     </div>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Datos del cliente */}
-                                <div className="pt-4 border-t border-gray-200">
-                                    <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                        <FaUser className="text-orange-500" />
-                                        Datos del cliente
-                                    </h4>
-                                    <div className="space-y-3">
-                                        <div className="relative">
-                                            <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                            <input
-                                                type="text"
-                                                placeholder="Nombre del cliente *"
-                                                value={nombre}
-                                                onChange={(e) => setCliente({ nombre: e.target.value })}
-                                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                required
-                                            />
-                                        </div>
-
-
-
-                                        {tipo === "domicilio" && (
-                                            <>
-                                                <div className="relative">
-                                                    <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Teléfono *"
-                                                        value={telefono}
-                                                        onChange={(e) => setCliente({ telefono: e.target.value })}
-                                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                        required={tipo === "domicilio"}
-                                                    />
                                                 </div>
-                                                <div className="relative">
-                                                    <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Dirección exacta de entrega *"
-                                                        value={direccion}
-                                                        onChange={(e) => setCliente({ direccion: e.target.value })}
-                                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                    />
-                                                </div>
-                                                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                                                    <p className="text-xs text-blue-700">
-                                                        <strong>Importante:</strong> Escribe la dirección completa y exacta donde debe llegar el pedido.
-                                                        Ejemplo: Calle 123 #45-67, Apto 301, Edificio Torres del Parque, Barrio Chapinero
-                                                    </p>
-                                                </div>
-
-                                                {/* Información de pago */}
-                                                <div className="pt-4 border-t border-gray-200">
-                                                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                                        <FaCreditCard className="text-orange-500" />
-                                                        Información de pago
-                                                    </h4>
-                                                    <select
-                                                        value={metodoPago}
-                                                        onChange={(e) => setMetodoPago(e.target.value as "efectivo" | "tarjeta" | "transferencia" | "")}
-                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                            ) : errorDomicilio ? (
+                                                <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                                                    <h4 className="font-semibold text-red-900 mb-2">Error calculando domicilio</h4>
+                                                    <p className="text-sm text-red-700 mb-3">{errorDomicilio}</p>
+                                                    <button
+                                                        onClick={recalcularDomicilio}
+                                                        className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium"
                                                     >
-                                                        <option value="">Seleccionar método de pago</option>
-                                                        <option value="efectivo">💵 Efectivo</option>
-                                                        <option value="tarjeta">💳 Tarjeta</option>
-                                                        <option value="transferencia">📱 Transferencia</option>
-                                                    </select>
+                                                        Intentar nuevamente
+                                                    </button>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    )}
 
-                                                    {metodoPago === "efectivo" && (
-                                                        <div className="mt-3 space-y-3">
-                                                            <div className="relative">
-                                                                <FaMoneyBillWave className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                                                <input
-                                                                    type="number"
-                                                                    placeholder="¿Con cuánto paga el cliente?"
-                                                                    value={montoEntregado}
-                                                                    onChange={(e) => setMontoEntregado(e.target.value ? Number(e.target.value) : "")}
-                                                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                                                />
+                                    {/* Sección de productos */}
+                                    <div className="space-y-4">
+                                        <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                                            <FaUtensils className="text-orange-500" />
+                                            Productos seleccionados
+                                        </h4>
+
+                                        {productos.map((p) => (
+                                            <div
+                                                key={p.personalizacion_id || `${p.id}-${Math.random()}`}
+                                                className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden"
+                                            >
+                                                <div className="p-4">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="flex-1">
+                                                            <h5 className="font-semibold text-sm text-gray-900">{p.nombre}</h5>
+                                                            <p className="text-sm text-gray-600">${p.precio.toLocaleString("es-CO")} c/u</p>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => p.personalizacion_id && actualizarCantidad(p.personalizacion_id, p.cantidad - 1)}
+                                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                                                >
+                                                                    <FaMinus size={12} />
+                                                                </button>
+                                                                <div className="bg-gray-100 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                                                                    {p.cantidad}
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => p.personalizacion_id && actualizarCantidad(p.personalizacion_id, p.cantidad + 1)}
+                                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                                                >
+                                                                    <FaPlus size={12} />
+                                                                </button>
                                                             </div>
-                                                            {cambio !== null && cambio >= 0 && (
-                                                                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                                                                    <p className="text-sm text-green-700">
-                                                                        Cambio a devolver:{" "}
-                                                                        <span className="font-bold text-green-800">
-                                                                            ${cambio.toLocaleString("es-CO")}
-                                                                        </span>
-                                                                    </p>
+                                                        </div>
+                                                        <div className="text-right flex flex-col items-end">
+                                                            <p className="font-bold text-sm text-gray-900">
+                                                                ${(p.precio * p.cantidad).toLocaleString("es-CO")}
+                                                            </p>
+                                                            <button
+                                                                onClick={() => p.personalizacion_id && removerProducto(p.personalizacion_id)}
+                                                                className="text-xs text-red-500 hover:text-red-700 mt-1 transition-colors"
+                                                            >
+                                                                <FaTrash />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Personalizaciones */}
+                                                    {(p.ingredientes_personalizados && p.ingredientes_personalizados.some(ing => !ing.incluido && !ing.obligatorio)) || p.notas ? (
+                                                        <div className="mt-4 pt-3 border-t border-gray-200">
+                                                            {p.ingredientes_personalizados && p.ingredientes_personalizados.filter(ing => !ing.incluido && !ing.obligatorio).length > 0 && (
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <p className="text-sm font-medium text-red-700">Sin:</p>
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {p.ingredientes_personalizados
+                                                                            .filter(ing => !ing.incluido && !ing.obligatorio)
+                                                                            .map(ing => (
+                                                                                <span
+                                                                                    key={ing.ingrediente_id}
+                                                                                    className="text-xs text-red-700"
+                                                                                >
+                                                                                    {ing.nombre},
+                                                                                </span>
+                                                                            ))
+                                                                        }
+                                                                    </div>
                                                                 </div>
                                                             )}
-                                                            {cambio !== null && cambio < 0 && (
-                                                                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                                                                    <p className="text-sm text-red-700">
-                                                                        Faltan:{" "}
-                                                                        <span className="font-bold text-red-800">
-                                                                            ${Math.abs(cambio).toLocaleString("es-CO")}
-                                                                        </span>
-                                                                    </p>
+                                                            {p.notas && (
+                                                                <div className="text-sm text-blue-700 mt-2 p-2 bg-blue-50 rounded-lg">
+                                                                    <span className="font-medium">Notas:</span> {p.notas}
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    )}
+                                                    ) : null}
                                                 </div>
-                                            </>
-                                        )}
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            </>
-                        )}
+
+                                    {/* Datos del cliente */}
+                                    <div className="pt-4 border-t border-gray-200">
+                                        <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                            <FaUser className="text-orange-500" />
+                                            Datos del cliente
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {/* Mostrar datos del cliente desde Zustand */}
+                                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <FaUser className="text-gray-400" size={14} />
+                                                    <p className="text-sm"><span className="font-medium">Nombre:</span> {cliente?.nombre || 'No especificado'}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <FaPhone className="text-gray-400" size={14} />
+                                                    <p className="text-sm"><span className="font-medium">Teléfono:</span> {cliente?.telefono || 'No especificado'}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <FaMapMarkerAlt className="text-gray-400" size={14} />
+                                                    <p className="text-sm"><span className="font-medium">Dirección:</span> {cliente?.direccion || 'No especificado'}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Notas adicionales */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Notas adicionales (opcional)
+                                                </label>
+                                                <textarea
+                                                    value={notasCliente}
+                                                    onChange={(e) => setNotasCliente(e.target.value)}
+                                                    placeholder="Ej: Timbre no funciona, tocar la puerta..."
+                                                    rows={2}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
+                                                />
+                                            </div>
+
+                                            {tipo === "domicilio" && (
+                                                <>
+                                                    {/* Información de pago */}
+                                                    <div className="pt-4 border-t border-gray-200">
+                                                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                                            <FaCreditCard className="text-orange-500" />
+                                                            Información de pago
+                                                        </h4>
+                                                        <select
+                                                            value={metodoPago}
+                                                            onChange={(e) => setMetodoPago(e.target.value as "efectivo" | "tarjeta" | "transferencia" | "")}
+                                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                        >
+                                                            <option value="">Seleccionar método de pago</option>
+                                                            <option value="efectivo">💵 Efectivo</option>
+                                                            <option value="tarjeta">💳 Tarjeta</option>
+                                                            <option value="transferencia">📱 Transferencia</option>
+                                                        </select>
+
+                                                        {metodoPago === "efectivo" && (
+                                                            <div className="mt-3 space-y-3">
+                                                                <div className="relative">
+                                                                    <FaMoneyBillWave className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder="¿Con cuánto paga el cliente?"
+                                                                        value={montoEntregado}
+                                                                        onChange={(e) => setMontoEntregado(e.target.value ? Number(e.target.value) : "")}
+                                                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                                    />
+                                                                </div>
+                                                                {cambio !== null && cambio >= 0 && (
+                                                                    <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                                                                        <p className="text-sm text-green-700">
+                                                                            Cambio a devolver:{" "}
+                                                                            <span className="font-bold text-green-800">
+                                                                                ${cambio.toLocaleString("es-CO")}
+                                                                            </span>
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                                {cambio !== null && cambio < 0 && (
+                                                                    <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                                                                        <p className="text-sm text-red-700">
+                                                                            Faltan:{" "}
+                                                                            <span className="font-bold text-red-800">
+                                                                                ${Math.abs(cambio).toLocaleString("es-CO")}
+                                                                            </span>
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Footer fijo abajo */}
+                    {/* Footer fijo */}
                     {productos.length > 0 && (
-                        <div className="p-6 border-t border-gray-100 bg-white rounded-b-3xl flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto">
-                            <div className="text-sm text-gray-600">
-                                {tipo === "domicilio" && !datosDomicilio && (
-                                    <p className="text-center">
-                                        Selecciona la ubicación en el mapa para calcular el costo de envío
-                                    </p>
-                                )}
-                            </div>
+                        <div className="flex-shrink-0 border-t border-gray-200 bg-white lg:rounded-b-3xl">
+                            <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="text-sm text-gray-600">
+                                    {tipo === "domicilio" && calculandoDomicilio && (
+                                        <p className="text-center text-blue-600 flex items-center gap-2">
+                                            <FaSpinner className="animate-spin" />
+                                            Calculando costo de envío...
+                                        </p>
+                                    )}
+                                    {tipo === "domicilio" && errorDomicilio && (
+                                        <p className="text-center text-red-600">
+                                            Error calculando domicilio
+                                        </p>
+                                    )}
+                                </div>
 
-                            <button
-                                onClick={handleProcesarOrden}
-                                disabled={procesando || (tipo === "domicilio" && !datosDomicilio)}
-                                className="flex-1 sm:flex-none bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
-                            >
-                                {procesando ? (
-                                    <FaSpinner className="animate-spin" />
-                                ) : (
-                                    <>
-                                        {tipo === "domicilio" ? <FaTruck /> : <FaShoppingCart />}
-                                        {tipo === "domicilio" && !datosDomicilio
-                                            ? "Calcula el domicilio primero"
-                                            : "Confirmar pedido"
-                                        }
-                                    </>
-                                )}
-                            </button>
+                                <button
+                                    onClick={handleProcesarOrden}
+                                    disabled={procesando || (tipo === "domicilio" && (!datosDomicilio || calculandoDomicilio))}
+                                    className="flex-1 sm:flex-none bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white px-8 py-4 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all duration-200 hover:scale-105 min-w-[200px]"
+                                >
+                                    {procesando ? (
+                                        <FaSpinner className="animate-spin" />
+                                    ) : (
+                                        <>
+                                            {tipo === "domicilio" ? <FaTruck /> : <FaShoppingCart />}
+                                            {tipo === "domicilio" && calculandoDomicilio
+                                                ? "Calculando..."
+                                                : tipo === "domicilio" && !datosDomicilio
+                                                    ? "Calculando domicilio..."
+                                                    : "Confirmar pedido"
+                                            }
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     )}
-                </div>
-            </motion.div>
-        </AnimatePresence>
+                </motion.div>
+            </AnimatePresence>
+
+            {/* ✅ Modal de datos del cliente si faltan datos */}
+            {mostrarModalCliente && (
+                <ModalDatosCliente
+                    onClose={handleCloseModalCliente}
+                />
+            )}
+        </>
     );
 }

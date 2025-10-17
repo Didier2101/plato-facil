@@ -1,25 +1,32 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+// src/store/clienteStore.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-interface ClienteState {
+export interface ClienteDomicilio {
+    id: string;
+    cliente_identificador: string;
     nombre: string;
     telefono: string;
     direccion: string;
-    setCliente: (data: Partial<ClienteState>) => void;
+    latitud?: number;
+    longitud?: number;
+}
+
+interface ClienteStore {
+    cliente: ClienteDomicilio | null;
+    setCliente: (cliente: ClienteDomicilio) => void;
     clearCliente: () => void;
 }
 
-export const useClienteStore = create<ClienteState>()(
+export const useClienteStore = create<ClienteStore>()(
     persist(
         (set) => ({
-            nombre: "",
-            telefono: "",
-            direccion: "",
-            setCliente: (data) => set((state) => ({ ...state, ...data })),
-            clearCliente: () => set({ nombre: "", telefono: "", direccion: "" }),
+            cliente: null,
+            setCliente: (cliente) => set({ cliente }),
+            clearCliente: () => set({ cliente: null }),
         }),
         {
-            name: "cliente-storage",
+            name: 'cliente-storage', // Nombre en localStorage
         }
     )
 );

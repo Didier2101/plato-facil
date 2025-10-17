@@ -4,17 +4,24 @@ import { useState } from "react";
 import type { ProductoFrontend } from "@/src/types/producto";
 import Image from "next/image";
 import ProductoDetalleModal from "./ProductoDetalleModal";
-import { FaShoppingCart } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { useCarritoStore } from "@/src/store/carritoStore";
+import { IoMdAddCircle } from "react-icons/io";
 
-interface ProductoCardProps {
+interface ProductoCardSliderProps {
     producto: ProductoFrontend;
+    showDiscount?: boolean;
+    discountPercentage?: number;
+    originalPrice?: number;
+    todosLosProductos?: ProductoFrontend[];
 }
 
-export default function ProductoCard({ producto }: ProductoCardProps) {
+export default function ProductoCard({
+    producto,
+    todosLosProductos = [],
+}: ProductoCardSliderProps) {
     const [imageError, setImageError] = useState(false);
-    const [openModal, setOpenModal] = useState(false);
+    const [pilaModales, setPilaModales] = useState<ProductoFrontend[]>([]);
     const { agregarProducto } = useCarritoStore();
 
     const handleAgregarDirectoAlCarrito = () => {
@@ -34,107 +41,136 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
                 obligatorio: pi.obligatorio,
             })) || [],
             notas: undefined,
-            personalizacion_id: `${productoId}-${Date.now()}`,
+            // ❌ ELIMINADO: personalizacion_id - el store lo generará automáticamente
         };
 
         agregarProducto(productoCarrito);
 
         Swal.fire({
             icon: "success",
-            title: "Agregado al carrito",
-            text: `${producto.nombre}`,
-            timer: 1500,
+            title: "",
+            text: "",
+            timer: 1000,
             showConfirmButton: false,
             toast: true,
             position: "top-end",
+            background: "#f97316",
+            iconColor: "#ffffff",
+            width: "80px",
+            customClass: {
+                popup: "!rounded-full !shadow-lg !flex !items-center !justify-center",
+                icon: "!border-0 !m-0 !scale-75"
+            }
         });
     };
 
-    // Convertir ingredientes a texto legible
-    const ingredientesTexto = producto.ingredientes
-        ?.map((pi) => pi.ingrediente.nombre)
-        .join(", ");
+    // Generar productos sugeridos
+    const obtenerProductosSugeridos = (productoBase: ProductoFrontend): ProductoFrontend[] => {
+        if (!todosLosProductos.length) return [];
+
+        const mismaCategoria = todosLosProductos.filter(
+            p => p.categoria === productoBase.categoria && p.id !== productoBase.id && p.activo
+        );
+
+        const otrasCategoria = todosLosProductos.filter(
+            p => p.categoria !== productoBase.categoria && p.id !== productoBase.id && p.activo
+        );
+
+        const sugeridos = [...mismaCategoria, ...otrasCategoria];
+
+        return sugeridos
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 6);
+    };
+
+    // Abrir modal del producto inicial
+    const abrirModal = () => {
+        setPilaModales([producto]);
+    };
+
+    // Agregar un nuevo producto a la pila (abrir modal encima)
+    const agregarProductoAPila = (productoNuevo: ProductoFrontend) => {
+        setPilaModales(prev => [...prev, productoNuevo]);
+    };
+
+    // Cerrar el último modal de la pila
+    const cerrarUltimoModal = () => {
+        setPilaModales(prev => prev.slice(0, -1));
+    };
 
     return (
         <>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200  overflow-hidden hover:shadow-md transition-all flex flex-col">
-                <div className="relative h-40 md:h-48 w-full bg-gray-100 cursor-pointer" onClick={() => setOpenModal(true)}>
+            <div
+                className="overflow-hidden cursor-pointer transition-all duration-300 flex flex-col h-full relative max-w-[250px]"
+                onClick={abrirModal}
+            >
+                {/* Imagen del producto */}
+                <div className="relative h-32 w-full ">
                     {producto.imagen_url && !imageError ? (
                         <Image
                             src={producto.imagen_url}
                             alt={producto.nombre}
                             fill
                             priority
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-cover"
+                            className="object-cover rounded-xl"
                             onError={() => setImageError(true)}
                         />
                     ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400">
-                            <span className="text-5xl">🍔</span>
-                        </div>
+                        <Image
+                            src="/assets/logo-kavvo-solo.png"
+                            alt="Logo Kavvo"
+                            fill
+                            priority
+                            className="object-cover rounded-xl"
+                        />
                     )}
-
-                    <div className="absolute top-3 left-3">
-                        {producto.categoria && (
-                            <div className="mb-3">
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                                    {producto.categoria}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                    <div className="absolute top-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                        <p className="text-sm font-bold text-green-600">
-                            ${producto.precio.toLocaleString("es-CO")}
-                        </p>
-
-                    </div>
                 </div>
 
-                <div className="p-4 flex flex-col flex-1">
-                    <h3 className="text-lg font-bold text-gray-900  mb-1">
+                {/* Botón flotante */}
+                <div className="absolute top-2 right-2 z-20">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleAgregarDirectoAlCarrito();
+                        }}
+                        disabled={!producto.activo}
+                        className="flex items-center justify-center bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white p-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                    >
+                        <IoMdAddCircle className="text-xl" />
+                    </button>
+                </div>
+
+                {/* Contenido de la card */}
+                <div className="pt-2 flex flex-col flex-1">
+                    <div className="mb-1">
+                        <span className="text-md font-bold text-gray-700">
+                            ${producto.precio.toLocaleString("es-CO")}
+                        </span>
+                    </div>
+
+                    <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight mb-1">
                         {producto.nombre}
                     </h3>
 
                     {producto.descripcion && (
-                        <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                        <p className="text-xs text-gray-600 line-clamp-2 leading-tight truncate">
                             {producto.descripcion}
                         </p>
                     )}
-                    <p className="text-gray-800 font-bold text-xs italic">Ingredientes</p>
-                    {ingredientesTexto && (
-                        <p className="text-gray-500 text-xs line-clamp-2 mb-3 italic">
-                            {ingredientesTexto}
-                        </p>
-                    )}
-
-
-                    <div className="flex gap-2 mt-auto">
-                        <button
-                            onClick={() => setOpenModal(true)}
-                            className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-xl font-semibold transition-colors border border-gray-200"
-                        >
-                            <span>Personalizar</span>
-                        </button>
-
-                        <button
-                            onClick={handleAgregarDirectoAlCarrito}
-                            disabled={!producto.activo}
-                            className="flex-1 flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 px-4 rounded-xl font-semibold transition-colors"
-                        >
-                            <FaShoppingCart className="text-lg" />
-                        </button>
-                    </div>
                 </div>
             </div>
 
-            {openModal && (
+            {/* Renderizar todos los modales en la pila */}
+            {pilaModales.map((prod, index) => (
                 <ProductoDetalleModal
-                    producto={producto}
-                    onClose={() => setOpenModal(false)}
+                    key={`${prod.id}-${index}`}
+                    producto={prod}
+                    onClose={cerrarUltimoModal}
+                    productosSugeridos={obtenerProductosSugeridos(prod)}
+                    onProductoSugeridoClick={agregarProductoAPila}
+                    zIndexBase={50 + index}
                 />
-            )}
+            ))}
         </>
     );
 }

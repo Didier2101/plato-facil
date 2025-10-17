@@ -635,7 +635,7 @@ export default function DomiciliarioPanel({ usuarioId }: CajaListaProps) {
                     setPropinaPorcentaje={setPropinaPorcentaje}
                     onSuccess={handleCobroExitoso}
                     onRecargarOrdenes={cargarOrdenes}
-                    isMobile={true}
+
                     onClose={() => {
                         setOrdenParaCobrar(null);
                         setMetodoPago('');

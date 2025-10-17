@@ -159,7 +159,7 @@ export default function LoginComponent() {
                         className="text-orange-600 hover:text-orange-800 font-semibold flex justify-center gap-2 transition-colors hover:underline text-sm"
                     >
                         <FiGlobe className="text-sm mt-1" />
-                        ¿Problemas para acceder? Contacta a Vadya S.A.S
+                        ¿Problemas para acceder? Contacta a Aurora luminis S.A.S
                     </Link>
                 </div>
             </form>
@@ -172,7 +172,7 @@ export default function LoginComponent() {
                         <span >es un producto de</span>
 
 
-                        <span className="font-semibold ">Vadya S.A.S</span>
+                        <span className="font-semibold ">Aurora luminis S.A.S</span>
 
                         <span>© 2025 - Todos los derechos reservados</span>
                     </p>

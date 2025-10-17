@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import {
     Image as FileText,
@@ -521,9 +521,10 @@ export default function FormAgregarProducto() {
                                     <h4 className="text-md sm:text-lg font-medium text-gray-700 mb-3">
                                         Ingredientes disponibles
                                     </h4>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 max-h-40 overflow-y-auto pb-2 rounded-lg ">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 max-h-100 overflow-y-auto pb-2 rounded-lg">
                                         {ingredientes
                                             .filter(ing => !ingredientesSeleccionados.find(sel => sel.id === ing.id))
+                                            .sort((a, b) => a.nombre.localeCompare(b.nombre))
                                             .map((ing) => (
                                                 <button
                                                     key={ing.id}
@@ -662,7 +663,7 @@ export default function FormAgregarProducto() {
                                 )}
 
                                 {/* Crear nuevo ingrediente */}
-                                <div className=" pt-6">
+                                <div className="pt-6">
                                     <h5 className="text-md font-medium text-gray-700 mb-3">
                                         ¿No encuentras un ingrediente?
                                     </h5>
