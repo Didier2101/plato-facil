@@ -153,7 +153,7 @@ export default function ProductoCard({
                     </h3>
 
                     {producto.descripcion && (
-                        <p className="text-xs text-gray-600 line-clamp-2 leading-tight truncate">
+                        <p className="text-xs text-gray-600 line-clamp-2 leading-tight">
                             {producto.descripcion}
                         </p>
                     )}

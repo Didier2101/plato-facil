@@ -186,7 +186,7 @@ export default function InformacionRestaurante() {
 
                     {/* Estado de apertura */}
                     {estadoApertura !== null && (
-                        <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
+                        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-3 h-3 rounded-full ${estadoApertura ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
@@ -212,7 +212,7 @@ export default function InformacionRestaurante() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Logo e información principal */}
                         <div className="lg:col-span-1">
-                            <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
+                            <div className=" rounded-xl p-6 border border-gray-100">
                                 {configuracion.logo_url ? (
                                     <div className="text-center">
                                         <Image
@@ -220,7 +220,7 @@ export default function InformacionRestaurante() {
                                             alt={configuracion.nombre_restaurante}
                                             width={160}
                                             height={160}
-                                            className="w-40 h-40 mx-auto object-cover rounded-xl border-4 border-orange-100"
+                                            className="w-40 h-40 mx-auto object-cover rounded-xl"
                                             priority
                                         />
                                         <h3 className="text-lg font-semibold text-gray-900 mt-4">
@@ -292,23 +292,7 @@ export default function InformacionRestaurante() {
                                 </div>
                             </div>
 
-                            {/* Ubicación GPS */}
-                            <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <FaGlobe className="text-orange-500" />
-                                    <span className="font-medium text-gray-900">Coordenadas GPS</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span className="text-gray-600">Latitud:</span>
-                                        <p className="font-mono text-gray-900">{configuracion.latitud.toFixed(6)}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-600">Longitud:</span>
-                                        <p className="font-mono text-gray-900">{configuracion.longitud.toFixed(6)}</p>
-                                    </div>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
                 </div>

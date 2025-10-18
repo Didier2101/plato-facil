@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaBars, FaTimes, FaHome, FaClipboardList, FaInfoCircle } from "react-icons/fa";
@@ -127,6 +127,9 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
     const [isHydrated, setIsHydrated] = useState(false);
+    const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+    const [lastScrollY, setLastScrollY] = useState(0);
+    const headerRef = useRef<HTMLDivElement>(null);
 
     // Obtener datos del cliente desde el store
     const { cliente } = useClienteStore();
@@ -183,6 +186,48 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
         };
     }, [mobileMenuOpen]);
 
+    // Controlar visibilidad del header en scroll
+    useEffect(() => {
+        const controlHeader = () => {
+            if (typeof window !== 'undefined') {
+                const currentScrollY = window.scrollY;
+
+                // Si el scroll es menor a 50px, siempre mostrar el header
+                if (currentScrollY < 10) {
+                    setIsHeaderVisible(true);
+                    setLastScrollY(currentScrollY);
+                    return;
+                }
+
+                // Si estamos en la parte superior, mostrar el header
+                if (currentScrollY === 0) {
+                    setIsHeaderVisible(true);
+                }
+                // Si hacemos scroll hacia abajo, ocultar el header
+                else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+                    setIsHeaderVisible(false);
+                }
+                // Si hacemos scroll hacia arriba, mostrar el header
+                else if (currentScrollY < lastScrollY) {
+                    setIsHeaderVisible(true);
+                }
+
+                setLastScrollY(currentScrollY);
+            }
+        };
+
+        // Solo aplicar este comportamiento en dispositivos móviles/tablets
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            window.addEventListener('scroll', controlHeader, { passive: true });
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('scroll', controlHeader);
+            }
+        };
+    }, [lastScrollY]);
+
     // Mostrar loading mientras se hidrata
     if (!isHydrated) {
         return (
@@ -198,9 +243,13 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
         <div className="flex min-h-screen overflow-x-hidden">
             {/* ✅ Componente de notificaciones */}
 
-
-            {/* Header móvil - ALTURA FIJA */}
-            <div className="fixed top-0 left-0 right-0 h-16 z-50 bg-white border-b border-gray-200 lg:hidden">
+            {/* Header móvil - ALTURA FIJA con animación */}
+            <div
+                ref={headerRef}
+                className={`fixed top-0 left-0 right-0 h-16 z-50 bg-white border-b border-gray-200 lg:hidden
+                           transition-transform duration-300 ease-in-out
+                           ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`}
+            >
                 <div className="flex items-center justify-between h-full px-4">
                     {/* Logo y datos del cliente */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">

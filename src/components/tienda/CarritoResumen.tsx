@@ -27,8 +27,6 @@ import {
 } from "react-icons/fa";
 import ModalDatosCliente from "../cliente-domicilio/ModalDatosCliente";
 
-
-// Interfaces
 interface ProductoOrden {
     producto_id: number;
     nombre: string;
@@ -92,54 +90,86 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     const [calculandoDomicilio, setCalculandoDomicilio] = useState(false);
     const [errorDomicilio, setErrorDomicilio] = useState("");
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
+    const [datosEditados, setDatosEditados] = useState({
+        nombre: cliente?.nombre || "",
+        telefono: cliente?.telefono || "",
+        direccion: cliente?.direccion || ""
+    });
 
-    // Calcular total final incluyendo domicilio
     const totalFinal = total + (datosDomicilio?.costo_domicilio || 0);
 
     const cambio = metodoPago === "efectivo" && montoEntregado !== ""
         ? Number(montoEntregado) - totalFinal
         : null;
 
-    // ✅ Función para verificar si el cliente tiene todos los datos necesarios
-    const verificarDatosCliente = () => {
-        const datosRequeridos = [
-            { campo: 'nombre', valor: cliente?.nombre, mensaje: 'nombre' },
-            { campo: 'telefono', valor: cliente?.telefono, mensaje: 'teléfono' },
-        ];
+    useEffect(() => {
+        if (tipo === "domicilio" && productos.length > 0) {
+            const datosRequeridos = [
+                { campo: 'nombre', valor: cliente?.nombre },
+                { campo: 'telefono', valor: cliente?.telefono },
+                { campo: 'direccion', valor: cliente?.direccion },
+            ];
 
-        // Para domicilio, también requerimos dirección
-        if (tipo === "domicilio") {
-            datosRequeridos.push({ campo: 'direccion', valor: cliente?.direccion, mensaje: 'dirección' });
+            const datosFaltantes = datosRequeridos.filter(dato => !dato.valor?.trim());
+
+            if (datosFaltantes.length > 0 && !mostrarModalCliente) {
+                const timer = setTimeout(() => {
+                    setMostrarModalCliente(true);
+                }, 500);
+
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [tipo, productos.length, cliente, mostrarModalCliente]);
+
+    const verificarDatosCliente = () => {
+        if (tipo === "establecimiento") {
+            if (!datosEditados.nombre?.trim()) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Nombre requerido",
+                    text: "Por favor ingresa el nombre de la persona que recoge el pedido",
+                    confirmButtonColor: "#f97316",
+                });
+                return false;
+            }
+            return true;
         }
 
-        const datosFaltantes = datosRequeridos.filter(dato => !dato.valor?.trim());
+        if (tipo === "domicilio") {
+            const datosRequeridos = [
+                { campo: 'nombre', valor: cliente?.nombre, mensaje: 'nombre' },
+                { campo: 'telefono', valor: cliente?.telefono, mensaje: 'teléfono' },
+                { campo: 'direccion', valor: cliente?.direccion, mensaje: 'dirección' },
+            ];
 
-        if (datosFaltantes.length > 0) {
-            const camposFaltantes = datosFaltantes.map(dato => dato.mensaje).join(', ');
-            Swal.fire({
-                icon: "warning",
-                title: "Datos incompletos",
-                text: `Faltan los siguientes datos: ${camposFaltantes}`,
-                confirmButtonColor: "#f97316",
-            }).then(() => {
-                setMostrarModalCliente(true);
-            });
-            return false;
+            const datosFaltantes = datosRequeridos.filter(dato => !dato.valor?.trim());
+
+            if (datosFaltantes.length > 0) {
+                const camposFaltantes = datosFaltantes.map(dato => dato.mensaje).join(', ');
+                Swal.fire({
+                    icon: "warning",
+                    title: "Datos incompletos",
+                    text: `Faltan los siguientes datos: ${camposFaltantes}`,
+                    confirmButtonColor: "#f97316",
+                }).then(() => {
+                    setMostrarModalCliente(true);
+                });
+                return false;
+            }
+            return true;
         }
 
         return true;
     };
 
-    // Bloquear scroll cuando el carrito está abierto
     useEffect(() => {
         document.body.style.overflow = 'hidden';
-
         return () => {
             document.body.style.overflow = 'unset';
         };
     }, []);
 
-    // ✅ Calcular automáticamente al cargar el componente si es domicilio
     useEffect(() => {
         if (tipo === "domicilio" && !datosDomicilio && !calculandoDomicilio && !errorDomicilio) {
             calcularDomicilioAutomatico();
@@ -147,8 +177,17 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tipo]);
 
+    useEffect(() => {
+        if (cliente) {
+            setDatosEditados({
+                nombre: cliente.nombre || "",
+                telefono: cliente.telefono || "",
+                direccion: cliente.direccion || ""
+            });
+        }
+    }, [cliente]);
+
     const calcularDomicilioAutomatico = async () => {
-        // Verificar soporte de geolocalización
         if (!navigator.geolocation) {
             setErrorDomicilio('Tu navegador no soporta geolocalización');
             return;
@@ -256,18 +295,15 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     };
 
     const handleProcesarOrden = async () => {
-        // ✅ Primero verificar datos del cliente
         if (!verificarDatosCliente()) {
             return;
         }
 
-        // Validaciones básicas
         if (productos.length === 0) {
             Swal.fire("Carrito vacío", "Agrega productos antes de continuar", "warning");
             return;
         }
 
-        // Validaciones específicas para domicilio
         if (tipo === "domicilio") {
             if (!datosDomicilio) {
                 Swal.fire("Calculando domicilio", "Espera a que se calcule el costo de domicilio", "warning");
@@ -313,8 +349,8 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
 
             const ordenData: OrdenData = {
                 cliente: {
-                    nombre: cliente!.nombre.trim(),
-                    telefono: cliente!.telefono?.trim() || undefined,
+                    nombre: tipo === "establecimiento" ? datosEditados.nombre.trim() : cliente!.nombre.trim(),
+                    telefono: tipo === "domicilio" ? cliente!.telefono?.trim() : undefined,
                     direccion: tipo === "domicilio" ? cliente!.direccion?.trim() : "En establecimiento",
                     notas: notasCliente?.trim() || undefined,
                 },
@@ -401,7 +437,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
     return (
         <>
             <AnimatePresence>
-                {/* Overlay con animación de entrada/salida */}
                 <motion.div
                     key="overlay"
                     initial={{ opacity: 0 }}
@@ -412,37 +447,15 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                     onClick={handleClose}
                 />
 
-                {/* Modal principal */}
                 <motion.div
                     key="modal"
-                    initial={{
-                        x: "100%",
-                        opacity: 0
-                    }}
-                    animate={{
-                        x: 0,
-                        opacity: 1
-                    }}
-                    exit={{
-                        x: "100%",
-                        opacity: 0
-                    }}
-                    transition={{
-                        duration: 0.4,
-                        ease: "easeInOut"
-                    }}
-                    className="
-                    fixed inset-0 lg:inset-auto 
-                    lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2
-                    bg-white z-50 
-                    lg:rounded-3xl lg:shadow-2xl
-                    lg:max-w-2xl lg:w-full lg:max-h-[90vh]
-                    flex flex-col
-                "
+                    initial={{ x: "100%", opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: "100%", opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                    className="fixed inset-0 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 bg-white z-50 lg:rounded-3xl lg:shadow-2xl lg:max-w-2xl lg:w-full lg:max-h-[90vh] flex flex-col"
                 >
-                    {/* Header fijo */}
                     <div className="flex-shrink-0 border-b border-gray-200 bg-white lg:rounded-t-3xl">
-                        {/* Header móvil - Botón flecha y título */}
                         <div className="lg:hidden flex items-center gap-3 p-4">
                             <button
                                 onClick={handleClose}
@@ -455,7 +468,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                             </h2>
                         </div>
 
-                        {/* Header desktop - Botón X */}
                         <div className="hidden lg:flex items-center justify-between p-6">
                             <h2 className="text-xl font-bold text-gray-900 truncate">
                                 {tipo === "domicilio" ? "Pedido a domicilio" : "Nueva orden"}
@@ -469,10 +481,8 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                         </div>
                     </div>
 
-                    {/* Contenido con scroll */}
                     <div className="flex-1 overflow-y-auto scrollbar-hide">
                         <div className="p-6 space-y-6">
-                            {/* Resumen del pedido */}
                             <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
@@ -484,7 +494,12 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                                 {tipo === "domicilio" ? "Pedido a domicilio" : "Nueva orden"}
                                             </h3>
                                             <p className="text-sm text-gray-600">
-                                                {cliente?.nombre ? `Cliente: ${cliente.nombre}` : `${productos.length} productos en el carrito`}
+                                                {tipo === "establecimiento" && datosEditados.nombre
+                                                    ? `Cliente: ${datosEditados.nombre}`
+                                                    : cliente?.nombre
+                                                        ? `Cliente: ${cliente.nombre}`
+                                                        : `${productos.length} productos en el carrito`
+                                                }
                                             </p>
                                         </div>
                                     </div>
@@ -500,7 +515,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                     )}
                                 </div>
 
-                                {/* Total en el header */}
                                 {productos.length > 0 && (
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center text-sm text-gray-600">
@@ -536,7 +550,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                 </div>
                             ) : (
                                 <>
-                                    {/* Estado del cálculo automático para domicilio */}
                                     {tipo === "domicilio" && (
                                         <div className="space-y-4">
                                             {calculandoDomicilio ? (
@@ -596,7 +609,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                         </div>
                                     )}
 
-                                    {/* Sección de productos */}
                                     <div className="space-y-4">
                                         <h4 className="font-semibold text-gray-800 flex items-center gap-2">
                                             <FaUtensils className="text-orange-500" />
@@ -647,7 +659,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                                         </div>
                                                     </div>
 
-                                                    {/* Personalizaciones */}
                                                     {(p.ingredientes_personalizados && p.ingredientes_personalizados.some(ing => !ing.incluido && !ing.obligatorio)) || p.notas ? (
                                                         <div className="mt-4 pt-3 border-t border-gray-200">
                                                             {p.ingredientes_personalizados && p.ingredientes_personalizados.filter(ing => !ing.incluido && !ing.obligatorio).length > 0 && (
@@ -680,30 +691,66 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                         ))}
                                     </div>
 
-                                    {/* Datos del cliente */}
                                     <div className="pt-4 border-t border-gray-200">
-                                        <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                        <h4 className="font-semibold text-gray-800 flex items-center gap-2 mb-4">
                                             <FaUser className="text-orange-500" />
-                                            Datos del cliente
+                                            {tipo === "domicilio" ? "Datos del cliente" : "Persona que recoge"}
                                         </h4>
-                                        <div className="space-y-3">
-                                            {/* Mostrar datos del cliente desde Zustand */}
-                                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 space-y-2">
-                                                <div className="flex items-center gap-2">
-                                                    <FaUser className="text-gray-400" size={14} />
-                                                    <p className="text-sm"><span className="font-medium">Nombre:</span> {cliente?.nombre || 'No especificado'}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <FaPhone className="text-gray-400" size={14} />
-                                                    <p className="text-sm"><span className="font-medium">Teléfono:</span> {cliente?.telefono || 'No especificado'}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <FaMapMarkerAlt className="text-gray-400" size={14} />
-                                                    <p className="text-sm"><span className="font-medium">Dirección:</span> {cliente?.direccion || 'No especificado'}</p>
-                                                </div>
-                                            </div>
 
-                                            {/* Notas adicionales */}
+                                        <div className="space-y-3">
+                                            {tipo === "establecimiento" ? (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Nombre <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={datosEditados.nombre}
+                                                        onChange={(e) => setDatosEditados(prev => ({ ...prev, nombre: e.target.value }))}
+                                                        placeholder="Nombre de quien recoge"
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-2">
+                                                    {!cliente?.nombre ? (
+                                                        <div className="text-center py-4">
+                                                            <FaUser className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                                                            <p className="text-sm text-gray-500">No hay datos del cliente</p>
+                                                            <button
+                                                                onClick={() => setMostrarModalCliente(true)}
+                                                                className="mt-3 text-sm text-orange-600 hover:text-orange-700 underline"
+                                                            >
+                                                                Agregar datos
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="flex items-center gap-2">
+                                                                <FaUser className="text-gray-400" size={14} />
+                                                                <p className="text-sm"><span className="font-medium">Nombre:</span> {cliente.nombre}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <FaPhone className="text-gray-400" size={14} />
+                                                                <p className="text-sm"><span className="font-medium">Teléfono:</span> {cliente.telefono || 'No especificado'}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <FaMapMarkerAlt className="text-gray-400" size={14} />
+                                                                <p className="text-sm"><span className="font-medium">Dirección:</span> {cliente.direccion || 'No especificado'}</p>
+                                                            </div>
+                                                            <div className="pt-2 border-t border-gray-200">
+                                                                <button
+                                                                    onClick={() => setMostrarModalCliente(true)}
+                                                                    className="w-full text-sm text-orange-600 hover:text-orange-700 py-2"
+                                                                >
+                                                                    Editar datos
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                                     Notas adicionales (opcional)
@@ -711,7 +758,10 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                                                 <textarea
                                                     value={notasCliente}
                                                     onChange={(e) => setNotasCliente(e.target.value)}
-                                                    placeholder="Ej: Timbre no funciona, tocar la puerta..."
+                                                    placeholder={tipo === "domicilio"
+                                                        ? "Ej: Timbre no funciona, tocar la puerta..."
+                                                        : "Ej: Llegaré en 15 minutos..."
+                                                    }
                                                     rows={2}
                                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
                                                 />
@@ -719,7 +769,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
 
                                             {tipo === "domicilio" && (
                                                 <>
-                                                    {/* Información de pago */}
                                                     <div className="pt-4 border-t border-gray-200">
                                                         <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                                                             <FaCreditCard className="text-orange-500" />
@@ -780,7 +829,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                         </div>
                     </div>
 
-                    {/* Footer fijo */}
                     {productos.length > 0 && (
                         <div className="flex-shrink-0 border-t border-gray-200 bg-white lg:rounded-b-3xl">
                             <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -823,7 +871,6 @@ export default function CarritoResumen({ onClose, tipo }: CarritoResumenProps) {
                 </motion.div>
             </AnimatePresence>
 
-            {/* ✅ Modal de datos del cliente si faltan datos */}
             {mostrarModalCliente && (
                 <ModalDatosCliente
                     onClose={handleCloseModalCliente}
