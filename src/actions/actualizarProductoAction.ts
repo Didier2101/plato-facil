@@ -8,6 +8,11 @@ interface DatosActualizacion {
     activo: boolean;
 }
 
+interface IngredienteActualizacion {
+    ingrediente_id: string;
+    obligatorio: boolean;
+}
+
 export async function actualizarProductoAction(
     productoId: string,
     datos: DatosActualizacion | FormData
@@ -20,6 +25,7 @@ export async function actualizarProductoAction(
 
         let datosActualizacion: DatosActualizacion;
         let nuevaImagen: File | null = null;
+        let ingredientes: IngredienteActualizacion[] = [];
 
         // Determinar si es FormData o objeto directo
         if (datos instanceof FormData) {
@@ -30,6 +36,17 @@ export async function actualizarProductoAction(
                 activo: datos.get("activo") === "true"
             };
             nuevaImagen = datos.get("imagen") as File;
+
+            // Extraer ingredientes si existen
+            const ingredientesStr = datos.get("ingredientes") as string;
+            if (ingredientesStr) {
+                try {
+                    ingredientes = JSON.parse(ingredientesStr);
+                } catch (e) {
+                    console.warn("Error parseando ingredientes:", e);
+                    ingredientes = [];
+                }
+            }
         } else {
             datosActualizacion = datos;
         }
@@ -43,7 +60,7 @@ export async function actualizarProductoAction(
             return { success: false, error: "El precio debe ser mayor a 0" };
         }
 
-        // Obtener producto actual para saber si tiene imagen anterior
+        // Obtener producto actual
         const { data: productoActual, error: getError } = await supabaseAdmin
             .from("productos")
             .select("*")
@@ -54,17 +71,10 @@ export async function actualizarProductoAction(
             return { success: false, error: "Producto no encontrado" };
         }
 
-        let imagenUrl = productoActual.imagen_url; // Mantener la imagen actual por defecto
+        let imagenUrl = productoActual.imagen_url;
 
-        // 🔹 Procesar nueva imagen con Supabase Storage
+        // Procesar nueva imagen
         if (nuevaImagen && nuevaImagen.size > 0) {
-            console.log("Procesando nueva imagen:", {
-                name: nuevaImagen.name,
-                size: nuevaImagen.size,
-                type: nuevaImagen.type
-            });
-
-            // Validar tipo de archivo
             const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
             if (!allowedTypes.includes(nuevaImagen.type)) {
                 return {
@@ -73,7 +83,6 @@ export async function actualizarProductoAction(
                 };
             }
 
-            // Validar tamaño (máximo 5MB)
             const maxSize = 5 * 1024 * 1024;
             if (nuevaImagen.size > maxSize) {
                 return {
@@ -83,22 +92,17 @@ export async function actualizarProductoAction(
             }
 
             try {
-                // Generar nombre único para el archivo
                 const fileExt = nuevaImagen.name.split(".").pop()?.toLowerCase() || 'jpg';
                 const timestamp = Date.now();
                 const randomId = Math.random().toString(36).substring(2);
                 const fileName = `producto-${timestamp}-${randomId}.${fileExt}`;
 
-                console.log("Subiendo nueva imagen a Supabase:", fileName);
-
-                // Convertir File a ArrayBuffer
                 const arrayBuffer = await nuevaImagen.arrayBuffer();
 
                 if (!arrayBuffer || arrayBuffer.byteLength === 0) {
                     return { success: false, error: "Error al procesar el archivo de imagen" };
                 }
 
-                // Subir nueva imagen a Supabase Storage
                 const { error: uploadError } = await supabaseAdmin.storage
                     .from('productos')
                     .upload(fileName, arrayBuffer, {
@@ -109,7 +113,6 @@ export async function actualizarProductoAction(
 
                 if (uploadError) {
                     console.error("Error al subir nueva imagen:", uploadError);
-
                     let errorMessage = "Error al subir la nueva imagen";
                     if (uploadError.message.includes('Bucket not found')) {
                         errorMessage = "El bucket 'productos' no existe en Supabase Storage";
@@ -118,11 +121,9 @@ export async function actualizarProductoAction(
                     } else {
                         errorMessage = `Error de Storage: ${uploadError.message}`;
                     }
-
                     return { success: false, error: errorMessage };
                 }
 
-                // Obtener URL pública de la nueva imagen
                 const { data: urlData } = supabaseAdmin.storage
                     .from('productos')
                     .getPublicUrl(fileName);
@@ -132,30 +133,18 @@ export async function actualizarProductoAction(
                 }
 
                 const nuevaImagenUrl = urlData.publicUrl;
-                console.log("Nueva imagen subida exitosamente:", nuevaImagenUrl);
 
-                // 🔹 Eliminar imagen anterior de Supabase Storage si existe
+                // Eliminar imagen anterior
                 if (productoActual.imagen_url && productoActual.imagen_url.includes('supabase')) {
                     try {
-                        // Extraer el nombre del archivo de la URL
                         const oldFileName = productoActual.imagen_url.split('/').pop();
-
                         if (oldFileName) {
-                            console.log("Eliminando imagen anterior:", oldFileName);
-
-                            const { error: deleteError } = await supabaseAdmin.storage
+                            await supabaseAdmin.storage
                                 .from('productos')
                                 .remove([oldFileName]);
-
-                            if (deleteError) {
-                                console.warn("No se pudo eliminar la imagen anterior:", deleteError);
-                            } else {
-                                console.log("Imagen anterior eliminada exitosamente");
-                            }
                         }
                     } catch (cleanupError) {
                         console.warn("Error al limpiar imagen anterior:", cleanupError);
-                        // No fallar la actualización por esto
                     }
                 }
 
@@ -163,18 +152,16 @@ export async function actualizarProductoAction(
 
             } catch (uploadError) {
                 console.error("Error procesando imagen:", uploadError);
-
                 if (uploadError instanceof TypeError) {
                     return { success: false, error: "Error de conexión al subir la imagen" };
                 } else if (uploadError instanceof Error) {
                     return { success: false, error: `Error al procesar imagen: ${uploadError.message}` };
                 }
-
                 return { success: false, error: "Error desconocido al procesar la imagen" };
             }
         }
 
-        // 🔹 Actualizar el producto en la base de datos
+        // Actualizar el producto
         const { data: producto, error: updateError } = await supabaseAdmin
             .from("productos")
             .update({
@@ -186,32 +173,23 @@ export async function actualizarProductoAction(
                 updated_at: new Date().toISOString()
             })
             .eq("id", productoId)
-            .select(`
-                *,
-                categorias (
-                    id,
-                    nombre
-                )
-            `)
+            .select()
             .single();
 
         if (updateError) {
             console.error("Error actualizando producto:", updateError);
 
-            // Si hubo error y se subió nueva imagen, eliminarla
+            // Rollback de imagen si hubo error
             if (nuevaImagen && imagenUrl && imagenUrl !== productoActual.imagen_url) {
                 try {
                     const fileName = imagenUrl.split('/').pop();
                     if (fileName) {
                         await supabaseAdmin.storage
                             .from('productos')
-                            .remove([fileName])
-                            .catch(cleanupError => {
-                                console.error("Error limpiando imagen:", cleanupError);
-                            });
+                            .remove([fileName]);
                     }
                 } catch (cleanupError) {
-                    console.error("Error en rollback de imagen:", cleanupError);
+                    console.error("Error limpiando imagen:", cleanupError);
                 }
             }
 
@@ -221,21 +199,143 @@ export async function actualizarProductoAction(
             };
         }
 
-        console.log("Producto actualizado exitosamente:", producto.id);
+        // ✅ ACTUALIZAR INGREDIENTES
+        if (ingredientes && ingredientes.length >= 0) {
+            try {
+                // 1. Eliminar todos los ingredientes anteriores
+                const { error: deleteError } = await supabaseAdmin
+                    .from("producto_ingredientes")
+                    .delete()
+                    .eq("producto_id", productoId);
+
+                if (deleteError) {
+                    console.error("Error eliminando ingredientes anteriores:", deleteError);
+                }
+
+                // 2. Insertar los nuevos ingredientes
+                if (ingredientes.length > 0) {
+                    // Tipar correctamente los ingredientes para insertar
+                    type IngredienteParaInsertar = {
+                        producto_id: number;
+                        ingrediente_id: string;
+                        obligatorio: boolean;
+                        orden: number;
+                    };
+
+                    const ingredientesParaInsertar: IngredienteParaInsertar[] = ingredientes.map((ing, index) => ({
+                        producto_id: parseInt(productoId),
+                        ingrediente_id: ing.ingrediente_id,
+                        obligatorio: ing.obligatorio,
+                        orden: index
+                    }));
+
+                    const { error: insertError } = await supabaseAdmin
+                        .from("producto_ingredientes")
+                        .insert(ingredientesParaInsertar);
+
+                    if (insertError) {
+                        console.error("Error insertando ingredientes:", insertError);
+                        // No fallar toda la actualización por esto
+                    }
+                }
+            } catch (ingError) {
+                console.error("Error gestionando ingredientes:", ingError);
+                // No fallar toda la actualización por esto
+            }
+        }
+
+        // Obtener el producto actualizado con todas sus relaciones
+        const { data: productoCompleto, error: fetchError } = await supabaseAdmin
+            .from("productos")
+            .select(`
+                *,
+                categorias (
+                    id,
+                    nombre
+                ),
+                producto_ingredientes (
+                    ingrediente_id,
+                    obligatorio,
+                    orden,
+                    ingredientes (
+                        id,
+                        nombre,
+                        activo,
+                        created_at
+                    )
+                )
+            `)
+            .eq("id", productoId)
+            .single();
+
+        if (fetchError || !productoCompleto) {
+            console.error("Error obteniendo producto completo:", fetchError);
+            // Devolver el producto básico al menos
+            return {
+                success: true,
+                producto: {
+                    id: parseInt(producto.id),
+                    nombre: producto.nombre,
+                    categoria_id: producto.categoria_id,
+                    categoria: "Sin categoría",
+                    descripcion: producto.descripcion,
+                    precio: producto.precio,
+                    imagen_url: producto.imagen_url,
+                    activo: producto.activo,
+                    created_at: producto.created_at,
+                    updated_at: producto.updated_at,
+                    ingredientes: []
+                },
+                message: "Producto actualizado correctamente"
+            };
+        }
+
+        // Tipar correctamente las respuestas de Supabase
+        type ProductoIngredienteDB = {
+            ingrediente_id: string;
+            obligatorio: boolean;
+            orden: number;
+            ingredientes: {
+                id: string;
+                nombre: string;
+                activo: boolean;
+                created_at: string;
+            };
+        };
+
+        type ProductoCompletoDB = typeof productoCompleto & {
+            categorias: { id: string; nombre: string } | null;
+            producto_ingredientes: ProductoIngredienteDB[] | null;
+        };
+
+        const productoConTipos = productoCompleto as ProductoCompletoDB;
 
         return {
             success: true,
             producto: {
-                id: producto.id,
-                nombre: producto.nombre,
-                categoria_id: producto.categoria_id,
-                categoria: producto.categorias.nombre,
-                descripcion: producto.descripcion,
-                precio: producto.precio,
-                imagen_url: producto.imagen_url,
-                activo: producto.activo,
-                created_at: producto.created_at,
-                updated_at: producto.updated_at
+                id: parseInt(productoConTipos.id),
+                nombre: productoConTipos.nombre,
+                categoria_id: productoConTipos.categoria_id,
+                categoria: productoConTipos.categorias?.nombre || "Sin categoría",
+                descripcion: productoConTipos.descripcion,
+                precio: productoConTipos.precio,
+                imagen_url: productoConTipos.imagen_url,
+                activo: productoConTipos.activo,
+                created_at: productoConTipos.created_at,
+                updated_at: productoConTipos.updated_at,
+                ingredientes: productoConTipos.producto_ingredientes?.map((pi: ProductoIngredienteDB) => ({
+                    id: pi.ingrediente_id,
+                    producto_id: parseInt(productoConTipos.id),
+                    ingrediente_id: pi.ingrediente_id,
+                    obligatorio: pi.obligatorio,
+                    orden: pi.orden || 0,
+                    ingrediente: {
+                        id: pi.ingredientes.id,
+                        nombre: pi.ingredientes.nombre,
+                        activo: pi.ingredientes.activo,
+                        created_at: pi.ingredientes.created_at
+                    }
+                })) || []
             },
             message: "Producto actualizado correctamente"
         };

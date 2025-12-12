@@ -21,3 +21,24 @@ body::-webkit-scrollbar {
 *::-webkit-scrollbar {
   display: none; /* Chrome, Safari y Opera */
 }
+
+.shadow-centered {
+  /*
+    Valores ajustados:
+    - Desenfoque (15px -> 8px): Más concentrada y sutil.
+    - Opacidad (0.4 -> 0.2): Mucho más transparente.
+  */
+  box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+/*
+  Variación para el estado activo (más suave que la anterior)
+*/
+.shadow-centered-active {
+  /*
+    Valores ajustados:
+    - Desenfoque (25px -> 15px): Menos "halo"
+    - Opacidad (0.6 -> 0.4): Menos intenso el resplandor blanco.
+  */
+  box-shadow: 0 0 15px 0 rgba(255, 255, 255, 0.4); /* Sombra blanca más suave */
+}

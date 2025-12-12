@@ -126,7 +126,7 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
+        <div className="flex min-h-screen bg-white overflow-x-hidden">
             {/* Navegación inferior móvil y tablet */}
             <div className="fixed bottom-0 left-0 right-0 bg-white shadow-xl z-50 border-t border-gray-200 lg:hidden">
                 <div className="flex justify-around items-center py-3 px-4 relative">

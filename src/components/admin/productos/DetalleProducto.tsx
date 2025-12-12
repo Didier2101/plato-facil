@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Edit, Trash2, Save, Image as ImageIcon } from "lucide-react";
+import { X, Edit, Trash2, Save, Image as ImageIcon, Plus, Minus } from "lucide-react";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import type { ProductoFrontend } from "@/src/types/producto";
 import { actualizarProductoAction } from "@/src/actions/actualizarProductoAction";
-
 import { formatearPrecioCOP, formatearNumero, limpiarNumero, validarPrecio } from "@/src/utils/precio";
 import { capitalizarSoloPrimera } from "@/src/utils/texto";
 import { desactivarProductoAction } from "@/src/actions/desactivarProductoAction";
+import { obtenerIngredientesAction } from "@/src/actions/obtenerIngredientesAction";
 
 interface Props {
     producto: ProductoFrontend;
@@ -18,6 +18,18 @@ interface Props {
     onProductoActualizado: (producto: ProductoFrontend) => void;
     onProductoEliminado: (productoId: string) => void;
     isMobile?: boolean;
+}
+
+interface IngredienteDisponible {
+    id: string;
+    nombre: string;
+    activo: boolean;
+}
+
+interface IngredienteSeleccionado {
+    ingrediente_id: string;
+    nombre: string;
+    obligatorio: boolean;
 }
 
 export default function DetalleProducto({
@@ -31,6 +43,11 @@ export default function DetalleProducto({
     const [loading, setLoading] = useState(false);
     const [nuevaImagen, setNuevaImagen] = useState<File | null>(null);
     const [previewImagen, setPreviewImagen] = useState<string | null>(null);
+
+    const [ingredientesDisponibles, setIngredientesDisponibles] = useState<IngredienteDisponible[]>([]);
+    const [cargandoIngredientes, setCargandoIngredientes] = useState(false);
+    const [ingredientesSeleccionados, setIngredientesSeleccionados] = useState<IngredienteSeleccionado[]>([]);
+
     const [datosEdicion, setDatosEdicion] = useState({
         nombre: producto.nombre,
         descripcion: producto.descripcion || '',
@@ -38,7 +55,61 @@ export default function DetalleProducto({
         activo: producto.activo
     });
 
-    // Memoizar funciones
+    useEffect(() => {
+        cargarIngredientesDisponibles();
+
+        if (producto.ingredientes) {
+            const ingredientesIniciales = producto.ingredientes.map(pi => ({
+                ingrediente_id: pi.ingrediente_id,
+                nombre: pi.ingrediente.nombre,
+                obligatorio: pi.obligatorio
+            }));
+            setIngredientesSeleccionados(ingredientesIniciales);
+        }
+    }, [producto]);
+
+    const cargarIngredientesDisponibles = async () => {
+        setCargandoIngredientes(true);
+        try {
+            const result = await obtenerIngredientesAction();
+            if (result.success && result.ingredientes) {
+                setIngredientesDisponibles(result.ingredientes);
+            }
+        } catch (error) {
+            console.error('Error cargando ingredientes:', error);
+        } finally {
+            setCargandoIngredientes(false);
+        }
+    };
+
+    const handleAgregarIngrediente = useCallback((ingrediente: IngredienteDisponible) => {
+        if (ingredientesSeleccionados.some(i => i.ingrediente_id === ingrediente.id)) {
+            return;
+        }
+
+        setIngredientesSeleccionados(prev => [...prev, {
+            ingrediente_id: ingrediente.id,
+            nombre: ingrediente.nombre,
+            obligatorio: true
+        }]);
+    }, [ingredientesSeleccionados]);
+
+    const handleQuitarIngrediente = useCallback((ingredienteId: string) => {
+        setIngredientesSeleccionados(prev =>
+            prev.filter(i => i.ingrediente_id !== ingredienteId)
+        );
+    }, []);
+
+    const handleToggleObligatorio = useCallback((ingredienteId: string) => {
+        setIngredientesSeleccionados(prev =>
+            prev.map(i =>
+                i.ingrediente_id === ingredienteId
+                    ? { ...i, obligatorio: !i.obligatorio }
+                    : i
+            )
+        );
+    }, []);
+
     const handleGuardarCambios = useCallback(async () => {
         if (!datosEdicion.nombre.trim()) {
             Swal.fire({
@@ -67,69 +138,44 @@ export default function DetalleProducto({
         setLoading(true);
 
         try {
+            const formData = new FormData();
+            formData.append("nombre", datosEdicion.nombre.trim());
+            formData.append("descripcion", datosEdicion.descripcion.trim());
+            formData.append("precio", datosEdicion.precio.toString());
+            formData.append("activo", datosEdicion.activo.toString());
+            formData.append("ingredientes", JSON.stringify(ingredientesSeleccionados));
+
             if (nuevaImagen) {
-                const formData = new FormData();
-                formData.append("nombre", datosEdicion.nombre.trim());
-                formData.append("descripcion", datosEdicion.descripcion.trim());
-                formData.append("precio", datosEdicion.precio.toString());
-                formData.append("activo", datosEdicion.activo.toString());
                 formData.append("imagen", nuevaImagen);
+            }
 
-                const result = await actualizarProductoAction(String(producto.id), formData);
+            const result = await actualizarProductoAction(String(producto.id), formData);
 
-                if (!result.success) {
-                    Swal.fire({
-                        toast: true,
-                        icon: "error",
-                        position: "top-end",
-                        title: result.error,
-                        timer: 2500,
-                        showConfirmButton: false,
-                    });
-                    return;
-                }
+            if (!result.success) {
+                Swal.fire({
+                    toast: true,
+                    icon: "error",
+                    position: "top-end",
+                    title: result.error,
+                    timer: 2500,
+                    showConfirmButton: false,
+                });
+                return;
+            }
 
-                if (result.producto) {
-                    onProductoActualizado(result.producto);
-                    Swal.fire({
-                        toast: true,
-                        icon: "success",
-                        position: "top-end",
-                        title: "Producto actualizado correctamente",
-                        timer: 2500,
-                        showConfirmButton: false,
-                    });
-                    setModoEdicion(false);
-                    setNuevaImagen(null);
-                    setPreviewImagen(null);
-                }
-            } else {
-                const result = await actualizarProductoAction(String(producto.id), datosEdicion);
-
-                if (!result.success) {
-                    Swal.fire({
-                        toast: true,
-                        icon: "error",
-                        position: "top-end",
-                        title: result.error,
-                        timer: 2500,
-                        showConfirmButton: false,
-                    });
-                    return;
-                }
-
-                if (result.producto) {
-                    onProductoActualizado(result.producto);
-                    Swal.fire({
-                        toast: true,
-                        icon: "success",
-                        position: "top-end",
-                        title: "Producto actualizado correctamente",
-                        timer: 2500,
-                        showConfirmButton: false,
-                    });
-                    setModoEdicion(false);
-                }
+            if (result.producto) {
+                onProductoActualizado(result.producto);
+                Swal.fire({
+                    toast: true,
+                    icon: "success",
+                    position: "top-end",
+                    title: "Producto actualizado correctamente",
+                    timer: 2500,
+                    showConfirmButton: false,
+                });
+                setModoEdicion(false);
+                setNuevaImagen(null);
+                setPreviewImagen(null);
             }
         } catch (error) {
             console.error('Error actualizando producto:', error);
@@ -144,7 +190,7 @@ export default function DetalleProducto({
         } finally {
             setLoading(false);
         }
-    }, [datosEdicion, nuevaImagen, producto.id, onProductoActualizado]);
+    }, [datosEdicion, nuevaImagen, ingredientesSeleccionados, producto.id, onProductoActualizado]);
 
     const handleEliminar = useCallback(async () => {
         const result = await Swal.fire({
@@ -209,6 +255,16 @@ export default function DetalleProducto({
             precio: producto.precio,
             activo: producto.activo
         });
+
+        if (producto.ingredientes) {
+            const ingredientesIniciales = producto.ingredientes.map(pi => ({
+                ingrediente_id: pi.ingrediente_id,
+                nombre: pi.ingrediente.nombre,
+                obligatorio: pi.obligatorio
+            }));
+            setIngredientesSeleccionados(ingredientesIniciales);
+        }
+
         setNuevaImagen(null);
         setPreviewImagen(null);
         setModoEdicion(false);
@@ -264,11 +320,15 @@ export default function DetalleProducto({
         setDatosEdicion(prev => ({ ...prev, precio }));
     }, []);
 
-    // Memoizar el contenido del panel
+    const ingredientesNoSeleccionados = useMemo(() => {
+        return ingredientesDisponibles.filter(
+            ing => !ingredientesSeleccionados.some(sel => sel.ingrediente_id === ing.id)
+        );
+    }, [ingredientesDisponibles, ingredientesSeleccionados]);
+
     const panelContent = useMemo(() => {
         return (
             <div className="space-y-6">
-                {/* Info del producto */}
                 <div className="p-4 bg-orange-50 rounded-xl">
                     <p className="font-semibold text-gray-800">
                         {capitalizarSoloPrimera(producto.nombre)}
@@ -281,9 +341,7 @@ export default function DetalleProducto({
                     </p>
                 </div>
 
-                {/* Layout responsive: en desktop es de 2 columnas, en móvil una columna */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Columna izquierda - Imagen */}
                     <div className="space-y-6">
                         <div>
                             <h4 className="font-semibold text-gray-900 text-lg mb-4 flex items-center gap-2">
@@ -293,7 +351,6 @@ export default function DetalleProducto({
 
                             {modoEdicion ? (
                                 <div className="space-y-4">
-                                    {/* Preview de imagen */}
                                     <div className="relative w-full h-48 lg:h-64 rounded-2xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300">
                                         {previewImagen ? (
                                             <>
@@ -330,7 +387,6 @@ export default function DetalleProducto({
                                         )}
                                     </div>
 
-                                    {/* Input para cambiar imagen */}
                                     <div>
                                         <input
                                             type="file"
@@ -366,7 +422,6 @@ export default function DetalleProducto({
                             )}
                         </div>
 
-                        {/* Estado - Solo visible en desktop en esta columna */}
                         <div className="hidden lg:block bg-orange-50 p-4 rounded-xl border border-orange-200">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Estado del Producto
@@ -393,9 +448,7 @@ export default function DetalleProducto({
                         </div>
                     </div>
 
-                    {/* Columna derecha - Información del producto */}
                     <div className="space-y-6">
-                        {/* Nombre */}
                         <div className="bg-orange-50 p-4 rounded-xl border border-orange-200">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Nombre del Producto
@@ -416,7 +469,6 @@ export default function DetalleProducto({
                             )}
                         </div>
 
-                        {/* Descripción */}
                         <div className="bg-orange-50 p-4 rounded-xl border border-orange-200">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Descripción
@@ -440,9 +492,7 @@ export default function DetalleProducto({
                             )}
                         </div>
 
-                        {/* Precio y Estado (en móvil van juntos, en desktop el estado está en la otra columna) */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Precio */}
                             <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Precio
@@ -471,7 +521,6 @@ export default function DetalleProducto({
                                 )}
                             </div>
 
-                            {/* Estado - Solo visible en móvil */}
                             <div className="lg:hidden bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Estado
@@ -497,7 +546,6 @@ export default function DetalleProducto({
                                 )}
                             </div>
 
-                            {/* Categoría */}
                             <div className="sm:col-span-2 bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Categoría
@@ -511,6 +559,121 @@ export default function DetalleProducto({
                         </div>
                     </div>
                 </div>
+
+                {/* SECCIÓN DE INGREDIENTES */}
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl border border-yellow-200">
+                    <h4 className="font-semibold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                        🥗 Ingredientes del Producto
+                    </h4>
+
+                    {modoEdicion ? (
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 mb-3">
+                                    Ingredientes actuales ({ingredientesSeleccionados.length})
+                                </p>
+
+                                {ingredientesSeleccionados.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <p>No hay ingredientes agregados</p>
+                                        <p className="text-sm">Agrega ingredientes desde el selector de abajo</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {ingredientesSeleccionados.map(ing => (
+                                            <div
+                                                key={ing.ingrediente_id}
+                                                className="flex items-center justify-between bg-white p-3 rounded-lg border border-yellow-300"
+                                            >
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <span className="font-medium text-gray-800">
+                                                        {capitalizarSoloPrimera(ing.nombre)}
+                                                    </span>
+
+                                                    <label className="flex items-center gap-2 text-sm">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={ing.obligatorio}
+                                                            onChange={() => handleToggleObligatorio(ing.ingrediente_id)}
+                                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                                        />
+                                                        <span className={ing.obligatorio ? "text-orange-600 font-semibold" : "text-gray-500"}>
+                                                            Obligatorio
+                                                        </span>
+                                                    </label>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => handleQuitarIngrediente(ing.ingrediente_id)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    disabled={loading}
+                                                >
+                                                    <Minus size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 mb-3">
+                                    Agregar ingredientes
+                                </p>
+
+                                {cargandoIngredientes ? (
+                                    <div className="text-center py-4">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                                    </div>
+                                ) : ingredientesNoSeleccionados.length === 0 ? (
+                                    <div className="text-center py-4 text-gray-500 bg-white rounded-lg border border-dashed border-gray-300">
+                                        <p>No hay más ingredientes disponibles</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-lg border border-gray-200">
+                                        {ingredientesNoSeleccionados.map(ing => (
+                                            <button
+                                                key={ing.id}
+                                                onClick={() => handleAgregarIngrediente(ing)}
+                                                className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-50 hover:bg-orange-100 border border-gray-300 hover:border-orange-300 rounded-lg transition-colors text-left"
+                                                disabled={loading}
+                                            >
+                                                <Plus size={14} className="text-orange-600 flex-shrink-0" />
+                                                <span className="truncate">{capitalizarSoloPrimera(ing.nombre)}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            {ingredientesSeleccionados.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p>Este producto no tiene ingredientes configurados</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {ingredientesSeleccionados.map(ing => (
+                                        <div
+                                            key={ing.ingrediente_id}
+                                            className="flex items-center gap-3 bg-white p-3 rounded-lg border border-yellow-300"
+                                        >
+                                            <div className="flex-1">
+                                                <p className="font-medium text-gray-800">
+                                                    {capitalizarSoloPrimera(ing.nombre)}
+                                                </p>
+                                                <p className={`text-xs ${ing.obligatorio ? "text-orange-600 font-semibold" : "text-gray-500"}`}>
+                                                    {ing.obligatorio ? "Obligatorio" : "Opcional"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
         );
     }, [
@@ -519,12 +682,17 @@ export default function DetalleProducto({
         loading,
         datosEdicion,
         previewImagen,
+        ingredientesSeleccionados,
+        ingredientesNoSeleccionados,
+        cargandoIngredientes,
         handleEliminarImagen,
         handleCambioImagen,
-        handleCambioPrecio
+        handleCambioPrecio,
+        handleAgregarIngrediente,
+        handleQuitarIngrediente,
+        handleToggleObligatorio
     ]);
 
-    // Footer con botones
     const footerContent = useMemo(() => {
         return (
             <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4 w-full`}>
@@ -579,11 +747,9 @@ export default function DetalleProducto({
         );
     }, [modoEdicion, loading, isMobile, handleCancelarEdicion, handleGuardarCambios, handleEliminar]);
 
-    // Renderizado móvil
     if (isMobile) {
         return (
             <>
-                {/* Overlay */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 0.5 }}
@@ -593,7 +759,6 @@ export default function DetalleProducto({
                     onClick={onCerrar}
                 />
 
-                {/* Modal móvil */}
                 <motion.div
                     initial={{ y: "100%" }}
                     animate={{ y: 0 }}
@@ -609,13 +774,11 @@ export default function DetalleProducto({
                         }
                     }}
                 >
-                    {/* Handle para arrastrar */}
                     <div
                         className="w-16 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-4 cursor-pointer hover:bg-gray-400 transition-colors"
                         onClick={onCerrar}
                     />
 
-                    {/* Header */}
                     <div className="px-6 border-b border-gray-200 pb-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-xl font-bold text-gray-800">
@@ -631,12 +794,10 @@ export default function DetalleProducto({
                         </div>
                     </div>
 
-                    {/* Content con scroll */}
                     <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-140px)]">
                         {panelContent}
                     </div>
 
-                    {/* Footer con botones */}
                     <div className="p-6 border-t border-gray-200 bg-gray-50">
                         {footerContent}
                     </div>
@@ -645,7 +806,6 @@ export default function DetalleProducto({
         );
     }
 
-    // Renderizado desktop
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -661,7 +821,6 @@ export default function DetalleProducto({
                 transition={{ duration: 0.3 }}
                 className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
             >
-                {/* Header desktop */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
                     <h3 className="text-2xl font-bold text-gray-800">
                         {modoEdicion ? "Editar Producto" : "Detalles del Producto"}
@@ -675,12 +834,10 @@ export default function DetalleProducto({
                     </button>
                 </div>
 
-                {/* Content desktop */}
                 <div className="p-6 flex-1 overflow-y-auto">
                     {panelContent}
                 </div>
 
-                {/* Footer desktop */}
                 <div className="p-6 border-t border-gray-200 bg-gray-50">
                     {footerContent}
                 </div>

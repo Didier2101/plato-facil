@@ -183,27 +183,37 @@ export default function FormAgregarProducto() {
     };
 
     const onSubmitForm: SubmitHandler<FormData> = async (data) => {
+        // ✅ CAMBIO: Los ingredientes ahora son OPCIONALES
         if (ingredientesSeleccionados.length === 0) {
-            Swal.fire({
-                icon: "warning",
-                title: "Sin ingredientes",
-                text: "Agrega al menos un ingrediente al producto",
-                confirmButtonText: "Ok"
-            });
-            return;
-        }
-
-        const obligatorios = ingredientesSeleccionados.filter(ing => ing.obligatorio);
-        if (obligatorios.length === 0) {
             const result = await Swal.fire({
                 icon: "question",
-                title: "Sin ingredientes obligatorios",
-                text: "Todos los ingredientes son opcionales. ¿Estás seguro?",
+                title: "Producto sin personalización",
+                html: `
+                    <p>Este producto <strong>no tendrá ingredientes personalizables</strong>.</p>
+                    <p class="text-sm text-gray-600 mt-2">Ideal para productos con receta fija como pizzas especiales, postres, bebidas, etc.</p>
+                `,
                 showCancelButton: true,
                 confirmButtonText: "Sí, continuar",
-                cancelButtonText: "Revisar"
+                cancelButtonText: "Agregar ingredientes",
+                confirmButtonColor: "#ea580c",
             });
             if (!result.isConfirmed) return;
+        }
+
+        // Validación de ingredientes obligatorios solo si hay ingredientes
+        if (ingredientesSeleccionados.length > 0) {
+            const obligatorios = ingredientesSeleccionados.filter(ing => ing.obligatorio);
+            if (obligatorios.length === 0) {
+                const result = await Swal.fire({
+                    icon: "question",
+                    title: "Sin ingredientes obligatorios",
+                    text: "Todos los ingredientes son opcionales. ¿Estás seguro?",
+                    showCancelButton: true,
+                    confirmButtonText: "Sí, continuar",
+                    cancelButtonText: "Revisar"
+                });
+                if (!result.isConfirmed) return;
+            }
         }
 
         setSubmitting(true);
@@ -503,7 +513,12 @@ export default function FormAgregarProducto() {
                     {/* Ingredientes */}
                     <section className="space-y-6">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                            <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Ingredientes</h3>
+                            <div>
+                                <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Ingredientes (Opcional)</h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Agrega ingredientes solo si deseas que el producto sea personalizable
+                                </p>
+                            </div>
                             <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                                 {ingredientesSeleccionados.length} ingrediente{ingredientesSeleccionados.length !== 1 ? 's' : ''} seleccionado{ingredientesSeleccionados.length !== 1 ? 's' : ''}
                             </div>
@@ -708,32 +723,66 @@ export default function FormAgregarProducto() {
                         )}
 
                         {/* Guía para el usuario */}
-                        <div className="bg-gradient-to-r from-gray-50 to-orange-50 border border-gray-300 rounded-lg p-4">
+                        <div className="bg-gradient-to-r from-blue-50 to-orange-50 border border-blue-200 rounded-lg p-4">
                             <h4 className="font-medium text-gray-800 mb-3 flex items-center">
-                                <Info size={18} className="mr-2" />
-                                Guía de ingredientes para personalización
+                                <Info size={18} className="mr-2 text-blue-600" />
+                                ¿Cuándo agregar ingredientes?
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle size={16} className="text-orange-600" />
-                                        <span className="font-medium text-orange-700">Ingredientes obligatorios</span>
+                                    <div className="flex items-start gap-2">
+                                        <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <span className="font-medium text-gray-800">Con ingredientes:</span>
+                                            <p className="text-gray-600 text-xs mt-1">
+                                                Hamburguesas, ensaladas, perros calientes - productos donde el cliente puede personalizar
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-gray-600 text-xs ml-6">
-                                        No se pueden quitar del producto. Ideales para ingredientes base como pan, carne principal, etc.
-                                    </p>
                                 </div>
                                 <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <Info size={16} className="text-gray-600" />
-                                        <span className="font-medium text-gray-700">Ingredientes opcionales</span>
+                                    <div className="flex items-start gap-2">
+                                        <X size={16} className="text-orange-600 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <span className="font-medium text-gray-800">Sin ingredientes:</span>
+                                            <p className="text-gray-600 text-xs mt-1">
+                                                Pizzas especiales, postres, bebidas - productos con receta fija que no se personalizan
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-gray-600 text-xs ml-6">
-                                        El cliente puede quitarlos en su pedido. Perfectos para salsas, vegetales, extras, etc.
-                                    </p>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Tipos de ingredientes */}
+                        {ingredientesSeleccionados.length > 0 && (
+                            <div className="bg-gradient-to-r from-gray-50 to-orange-50 border border-gray-300 rounded-lg p-4">
+                                <h4 className="font-medium text-gray-800 mb-3 flex items-center">
+                                    <Info size={18} className="mr-2" />
+                                    Guía de ingredientes para personalización
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle size={16} className="text-orange-600" />
+                                            <span className="font-medium text-orange-700">Ingredientes obligatorios</span>
+                                        </div>
+                                        <p className="text-gray-600 text-xs ml-6">
+                                            No se pueden quitar del producto. Ideales para ingredientes base como pan, carne principal, etc.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Info size={16} className="text-gray-600" />
+                                            <span className="font-medium text-gray-700">Ingredientes opcionales</span>
+                                        </div>
+                                        <p className="text-gray-600 text-xs ml-6">
+                                            El cliente puede quitarlos en su pedido. Perfectos para salsas, vegetales, extras, etc.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </section>
 
                     {/* Resumen del producto */}
@@ -779,11 +828,30 @@ export default function FormAgregarProducto() {
                         </section>
                     )}
 
+                    {/* Mensaje informativo cuando no hay ingredientes */}
+                    {ingredientesSeleccionados.length === 0 && (
+                        <section className="bg-blue-50 rounded-lg p-4 sm:p-6 border border-blue-200">
+                            <div className="flex items-start gap-3">
+                                <Info size={24} className="text-blue-600 flex-shrink-0 mt-1" />
+                                <div>
+                                    <h3 className="font-semibold text-gray-800 mb-2">Producto sin personalización</h3>
+                                    <p className="text-sm text-gray-600 mb-3">
+                                        Este producto se creará <strong>sin ingredientes personalizables</strong>.
+                                        Es ideal para productos con receta fija como pizzas especiales, postres preparados, bebidas, combos definidos, etc.
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        💡 Si deseas que los clientes puedan personalizar este producto, agrega ingredientes arriba.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
                     {/* Botón de envío */}
                     <div className="border-t border-gray-200 pt-6 sm:pt-8">
                         <button
                             type="submit"
-                            disabled={submitting || ingredientesSeleccionados.length === 0}
+                            disabled={submitting}
                             className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl py-3 sm:py-4 text-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                         >
                             {submitting ? (
@@ -799,11 +867,12 @@ export default function FormAgregarProducto() {
                             )}
                         </button>
 
-                        {ingredientesSeleccionados.length === 0 && (
-                            <p className="text-center text-sm text-gray-500 mt-2">
-                                Agrega al menos un ingrediente para continuar
-                            </p>
-                        )}
+                        <p className="text-center text-xs text-gray-500 mt-3">
+                            {ingredientesSeleccionados.length === 0
+                                ? "✨ Los ingredientes son opcionales - puedes crear el producto sin ellos"
+                                : `✅ Producto con ${ingredientesSeleccionados.length} ingrediente${ingredientesSeleccionados.length !== 1 ? 's' : ''}`
+                            }
+                        </p>
                     </div>
                 </div>
             </form>

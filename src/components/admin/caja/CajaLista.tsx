@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { OrdenCompleta } from "@/src/types/orden";
-import { CreditCard, Truck } from "lucide-react";
+import { CreditCard, Search, User, X } from "lucide-react";
 import { obtenerOrdenesAction } from "@/src/actions/obtenerOrdenesAction";
 
-import PanelCobro from "./PanelCobro";
 import Loading from "../../ui/Loading";
 import { calcularTiempoTranscurrido } from "@/src/utils/texto";
 import OrdenCard from "../ordenes/OrdenCard";
-
-type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
+import PanelCobro from "../../PanelCobro/PanelCobro";
+import { MetodoPago } from "../../PanelCobro";
 
 interface CajaListaProps {
     usuarioId: string;
@@ -18,6 +18,7 @@ interface CajaListaProps {
 
 export default function CajaLista({ usuarioId }: CajaListaProps) {
     const [ordenes, setOrdenes] = useState<OrdenCompleta[]>([]);
+    const [ordenesFiltradas, setOrdenesFiltradas] = useState<OrdenCompleta[]>([]);
     const [loading, setLoading] = useState(true);
     const [ordenSeleccionada, setOrdenSeleccionada] = useState<OrdenCompleta | null>(null);
     const [metodoPago, setMetodoPago] = useState<MetodoPago | "">("");
@@ -25,8 +26,9 @@ export default function CajaLista({ usuarioId }: CajaListaProps) {
     const [propinaPorcentaje, setPropinaPorcentaje] = useState<number | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+    const [searchTerm, setSearchTerm] = useState("");
 
-    // Cargar órdenes listas para cobrar - SOLO DOMICILIOS
+    // Cargar órdenes listas para cobrar - SOLO ESTABLECIMIENTO
     const cargarOrdenes = async () => {
         try {
             const result = await obtenerOrdenesAction();
@@ -39,6 +41,7 @@ export default function CajaLista({ usuarioId }: CajaListaProps) {
                     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
                 setOrdenes(ordenesParaCaja);
+                setOrdenesFiltradas(ordenesParaCaja);
             }
         } catch (error) {
             // Ignorar errores durante logout/unmount
@@ -50,6 +53,18 @@ export default function CajaLista({ usuarioId }: CajaListaProps) {
             setLoading(false);
         }
     };
+
+    // Filtrar órdenes por nombre del cliente
+    useEffect(() => {
+        if (searchTerm.trim() === "") {
+            setOrdenesFiltradas(ordenes);
+        } else {
+            const filtered = ordenes.filter(orden =>
+                orden.cliente_nombre?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            setOrdenesFiltradas(filtered);
+        }
+    }, [searchTerm, ordenes]);
 
     useEffect(() => {
         let mounted = true;
@@ -116,6 +131,34 @@ export default function CajaLista({ usuarioId }: CajaListaProps) {
         seleccionarOrden(orden);
     };
 
+    // Animaciones corregidas con tipos correctos
+    // Animaciones corregidas con tipos correctos
+    const overlayVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { duration: 0.3 } },
+        exit: { opacity: 0, transition: { duration: 0.2 } }
+    };
+
+    const modalVariants = {
+        hidden: {
+            x: "100%",
+            transition: { type: "tween" as const, duration: 0.3, ease: "easeInOut" as const }
+        },
+        visible: {
+            x: 0,
+            transition: { type: "tween" as const, duration: 0.3, ease: "easeOut" as const }
+        },
+        exit: {
+            x: "100%",
+            transition: { type: "tween" as const, duration: 0.2, ease: "easeIn" as const }
+        }
+    };
+
+    const cardHoverVariants = {
+        hover: { scale: 1.02 },
+        tap: { scale: 0.99 }
+    };
+
     if (loading) {
         return (
             <Loading
@@ -127,75 +170,80 @@ export default function CajaLista({ usuarioId }: CajaListaProps) {
     }
 
     return (
-        <div className="p-6">
-            {/* Header móvil y tablet */}
-            <div className="lg:hidden mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="bg-orange-500 p-3 rounded-xl">
-                        <Truck className="text-white text-xl" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Caja</h1>
-                        <p className="text-gray-600">
-                            {ordenes.length} {ordenes.length === 1 ? 'orden' : 'ordenes'} para cobrar
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Header desktop */}
-            <div className="hidden lg:block mb-6">
-                <div className="flex items-center justify-between">
+        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+            {/* Header unificado */}
+            <div className="mb-6 md:mb-8">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="bg-orange-500 p-3 rounded-xl">
-                            <Truck className="text-white text-xl" />
+                        <div className="bg-orange-500 p-3 rounded-xl shadow-sm">
+                            <CreditCard className="text-white text-xl md:text-2xl" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Caja</h1>
-                            <p className="text-gray-600">
-                                {ordenes.length} {ordenes.length === 1 ? 'domicilio listo' : 'domicilios listos'} para cobrar
+                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Caja</h1>
+                            <p className="text-gray-600 text-sm md:text-base">
+                                {ordenesFiltradas.length} {ordenesFiltradas.length === 1 ? 'orden lista' : 'órdenes listas'} para cobrar
                             </p>
                         </div>
                     </div>
 
-                    {/* Estadísticas de domicilios */}
-                    {ordenes.length > 0 && (
-                        <div className="flex gap-3">
-                            <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg">
-                                <p className="text-xs font-medium">Total domicilios</p>
-                                <p className="font-bold">{ordenes.length}</p>
-                            </div>
-                            <div className="bg-green-100 text-green-800 px-3 py-2 rounded-lg">
-                                <p className="text-xs font-medium">Monto total</p>
-                                <p className="font-bold">
-                                    ${ordenes.reduce((sum, orden) => sum + Number(orden.total_final || orden.total), 0).toLocaleString()}
-                                </p>
-                            </div>
+                    {/* Búsqueda por nombre del cliente */}
+                    <div className="relative flex-1 md:flex-none md:w-80">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 md:h-5 md:w-5" />
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre del cliente..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm md:text-base placeholder-gray-400"
+                            />
                         </div>
-                    )}
+                    </div>
+
+                    {/* Estadísticas - Solo desktop */}
+                    <div className="hidden md:flex gap-3">
+                        <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100">
+                            <p className="text-xs font-medium text-gray-600">Total órdenes</p>
+                            <p className="font-bold text-gray-900">{ordenes.length}</p>
+                        </div>
+                        <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100">
+                            <p className="text-xs font-medium text-gray-600">Monto total</p>
+                            <p className="font-bold text-gray-900">
+                                ${ordenes.reduce((sum, orden) => sum + Number(orden.total_final || orden.total), 0).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Contenido */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {/* Lista de órdenes */}
-                <div className="lg:col-span-2 xl:col-span-1 space-y-4">
-                    {ordenes.length === 0 ? (
-                        <div className="text-center py-16 bg-white rounded-xl shadow-sm">
-                            <Truck className="text-gray-300 text-5xl mx-auto mb-4" />
-                            <h2 className="text-xl font-bold text-gray-900 mb-2">
-                                No hay domicilios listos
-                            </h2>
-                            <p className="text-gray-500">
-                                Esperando domicilios desde cocina
-                            </p>
+            {/* Lista de órdenes - Siempre ocupa todo el ancho */}
+            <div className="max-w-7xl mx-auto">
+                {ordenesFiltradas.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-100">
+                        <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <User className="text-gray-400 text-2xl" />
                         </div>
-                    ) : (
-                        ordenes.map((orden) => (
-                            <div
+                        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                            {searchTerm ? 'No se encontraron órdenes' : 'No hay órdenes listas'}
+                        </h2>
+                        <p className="text-gray-500 text-sm">
+                            {searchTerm
+                                ? 'No hay órdenes que coincidan con la búsqueda'
+                                : 'Esperando órdenes desde cocina'
+                            }
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {ordenesFiltradas.map((orden) => (
+                            <motion.div
                                 key={orden.id}
                                 onClick={(e) => handleCardClick(e, orden)}
                                 className='cursor-pointer'
+                                whileHover="hover"
+                                whileTap="tap"
+                                variants={cardHoverVariants}
+                                transition={{ type: "tween", duration: 0.2 }}
                             >
                                 <OrdenCard
                                     orden={orden}
@@ -209,80 +257,73 @@ export default function CajaLista({ usuarioId }: CajaListaProps) {
                                     mostrarPreciosSeparados={true}
                                     modoSeleccion={true}
                                 />
-                            </div>
-                        ))
-                    )}
-                </div>
-
-                {/* Panel de cobro desktop */}
-                <div className="hidden lg:block lg:col-span-2 xl:col-span-3">
-                    <div className="sticky top-6">
-                        {ordenSeleccionada ? (
-                            <PanelCobro
-                                ordenSeleccionada={ordenSeleccionada}
-                                usuarioId={usuarioId}
-                                metodoPago={metodoPago}
-                                setMetodoPago={setMetodoPago}
-                                propina={propina}
-                                setPropina={setPropina}
-                                propinaPorcentaje={propinaPorcentaje}
-                                setPropinaPorcentaje={setPropinaPorcentaje}
-                                onSuccess={resetearFormulario}
-                                onRecargarOrdenes={cargarOrdenes}
-                            />
-                        ) : (
-                            <div className="text-center py-16 bg-white rounded-xl shadow-sm">
-                                <CreditCard className="text-gray-300 text-5xl mx-auto mb-4" />
-                                <p className="text-gray-500">Selecciona un domicilio para cobrar</p>
-                            </div>
-                        )}
+                            </motion.div>
+                        ))}
                     </div>
-                </div>
+                )}
             </div>
 
-            {/* Modal móvil y tablet */}
-            {showModal && ordenSeleccionada && (
-                <>
-                    {/* Overlay */}
-                    <div
-                        className="lg:hidden fixed inset-0 bg-black/20 bg-opacity-50 z-40"
-                        onClick={() => setShowModal(false)}
-                    />
-
-                    {/* Panel Modal */}
-                    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-50 max-h-[90vh] overflow-hidden">
-                        {/* Handle para cerrar */}
-                        <div
-                            className="w-16 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-4 cursor-pointer hover:bg-gray-400 transition-colors"
+            {/* Modal para PanelCobro con Framer Motion */}
+            <AnimatePresence>
+                {showModal && ordenSeleccionada && (
+                    <>
+                        {/* Overlay */}
+                        <motion.div
+                            className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+                            variants={overlayVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
                             onClick={() => setShowModal(false)}
                         />
 
-                        {/* Header */}
-                        <div className="px-6 border-b border-gray-200 pb-4">
-                            <h3 className="text-xl font-bold text-gray-800">
-                                Cobrar Orden #{ordenSeleccionada.id.slice(-6)}
-                            </h3>
-                        </div>
+                        {/* Panel Modal - SIEMPRE desde la derecha */}
+                        <motion.div
+                            className="fixed top-0 right-0 h-full z-50 bg-white shadow-2xl w-full md:w-4/5 lg:w-1/2"
+                            variants={modalVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                        >
 
-                        {/* Contenido scrolleable */}
-                        <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-120px)]">
-                            <PanelCobro
-                                ordenSeleccionada={ordenSeleccionada}
-                                usuarioId={usuarioId}
-                                metodoPago={metodoPago}
-                                setMetodoPago={setMetodoPago}
-                                propina={propina}
-                                setPropina={setPropina}
-                                propinaPorcentaje={propinaPorcentaje}
-                                setPropinaPorcentaje={setPropinaPorcentaje}
-                                onSuccess={resetearFormulario}
-                                onRecargarOrdenes={cargarOrdenes}
-                                onClose={() => setShowModal(false)}
-                            />
-                        </div>
-                    </div>
-                </>
-            )}
+                            {/* Header del Modal */}
+                            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-white">
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900">
+                                        Cobrar Orden
+                                    </h3>
+
+                                </div>
+                                <motion.button
+                                    onClick={() => setShowModal(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    transition={{ type: "tween", duration: 0.1 }}
+                                >
+                                    <X className="text-gray-400 h-6 w-6" />
+                                </motion.button>
+                            </div>
+
+                            {/* Contenido scrolleable */}
+                            <div className="p-4 lg:p-6 overflow-y-auto h-[calc(100vh-80px)]">
+                                <PanelCobro
+                                    ordenSeleccionada={ordenSeleccionada}
+                                    usuarioId={usuarioId}
+                                    metodoPago={metodoPago}
+                                    setMetodoPago={setMetodoPago}
+                                    propina={propina}
+                                    setPropina={setPropina}
+                                    propinaPorcentaje={propinaPorcentaje}
+                                    setPropinaPorcentaje={setPropinaPorcentaje}
+                                    onSuccess={resetearFormulario}
+                                    onRecargarOrdenes={cargarOrdenes}
+                                />
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

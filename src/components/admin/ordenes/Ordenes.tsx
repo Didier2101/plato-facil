@@ -207,7 +207,7 @@ export default function Ordenes() {
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-x-4 grid grid-cols-1 lg:grid-cols-2 gap-2">
                         {ordenes.map((orden) => (
                             <OrdenCard
                                 key={orden.id}
