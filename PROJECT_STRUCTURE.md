@@ -1,35 +1,10 @@
 # Estructura del Proyecto
 
-Generado el: 12/12/2025, 3:58:55 p. m.
+Generado el: 15/12/2025, 3:16:31 p. m.
 
 ```
 Kavvo/
 ├── 📁 app
-│   ├── 📁 (private)
-│   │   ├── 📁 admin
-│   │   │   ├── 📁 caja
-│   │   │   │   └── 📄 page.tsx
-│   │   │   ├── 📁 ordenes
-│   │   │   │   └── 📄 page.tsx
-│   │   │   ├── 📁 productos
-│   │   │   │   └── 📄 page.tsx
-│   │   │   ├── 📁 tienda
-│   │   │   │   └── 📄 page.tsx
-│   │   │   └── 📄 layout.tsx
-│   │   ├── 📁 dueno
-│   │   │   ├── 📁 configuraciones
-│   │   │   │   └── 📄 page.tsx
-│   │   │   ├── 📁 reportes
-│   │   │   │   └── 📄 page.tsx
-│   │   │   ├── 📁 usuarios
-│   │   │   │   └── 📄 page.tsx
-│   │   │   └── 📄 layout.tsx
-│   │   └── 📁 repartidor
-│   │       ├── 📁 mis-entregas
-│   │       │   └── 📄 page.tsx
-│   │       ├── 📁 ordenes-listas
-│   │       │   └── 📄 page.tsx
-│   │       └── 📄 layout.tsx
 │   ├── 📁 (public)
 │   │   ├── 📁 a-domicilio
 │   │   │   ├── 📁 domicilios
@@ -42,6 +17,33 @@ Kavvo/
 │   │   │   └── 📄 page.tsx
 │   │   └── 📁 login
 │   │       └── 📄 page.tsx
+│   ├── 📁 administrativo
+│   │   ├── 📁 (admin)
+│   │   │   ├── 📁 caja
+│   │   │   │   └── 📄 page.tsx
+│   │   │   ├── 📁 ordenes
+│   │   │   │   └── 📄 page.tsx
+│   │   │   ├── 📁 productos
+│   │   │   │   ├── 📁 nuevo
+│   │   │   │   │   └── 📄 page.tsx
+│   │   │   │   └── 📄 page.tsx
+│   │   │   ├── 📁 tienda
+│   │   │   │   └── 📄 page.tsx
+│   │   │   └── 📄 layout.tsx
+│   │   ├── 📁 (dueno)
+│   │   │   ├── 📁 configuraciones
+│   │   │   │   └── 📄 page.tsx
+│   │   │   ├── 📁 reportes
+│   │   │   │   └── 📄 page.tsx
+│   │   │   ├── 📁 usuarios
+│   │   │   │   └── 📄 page.tsx
+│   │   │   └── 📄 layout.tsx
+│   │   └── 📁 (repartidor)
+│   │       ├── 📁 mis-entregas
+│   │       │   └── 📄 page.tsx
+│   │       ├── 📁 ordenes-listas
+│   │       │   └── 📄 page.tsx
+│   │       └── 📄 layout.tsx
 │   ├── 📁 unauthorized
 │   │   └── 📄 page.tsx
 │   ├── 📄 globals.css
@@ -58,123 +60,10 @@ Kavvo/
 ├── 📁 scripts
 │   └── 📄 generate-structure.ts
 ├── 📁 src
-│   ├── 📁 actions
-│   │   ├── 📁 domicilio
-│   │   │   └── 📄 clienteDomicilioAction.ts
-│   │   ├── 📁 dueno
-│   │   │   ├── 📄 configuracionRestauranteActions.ts
-│   │   │   ├── 📄 crearUsuarioAction.ts
-│   │   │   ├── 📄 editarUsuarioAction.ts
-│   │   │   ├── 📄 obtenerReporteAvanzadoAction.ts
-│   │   │   ├── 📄 obtenerUsuariosAction.ts
-│   │   │   └── 📄 toggleUsuarioAction.ts
-│   │   ├── 📁 login
-│   │   │   ├── 📄 auth.ts
-│   │   │   └── 📄 loginActions.ts
-│   │   ├── 📁 repartidor
-│   │   │   ├── 📄 obtenerEntregasRepartidorAction.ts
-│   │   │   └── 📄 obtenerMisDomiciliosAction.ts
-│   │   ├── 📄 actualizarEstadoOrdenAction.ts
-│   │   ├── 📄 actualizarProductoAction.ts
-│   │   ├── 📄 buscarOrdenPorTelefonoAction.ts
-│   │   ├── 📄 calculoDomicilioAction.ts
-│   │   ├── 📄 categoriasActions.ts
-│   │   ├── 📄 cobrarOrdenAction.ts
-│   │   ├── 📄 crearOrdenAction.ts
-│   │   ├── 📄 crearProductoAction.ts
-│   │   ├── 📄 desactivarProductoAction.ts
-│   │   ├── 📄 eliminarOrdenAction.ts
-│   │   ├── 📄 guardarClienteAction.ts
-│   │   ├── 📄 ingredientesActions.ts
-│   │   ├── 📄 obtenerIngredientesAction.ts
-│   │   ├── 📄 obtenerOrdenesAction.ts
-│   │   ├── 📄 obtenerOrdenesDomicilioAction.ts
-│   │   ├── 📄 obtenerOrdenesListasAction.ts
-│   │   ├── 📄 obtenerProductosAction.ts
-│   │   └── 📄 registrarPropinaAction.ts
 │   ├── 📁 components
-│   │   ├── 📁 PanelCobro
-│   │   │   ├── 📁 components
-│   │   │   │   ├── 📄 BotonConfirmarCobro.tsx
-│   │   │   │   ├── 📄 ResumenTotales.tsx
-│   │   │   │   ├── 📄 SelectorComprobante.tsx
-│   │   │   │   ├── 📄 SelectorMetodoPago.tsx
-│   │   │   │   └── 📄 SelectorPropina.tsx
-│   │   │   ├── 📁 constants
-│   │   │   │   └── 📄 cobro.ts
-│   │   │   ├── 📁 hooks
-│   │   │   │   ├── 📄 useCobroProcess.ts
-│   │   │   │   ├── 📄 useFacturacionLogic.ts
-│   │   │   │   └── 📄 usePropinaLogic.ts
-│   │   │   ├── 📁 types
-│   │   │   │   └── 📄 cobro.ts
-│   │   │   ├── 📁 utils
-│   │   │   │   ├── 📄 calculosCobro.ts
-│   │   │   │   └── 📄 validacionesCobro.ts
-│   │   │   ├── 📄 PanelCobro.tsx
-│   │   │   └── 📄 index.ts
-│   │   ├── 📁 admin
-│   │   │   ├── 📁 caja
-│   │   │   │   ├── 📄 CajaLista.tsx
-│   │   │   │   └── 📄 PanelCobro.tsx
-│   │   │   ├── 📁 ordenes
-│   │   │   │   ├── 📄 OrdenCard.tsx
-│   │   │   │   └── 📄 Ordenes.tsx
-│   │   │   └── 📁 productos
-│   │   │       ├── 📄 DetalleProducto.tsx
-│   │   │       ├── 📄 FormAgregarProducto.tsx
-│   │   │       └── 📄 ProductosLista.tsx
-│   │   ├── 📁 auth
-│   │   │   ├── 📄 Login.tsx
-│   │   │   └── 📄 LogoutButton.tsx
-│   │   ├── 📁 cliente-domicilio
-│   │   │   ├── 📄 Domicilios.tsx
-│   │   │   ├── 📄 MisOrdenes.tsx
-│   │   │   └── 📄 ModalDatosCliente.tsx
-│   │   ├── 📁 domiciliario
-│   │   │   ├── 📄 DomiciliarioPanel.tsx
-│   │   │   └── 📄 MisDomiciliosComponent.tsx
-│   │   ├── 📁 domicilio
-│   │   │   ├── 📄 CalculadorDomicilio.tsx
-│   │   │   ├── 📄 InformacionRestaurante.tsx
-│   │   │   └── 📄 MapaUbicacion.tsx
-│   │   ├── 📁 dueno
-│   │   │   ├── 📄 Configuraciones.tsx
-│   │   │   ├── 📄 FormAgregarUsuario.tsx
-│   │   │   ├── 📄 ReportesAvanzadosComponent.tsx
-│   │   │   └── 📄 Usuarios.tsx
-│   │   ├── 📁 landing
-│   │   │   ├── 📄 Footer.tsx
-│   │   │   ├── 📄 Header.tsx
-│   │   │   ├── 📄 HeroSection.tsx
-│   │   │   ├── 📄 InfoSection.tsx
-│   │   │   ├── 📄 LocationSection.tsx
-│   │   │   ├── 📄 MenuSection.tsx
-│   │   │   └── 📄 RestaurantLandingPage.tsx
-│   │   ├── 📁 layouts
-│   │   │   ├── 📄 AdminLayoutClient.tsx
-│   │   │   ├── 📄 DomiciliosLayoutClient.tsx
-│   │   │   ├── 📄 DuenoLayoutClient.tsx
-│   │   │   └── 📄 RepartidorLayoutClient.tsx
-│   │   ├── 📁 tienda
-│   │   │   ├── 📄 CarritoResumen.tsx
-│   │   │   ├── 📄 ProductoCard.tsx
-│   │   │   ├── 📄 ProductoDetalleModal.tsx
-│   │   │   └── 📄 TiendaProductos.tsx
-│   │   ├── 📁 ui
-│   │   │   ├── 📄 CookieBanner.tsx
-│   │   │   ├── 📄 Loading.tsx
-│   │   │   └── 📄 Logo.tsx
-│   │   ├── 📄 NotFound.tsx
-│   │   ├── 📄 Paginacion.tsx
-│   │   ├── 📄 ProbadorFactus.tsx
-│   │   ├── 📄 SupabaseProvider.tsx
-│   │   └── 📄 Unauthorized.tsx
-│   ├── 📁 constants
-│   │   └── 📄 app-routes.ts
-│   ├── 📁 hooks
-│   │   ├── 📄 useDomicilioCalculator.ts
-│   │   └── 📄 useLogin.ts
+│   │   └── 📁 PanelCobro
+│   │       ├── 📄 PanelCobro.tsx
+│   │       └── 📄 index.ts
 │   ├── 📁 lib
 │   │   ├── 📁 auth
 │   │   │   └── 📄 checkRole.ts
@@ -182,26 +71,238 @@ Kavvo/
 │   │   ├── 📄 database.types.ts
 │   │   ├── 📄 supabaseAdmin.ts
 │   │   └── 📄 supabaseClient.ts
-│   ├── 📁 schemas
-│   │   └── 📄 auth.ts
-│   ├── 📁 store
-│   │   ├── 📄 carritoStore.ts
-│   │   ├── 📄 clienteStore.ts
-│   │   ├── 📄 cookieConsentStore.ts
-│   │   └── 📄 useUserStore.ts
-│   ├── 📁 styles
-│   ├── 📁 types
-│   │   ├── 📄 auth.ts
-│   │   ├── 📄 cliente.ts
-│   │   ├── 📄 database.ts
-│   │   ├── 📄 domicilios.ts
-│   │   ├── 📄 factus.ts
-│   │   ├── 📄 orden.ts
-│   │   ├── 📄 producto.ts
-│   │   └── 📄 reportes.ts
-│   └── 📁 utils
-│       ├── 📄 precio.ts
-│       └── 📄 texto.ts
+│   ├── 📁 modules
+│   │   ├── 📁 admin
+│   │   │   ├── 📁 caja
+│   │   │   │   ├── 📁 actions
+│   │   │   │   │   ├── 📄 cobrarOrdenAction.ts
+│   │   │   │   │   └── 📄 registrarPropinaAction.ts
+│   │   │   │   ├── 📁 components
+│   │   │   │   │   ├── 📄 BotonConfirmarCobro.tsx
+│   │   │   │   │   ├── 📄 CajaLista.tsx
+│   │   │   │   │   ├── 📄 PanelCobro.tsx
+│   │   │   │   │   ├── 📄 ResumenTotales.tsx
+│   │   │   │   │   ├── 📄 SelectorComprobante.tsx
+│   │   │   │   │   ├── 📄 SelectorMetodoPago.tsx
+│   │   │   │   │   └── 📄 SelectorPropina.tsx
+│   │   │   │   ├── 📁 constants
+│   │   │   │   │   └── 📄 cobro.ts
+│   │   │   │   ├── 📁 hooks
+│   │   │   │   │   ├── 📄 useCobroProcess.ts
+│   │   │   │   │   ├── 📄 useFacturacionLogic.ts
+│   │   │   │   │   └── 📄 usePropinaLogic.ts
+│   │   │   │   ├── 📁 types
+│   │   │   │   │   └── 📄 cobro.ts
+│   │   │   │   └── 📁 utils
+│   │   │   │       ├── 📄 calculosCobro.ts
+│   │   │   │       └── 📄 validacionesCobro.ts
+│   │   │   ├── 📁 ordenes
+│   │   │   │   ├── 📁 actions
+│   │   │   │   │   ├── 📄 actualizarEstadoOrdenAction.ts
+│   │   │   │   │   ├── 📄 buscarOrdenPorTelefonoAction.ts
+│   │   │   │   │   ├── 📄 crearOrdenAction.ts
+│   │   │   │   │   ├── 📄 eliminarOrdenAction.ts
+│   │   │   │   │   └── 📄 obtenerOrdenesAction.ts
+│   │   │   │   ├── 📁 components
+│   │   │   │   │   ├── 📄 OrdenCard.tsx
+│   │   │   │   │   └── 📄 Ordenes.tsx
+│   │   │   │   └── 📁 types
+│   │   │   │       └── 📄 orden.ts
+│   │   │   ├── 📁 productos
+│   │   │   │   ├── 📁 actions
+│   │   │   │   │   ├── 📄 actualizarProductoAction.ts
+│   │   │   │   │   ├── 📄 crearProductoAction.ts
+│   │   │   │   │   ├── 📄 desactivarProductoAction.ts
+│   │   │   │   │   └── 📄 obtenerProductosAction.ts
+│   │   │   │   ├── 📁 components
+│   │   │   │   │   ├── 📄 DetalleProducto.tsx
+│   │   │   │   │   ├── 📄 FormAgregarProducto.tsx
+│   │   │   │   │   ├── 📄 ProductImageUploader.tsx
+│   │   │   │   │   └── 📄 ProductosLista.tsx
+│   │   │   │   ├── 📁 hooks
+│   │   │   │   │   ├── 📄 index.ts
+│   │   │   │   │   ├── 📄 useCategorias.ts
+│   │   │   │   │   ├── 📄 useCrearProducto.ts
+│   │   │   │   │   ├── 📄 useIngredientes.ts
+│   │   │   │   │   └── 📄 useProductos.ts
+│   │   │   │   ├── 📁 schemas
+│   │   │   │   │   └── 📄 productoSchema.ts
+│   │   │   │   └── 📁 types
+│   │   │   │       └── 📄 producto.ts
+│   │   │   └── 📁 tienda
+│   │   │       ├── 📁 actions
+│   │   │       │   ├── 📄 categoriasActions.ts
+│   │   │       │   ├── 📄 ingredientesActions.ts
+│   │   │       │   └── 📄 obtenerIngredientesAction.ts
+│   │   │       ├── 📁 components
+│   │   │       │   ├── 📄 CarritoResumen.tsx
+│   │   │       │   ├── 📄 ProductoCard.tsx
+│   │   │       │   ├── 📄 ProductoDetalleModal.tsx
+│   │   │       │   └── 📄 TiendaProductos.tsx
+│   │   │       └── 📁 store
+│   │   │           └── 📄 carritoStore.ts
+│   │   ├── 📁 auth
+│   │   │   ├── 📁 actions
+│   │   │   │   ├── 📄 auth.ts
+│   │   │   │   └── 📄 loginActions.ts
+│   │   │   ├── 📁 components
+│   │   │   │   ├── 📄 Login.tsx
+│   │   │   │   └── 📄 LogoutButton.tsx
+│   │   │   ├── 📁 hooks
+│   │   │   │   ├── 📄 useLogin.ts
+│   │   │   │   └── 📄 useLogout.ts
+│   │   │   ├── 📁 schemas
+│   │   │   │   └── 📄 auth.ts
+│   │   │   └── 📁 types
+│   │   │       └── 📄 auth.ts
+│   │   ├── 📁 cliente
+│   │   │   ├── 📁 domicilios
+│   │   │   │   ├── 📁 actions
+│   │   │   │   │   ├── 📄 calculoDomicilioAction.ts
+│   │   │   │   │   ├── 📄 clienteDomicilioAction.ts
+│   │   │   │   │   ├── 📄 guardarClienteAction.ts
+│   │   │   │   │   └── 📄 obtenerOrdenesDomicilioAction.ts
+│   │   │   │   ├── 📁 components
+│   │   │   │   │   ├── 📄 CalculadorDomicilio.tsx
+│   │   │   │   │   ├── 📄 Domicilios.tsx
+│   │   │   │   │   ├── 📄 InformacionRestaurante.tsx
+│   │   │   │   │   ├── 📄 MapaUbicacion.tsx
+│   │   │   │   │   └── 📄 ModalDatosCliente.tsx
+│   │   │   │   ├── 📁 hooks
+│   │   │   │   │   └── 📄 useDomicilioCalculator.ts
+│   │   │   │   ├── 📁 store
+│   │   │   │   │   └── 📄 clienteStore.ts
+│   │   │   │   └── 📁 types
+│   │   │   │       ├── 📄 cliente.ts
+│   │   │   │       └── 📄 domicilios.ts
+│   │   │   └── 📁 mis-ordenes
+│   │   │       └── 📁 components
+│   │   │           └── 📄 MisOrdenes.tsx
+│   │   ├── 📁 dueno
+│   │   │   ├── 📁 configuraciones
+│   │   │   │   ├── 📁 actions
+│   │   │   │   │   └── 📄 configuracionRestauranteActions.ts
+│   │   │   │   ├── 📁 components
+│   │   │   │   │   ├── 📄 ConfiguracionDomicilios.tsx
+│   │   │   │   │   ├── 📄 Configuraciones.tsx
+│   │   │   │   │   ├── 📄 EstadoServicios.tsx
+│   │   │   │   │   ├── 📄 ImageUploader.tsx
+│   │   │   │   │   ├── 📄 InformacionBasica.tsx
+│   │   │   │   │   └── 📄 LocationPicker.tsx
+│   │   │   │   └── 📁 hooks
+│   │   │   │       ├── 📄 useConfiguracion.ts
+│   │   │   │       ├── 📄 useConfiguracionMutaciones.ts
+│   │   │   │       └── 📄 useImageUploader.ts
+│   │   │   ├── 📁 reportes
+│   │   │   │   ├── 📁 actions
+│   │   │   │   │   └── 📄 obtenerReporteAvanzadoAction.ts
+│   │   │   │   ├── 📁 components
+│   │   │   │   │   ├── 📄 MetricCard.tsx
+│   │   │   │   │   ├── 📄 MetricasResumen.tsx
+│   │   │   │   │   ├── 📄 ReporteFiltros.tsx
+│   │   │   │   │   ├── 📄 ReportesAvanzadosComponent.tsx
+│   │   │   │   │   ├── 📄 VistaEquipo.tsx
+│   │   │   │   │   ├── 📄 VistaResumen.tsx
+│   │   │   │   │   └── 📄 VistaVentas.tsx
+│   │   │   │   ├── 📁 hooks
+│   │   │   │   │   ├── 📄 useReporteData.ts
+│   │   │   │   │   └── 📄 useReporteFilters.ts
+│   │   │   │   ├── 📁 types
+│   │   │   │   │   ├── 📄 reportes.ts
+│   │   │   │   │   └── 📄 reportesTypes.ts
+│   │   │   │   └── 📁 utils
+│   │   │   │       └── 📄 formatUtils.ts
+│   │   │   └── 📁 usuarios
+│   │   │       ├── 📁 actions
+│   │   │       │   ├── 📄 crearUsuarioAction.ts
+│   │   │       │   ├── 📄 editarUsuarioAction.ts
+│   │   │       │   ├── 📄 obtenerUsuariosAction.ts
+│   │   │       │   └── 📄 toggleUsuarioAction.ts
+│   │   │       ├── 📁 components
+│   │   │       │   ├── 📄 CrearUsuarioModal.tsx
+│   │   │       │   ├── 📄 EditarUsuarioModal.tsx
+│   │   │       │   ├── 📄 FormAgregarUsuario.tsx
+│   │   │       │   ├── 📄 FormField.tsx
+│   │   │       │   ├── 📄 Usuarios.tsx
+│   │   │       │   ├── 📄 UsuariosStats.tsx
+│   │   │       │   └── 📄 UsuariosTable.tsx
+│   │   │       ├── 📁 hooks
+│   │   │       │   ├── 📄 useUsuariosData.ts
+│   │   │       │   └── 📄 useUsuariosMutaciones.ts
+│   │   │       ├── 📁 schemas
+│   │   │       │   └── 📄 usuarioSchema.ts
+│   │   │       ├── 📁 types
+│   │   │       │   └── 📄 usuarioTypes.ts
+│   │   │       └── 📁 utils
+│   │   │           └── 📄 usuarioUtils.ts
+│   │   ├── 📁 landing
+│   │   │   └── 📁 components
+│   │   │       ├── 📄 Footer.tsx
+│   │   │       ├── 📄 Header.tsx
+│   │   │       ├── 📄 HeroSection.tsx
+│   │   │       ├── 📄 InfoSection.tsx
+│   │   │       ├── 📄 LocationSection.tsx
+│   │   │       ├── 📄 MenuSection.tsx
+│   │   │       └── 📄 RestaurantLandingPage.tsx
+│   │   └── 📁 repartidor
+│   │       ├── 📁 entregas
+│   │       │   ├── 📁 actions
+│   │       │   │   ├── 📄 obtenerEntregasRepartidorAction.ts
+│   │       │   │   └── 📄 obtenerMisDomiciliosAction.ts
+│   │       │   └── 📁 components
+│   │       │       ├── 📄 DomiciliarioPanel.tsx
+│   │       │       └── 📄 MisDomiciliosComponent.tsx
+│   │       └── 📁 ordenes-listas
+│   │           └── 📁 actions
+│   │               └── 📄 obtenerOrdenesListasAction.ts
+│   └── 📁 shared
+│       ├── 📁 components
+│       │   ├── 📁 ui
+│       │   │   ├── 📄 CookieBanner.tsx
+│       │   │   ├── 📄 Loading.tsx
+│       │   │   └── 📄 Logo.tsx
+│       │   ├── 📄 ErrorState.tsx
+│       │   ├── 📄 NotFound.tsx
+│       │   ├── 📄 PageHeader.tsx
+│       │   ├── 📄 Paginacion.tsx
+│       │   ├── 📄 SupabaseProvider.tsx
+│       │   ├── 📄 ToasterProvider.tsx
+│       │   ├── 📄 Unauthorized.tsx
+│       │   └── 📄 index.ts
+│       ├── 📁 constants
+│       │   ├── 📄 app-routes.ts
+│       │   ├── 📄 estado-orden.ts
+│       │   ├── 📄 metodo-pago.ts
+│       │   ├── 📄 orden.ts
+│       │   └── 📄 rol.ts
+│       ├── 📁 hooks
+│       │   └── 📄 useImageOptimizer.ts
+│       ├── 📁 layouts
+│       │   ├── 📄 AdminLayoutClient.tsx
+│       │   ├── 📄 DomiciliosLayoutClient.tsx
+│       │   ├── 📄 DuenoLayoutClient.tsx
+│       │   └── 📄 RepartidorLayoutClient.tsx
+│       ├── 📁 services
+│       │   └── 📄 toast.service.ts
+│       ├── 📁 store
+│       │   ├── 📄 cookieConsentStore.ts
+│       │   └── 📄 useUserStore.ts
+│       ├── 📁 types
+│       │   ├── 📄 database.ts
+│       │   ├── 📄 estado-orden.ts
+│       │   ├── 📄 metodo-pago.ts
+│       │   ├── 📄 orden.ts
+│       │   ├── 📄 rol.ts
+│       │   └── 📄 ruta.ts
+│       └── 📁 utils
+│           ├── 📁 image-optimizer
+│           │   ├── 📄 ImageOptimizer.ts
+│           │   ├── 📄 ImageResizer.ts
+│           │   ├── 📄 WebPConverter.ts
+│           │   ├── 📄 index.ts
+│           │   └── 📄 types.ts
+│           ├── 📄 precio.ts
+│           └── 📄 texto.ts
 ├── 📄 .gitignore
 ├── 📄 PROJECT_STRUCTURE.md
 ├── 📄 README.md

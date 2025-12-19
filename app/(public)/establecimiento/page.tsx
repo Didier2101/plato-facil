@@ -1,4 +1,4 @@
-import TiendaProductos from '@/src/components/tienda/TiendaProductos'
+import TiendaProductos from '@/src/modules/admin/tienda/components/TiendaProductos'
 import React from 'react'
 
 export default function page() {

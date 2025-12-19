@@ -1,4 +1,4 @@
-import NotFound from '@/src/components/NotFound'
+import NotFound from '@/src/shared/components/NotFound'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {

@@ -2,14 +2,27 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { PRIVATE_ROUTES, PUBLIC_ROUTES } from "@/src/shared/constants/app-routes";
+import { ROLES } from "@/src/shared/constants/rol";
+import type { Rol } from "@/src/shared/types/rol";
 
 export async function middleware(req: NextRequest) {
     const res = NextResponse.next();
     const pathname = req.nextUrl.pathname;
 
     // ✅ RUTAS PÚBLICAS: No aplicar middleware
-    const publicRoutes = ['/login', '/unauthorized'];
-    if (publicRoutes.includes(pathname)) {
+    const publicRoutes = [
+        PUBLIC_ROUTES.HOME,
+        PUBLIC_ROUTES.LOGIN,
+        PUBLIC_ROUTES.ESTABLECIMIENTO,
+        PUBLIC_ROUTES.DOMICILIO.BASE,
+        PUBLIC_ROUTES.DOMICILIO.PEDIDOS,
+        PUBLIC_ROUTES.DOMICILIO.INFORMACION,
+        PUBLIC_ROUTES.DOMICILIO.MIS_ORDENES,
+        PUBLIC_ROUTES.UNAUTHORIZED,
+    ];
+
+    if (publicRoutes.some((route) => pathname.startsWith(route))) {
         return res;
     }
 
@@ -36,7 +49,7 @@ export async function middleware(req: NextRequest) {
 
     // Si no hay usuario o hay error, redirigir a login
     if (error || !user) {
-        return NextResponse.redirect(new URL("/login", req.url));
+        return NextResponse.redirect(new URL(PUBLIC_ROUTES.LOGIN, req.url));
     }
 
     // ✅ Buscar el rol desde la tabla usuarios
@@ -49,30 +62,66 @@ export async function middleware(req: NextRequest) {
     if (!usuario || !usuario.activo) {
         // Cerrar sesión si usuario no existe o está inactivo
         await supabase.auth.signOut();
-        return NextResponse.redirect(new URL("/login?error=usuario_inactivo", req.url));
+        return NextResponse.redirect(
+            new URL(`${PUBLIC_ROUTES.LOGIN}?error=usuario_inactivo`, req.url)
+        );
     }
 
-    // ✅ Reglas de acceso por rol
-    if (pathname.startsWith("/admin") && usuario.rol !== "admin") {
-        return NextResponse.redirect(new URL("/unauthorized", req.url));
+    const userRole = usuario.rol as Rol;
+
+    // ✅ REGLAS DE ACCESO POR ROL
+
+    // DUEÑO tiene acceso a TODO - verificar primero
+    if (userRole === ROLES.DUENO) {
+        return res; // ✅ Acceso total
     }
 
-    if (pathname.startsWith("/dueno") && usuario.rol !== "dueno") {
-        return NextResponse.redirect(new URL("/unauthorized", req.url));
+    // Rutas exclusivas de DUEÑO
+    if (
+        pathname.startsWith(PRIVATE_ROUTES.DUENO.REPORTES) ||
+        pathname.startsWith(PRIVATE_ROUTES.DUENO.CONFIGURACIONES) ||
+        pathname.startsWith(PRIVATE_ROUTES.DUENO.USUARIOS)
+    ) {
+        return NextResponse.redirect(
+            new URL(`${PUBLIC_ROUTES.LOGIN}?error=acceso_denegado`, req.url)
+        );
     }
 
-    if (pathname.startsWith("/repartidor") && usuario.rol !== "repartidor") {
-        return NextResponse.redirect(new URL("/unauthorized", req.url));
+    // Rutas de ADMIN (caja, ordenes, productos, tienda)
+    if (
+        pathname.startsWith(PRIVATE_ROUTES.ADMIN.CAJA) ||
+        pathname.startsWith(PRIVATE_ROUTES.ADMIN.ORDENES) ||
+        pathname.startsWith(PRIVATE_ROUTES.ADMIN.PRODUCTOS) ||
+        pathname.startsWith(PRIVATE_ROUTES.ADMIN.TIENDA)
+    ) {
+        if (userRole === ROLES.ADMIN) {
+            return res; // ✅ Admin puede acceder
+        }
+        return NextResponse.redirect(
+            new URL(`${PUBLIC_ROUTES.LOGIN}?error=acceso_denegado`, req.url)
+        );
+    }
+
+    // Rutas de REPARTIDOR
+    if (
+        pathname.startsWith(PRIVATE_ROUTES.REPARTIDOR.ORDENES_LISTAS) ||
+        pathname.startsWith(PRIVATE_ROUTES.REPARTIDOR.MIS_ENTREGAS)
+    ) {
+        if (userRole === ROLES.REPARTIDOR) {
+            return res; // ✅ Repartidor puede acceder
+        }
+        return NextResponse.redirect(
+            new URL(`${PUBLIC_ROUTES.LOGIN}?error=acceso_denegado`, req.url)
+        );
     }
 
     return res;
 }
 
-// ✅ IMPORTANTE: Solo proteger rutas privadas
+// ✅ IMPORTANTE: Proteger todas las rutas privadas
 export const config = {
     matcher: [
-        "/admin/:path*",
-        "/dueno/:path*",
-        "/repartidor/:path*"
+        // Todas las rutas bajo /administrativo excepto las públicas
+        "/administrativo/:path*",
     ],
 };

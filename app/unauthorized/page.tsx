@@ -1,4 +1,4 @@
-import Unauthorized from '@/src/components/Unauthorized'
+import Unauthorized from '@/src/shared/components/Unauthorized'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {

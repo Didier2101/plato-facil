@@ -1,4 +1,4 @@
-import RestaurantLandingPage from "@/src/components/landing/RestaurantLandingPage";
+import RestaurantLandingPage from "@/src/modules/landing/components/RestaurantLandingPage";
 
 
 export default function HomePage() {

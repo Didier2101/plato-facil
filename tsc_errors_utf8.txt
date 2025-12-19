@@ -1,0 +1,19 @@
+﻿src/modules/admin/caja/components/CajaLista.tsx(41,25): error TS2367: This comparison appears to be unintentional because the types '"mesa" | "para_llevar" | "domicilio"' and '"establecimiento"' have no overlap.
+src/modules/admin/ordenes/components/Ordenes.tsx(6,28): error TS2307: Cannot find module './hooks/useOrdenes' or its corresponding type declarations.
+src/modules/admin/ordenes/components/Ordenes.tsx(27,37): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/modules/admin/ordenes/components/Ordenes.tsx(121,39): error TS7006: Parameter 'orden' implicitly has an 'any' type.
+src/modules/admin/productos/hooks/useCategorias.ts(6,40): error TS2459: Module '"../actions/obtenerCategoriasAction"' declares 'CategoriaFrontend' locally, but it is not exported.
+src/modules/admin/tienda/hooks/useProductoCard.ts(35,25): error TS2345: Argument of type '{ id: number; nombre: string; precio: number; imagen_url: string | null; categoria: string | undefined; cantidad: number; ingredientes_personalizados: { ingrediente_id: string; nombre: string; incluido: boolean; obligatorio: boolean; }[]; notas: undefined; }' is not assignable to parameter of type 'ProductoCarrito'.
+  Types of property 'categoria' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/modules/admin/tienda/hooks/useProductoCard.ts(36,58): error TS2353: Object literal may only specify known properties, and 'position' does not exist in type 'ToastOptions'.
+src/modules/auth/actions/loginActions.ts(6,22): error TS2305: Module '"@/src/shared/constants/app-routes"' has no exported member 'UserRole'.
+src/modules/auth/types/auth.ts(3,10): error TS2305: Module '"@/src/shared/constants/app-routes"' has no exported member 'UserRole'.
+src/modules/cliente/domicilios/components/Domicilios.tsx(193,69): error TS18048: 'grupo.categoria' is possibly 'undefined'.
+src/modules/cliente/domicilios/components/InformacionRestaurante.tsx(21,21): error TS2307: Cannot find module '../ui/Loading' or its corresponding type declarations.
+src/modules/cliente/domicilios/hooks/useDomicilios.ts(25,17): error TS18048: 'categoria' is possibly 'undefined'.
+src/modules/cliente/domicilios/hooks/useDomicilios.ts(33,37): error TS18048: 'p.categoria' is possibly 'undefined'.
+src/shared/components/Unauthorized.tsx(6,30): error TS2307: Cannot find module '../actions/login/auth' or its corresponding type declarations.
+src/shared/layouts/DomiciliosLayoutClient.tsx(9,31): error TS2307: Cannot find module '../cliente-domicilio/ModalDatosCliente' or its corresponding type declarations.
+src/shared/layouts/DomiciliosLayoutClient.tsx(10,21): error TS2307: Cannot find module '../ui/Loading' or its corresponding type declarations.
