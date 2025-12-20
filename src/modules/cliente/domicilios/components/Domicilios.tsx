@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useCarritoStore } from "@/src/modules/admin/tienda/store/carritoStore";
-import CarritoResumen from "@/src/modules/admin/tienda/components/CarritoResumen";
+import Carrito from "@/src/modules/admin/tienda/components/Carrito";
 import { FaShoppingCart, FaClock, FaBan } from "react-icons/fa";
 import ProductoCard from "@/src/modules/admin/tienda/components/ProductoCard";
 import { useDomicilios } from "../hooks/useDomicilios";
@@ -165,7 +165,7 @@ export default function Domicilios() {
 
             {/* Modal del carrito */}
             {mostrarCarrito && (
-                <CarritoResumen
+                <Carrito
                     tipo="domicilio"
                     onClose={() => setMostrarCarrito(false)}
                 />

@@ -5,7 +5,7 @@ import { MdOutlineShoppingCart } from "react-icons/md";
 import Loading from "@/src/shared/components/ui/Loading";
 import { useTienda } from "../hooks/useTienda";
 import { useCarritoStore } from "@/src/modules/admin/tienda/store/carritoStore";
-import CarritoResumen from "./CarritoResumen";
+import CarritoResumen from "./Carrito";
 import ProductoCard from "./ProductoCard";
 
 export default function TiendaProductos() {

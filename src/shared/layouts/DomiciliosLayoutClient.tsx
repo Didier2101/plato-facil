@@ -3,18 +3,24 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaBars, FaTimes, FaHome, FaClipboardList, FaInfoCircle } from "react-icons/fa";
+import {
+    FaHome,
+    FaClipboardList,
+    FaInfoCircle,
+    FaUserCircle
+} from "react-icons/fa";
+import { MdDeliveryDining } from "react-icons/md";
 import Logo from "@/src/shared/components/ui/Logo";
 import { useClienteStore } from "@/src/modules/cliente/domicilios/store/clienteStore";
 import ModalDatosCliente from "../../modules/cliente/domicilios/components/ModalDatosCliente";
 import Loading from "../components/ui/Loading";
 import { APP_ROUTES } from "@/src/shared/constants/app-routes";
 
-
 interface LinkItem {
     href: string;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
+    mobileLabel?: string;
 }
 
 function DomiciliosNavLink({
@@ -26,34 +32,29 @@ function DomiciliosNavLink({
     collapsed = false,
     onClick,
 }: LinkItem & { active: boolean; mobile?: boolean; collapsed?: boolean; onClick?: () => void }) {
-    // ... (el código de DomiciliosNavLink se mantiene igual)
-    // Navegación móvil en menú hamburguesa
+
+    // Navegación móvil en bottom navigation
     if (mobile) {
         return (
             <Link
                 href={href}
                 onClick={onClick}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center py-4 px-6 transition-all duration-200 border-b border-gray-100
+                className={`flex flex-col items-center justify-center flex-1 py-3 transition-all duration-200
           ${active
-                        ? "text-orange-600 bg-orange-50"
-                        : "text-gray-700 hover:bg-gray-50 hover:text-orange-600"
+                        ? "text-orange-500"
+                        : "text-gray-500 hover:text-orange-500"
                     }`}
             >
-                <div
-                    className={`p-3 rounded-lg mr-4 transition-colors
-          ${active ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-600"}
-        `}
-                >
-                    <Icon className="text-lg" />
+                <div className="relative">
+                    <Icon className={`text-xl ${active ? "text-orange-500" : "text-gray-500"}`} />
+                    {active && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />
+                    )}
                 </div>
-                <span className="font-medium text-base">{label}</span>
-
-                {active && (
-                    <div className="ml-auto">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                    </div>
-                )}
+                <span className={`text-xs mt-1 font-medium ${active ? "text-orange-500" : "text-gray-600"}`}>
+                    {label}
+                </span>
             </Link>
         );
     }
@@ -80,8 +81,8 @@ function DomiciliosNavLink({
 
                 {/* Tooltip */}
                 <div className="absolute left-16 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm 
-                           opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none 
-                           whitespace-nowrap z-50">
+                       opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none 
+                       whitespace-nowrap z-50">
                     {label}
                 </div>
             </Link>
@@ -101,8 +102,8 @@ function DomiciliosNavLink({
         >
             {/* Indicador lateral */}
             <div className={`absolute left-0 top-0 bottom-0 w-1 bg-orange-500 rounded-full transition-all duration-200
-          ${active ? "opacity-100" : "opacity-0"}
-        `} />
+        ${active ? "opacity-100" : "opacity-0"}
+      `} />
 
             <div
                 className={`p-2 rounded-lg mr-3 transition-colors
@@ -126,7 +127,6 @@ function DomiciliosNavLink({
 export default function DomiciliosLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
     const [isHydrated, setIsHydrated] = useState(false);
     const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -137,23 +137,14 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
     const { cliente } = useClienteStore();
 
     const links: LinkItem[] = [
-        { href: APP_ROUTES.PUBLIC.DOMICILIO.PEDIDOS, label: "Hacer Pedido", icon: FaHome },
-        { href: APP_ROUTES.PUBLIC.DOMICILIO.MIS_ORDENES, label: "Mis Órdenes", icon: FaClipboardList },
-        { href: APP_ROUTES.PUBLIC.DOMICILIO.INFORMACION, label: "Información", icon: FaInfoCircle },
+        { href: APP_ROUTES.PUBLIC.DOMICILIO.PEDIDOS, label: "Pedido", mobileLabel: "Pedir", icon: FaHome },
+        { href: APP_ROUTES.PUBLIC.DOMICILIO.MIS_ORDENES, label: "Mis Órdenes", mobileLabel: "Órdenes", icon: FaClipboardList },
+        { href: APP_ROUTES.PUBLIC.DOMICILIO.INFORMACION, label: "Información", mobileLabel: "Info", icon: FaInfoCircle },
     ];
 
     const toggleSidebar = () => {
         setSidebarCollapsed(!sidebarCollapsed);
     };
-
-    const toggleMobileMenu = () => {
-        setMobileMenuOpen(!mobileMenuOpen);
-    };
-
-    // Cerrar menú móvil al cambiar de ruta
-    useEffect(() => {
-        setMobileMenuOpen(false);
-    }, [pathname]);
 
     // ✅ CORREGIDO: Esperar a que el store se hidrate completamente
     useEffect(() => {
@@ -174,19 +165,6 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
     const handleCloseModal = () => {
         setMostrarModalCliente(false);
     };
-
-    // Bloquear scroll cuando el menú móvil está abierto
-    useEffect(() => {
-        if (mobileMenuOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
-    }, [mobileMenuOpen]);
 
     // Controlar visibilidad del header en scroll
     useEffect(() => {
@@ -243,105 +221,97 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
 
     return (
         <div className="flex min-h-screen overflow-x-hidden">
-            {/* ✅ Componente de notificaciones */}
-
             {/* Header móvil - ALTURA FIJA con animación */}
             <div
                 ref={headerRef}
-                className={`fixed top-0 left-0 right-0 h-16 z-50 bg-white border-b border-gray-200 lg:hidden
-                           transition-transform duration-300 ease-in-out
-                           ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`}
+                className={`fixed top-0 left-0 right-0 h-16 z-40 bg-white border-b border-gray-200 lg:hidden
+                   transition-transform duration-300 ease-in-out
+                   ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`}
             >
                 <div className="flex items-center justify-between h-full px-4">
                     {/* Logo y datos del cliente */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="flex-shrink-0">
-                            <Logo collapsed={true} />
+                            <Logo collapsed={true} tamaño="pequeño" />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
-                                {cliente?.nombre || "Cliente"}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                                {cliente?.direccion || "Sin dirección"}
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                                <p className="text-sm font-semibold text-gray-900 truncate capitalize">
+                                    {cliente?.nombre || "Bienvenido"}
+                                </p>
+                            </div>
+                            <p className="text-xs text-gray-500 truncate uppercase">
+                                {cliente?.direccion || "Ingresa tu dirección"}
                             </p>
                         </div>
                     </div>
 
-                    {/* Botón hamburguesa */}
-                    <button
-                        onClick={toggleMobileMenu}
-                        className="w-10 h-10 bg-orange-500 hover:bg-orange-600 
-                                 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ml-2"
-                        aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
-                    >
-                        {mobileMenuOpen ? (
-                            <FaTimes className="text-white text-lg" />
-                        ) : (
-                            <FaBars className="text-white text-lg" />
+                    {/* Botón de perfil/estado */}
+                    <div className="flex items-center gap-2">
+                        {cliente && (
+                            <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-lg">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-xs text-gray-700">Listo</span>
+                            </div>
                         )}
-                    </button>
+                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <FaUserCircle className="text-white text-lg" />
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Overlay del menú móvil */}
-            {mobileMenuOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-[45] lg:hidden"
-                    onClick={toggleMobileMenu}
-                />
-            )}
-
-            {/* Menú móvil - Panel deslizable desde la derecha */}
-            <div
-                className={`fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white z-50 lg:hidden
-                           transform transition-transform duration-300 ease-in-out shadow-2xl
-                           ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
-            >
-
-                {/* Navegación móvil */}
-                <nav className="flex-1 overflow-y-auto">
+            {/* Bottom Navigation para móvil */}
+            <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 lg:hidden z-50">
+                <div className="flex items-center justify-around h-full px-2">
                     {links.map((link) => (
                         <DomiciliosNavLink
                             key={link.href}
                             {...link}
+                            label={link.mobileLabel || link.label}
                             active={pathname === link.href}
                             mobile
-                            onClick={toggleMobileMenu}
                         />
                     ))}
-                </nav>
+                </div>
             </div>
 
             {/* Sidebar Desktop */}
             <aside
                 className={`hidden lg:flex flex-col bg-white shadow-sm border-r border-gray-200 transition-all duration-300
-                           ${sidebarCollapsed ? 'w-20' : 'w-72'}
-                           fixed top-0 left-0 h-screen z-40`}
+                   ${sidebarCollapsed ? 'w-20' : 'w-72'}
+                   fixed top-0 left-0 h-screen z-40`}
             >
                 {/* Header con logo */}
                 <div className={`bg-white border-b border-gray-200 ${sidebarCollapsed ? 'p-4' : 'p-6'}`}>
                     {!sidebarCollapsed ? (
                         <div className="relative">
-                            <Logo collapsed={false} />
-                            <button
-                                onClick={toggleSidebar}
-                                className="absolute top-0 right-0 w-8 h-8 bg-gray-100 hover:bg-gray-200 
-                                         rounded-lg flex items-center justify-center transition-colors"
-                                title="Contraer menú"
-                            >
-                                <FaTimes className="text-gray-700 text-sm" />
-                            </button>
+                            <div className="flex items-center justify-between">
+                                <Logo collapsed={false} />
+                                <button
+                                    onClick={toggleSidebar}
+                                    className="w-8 h-8 bg-gray-100 hover:bg-gray-200 
+                           rounded-lg flex items-center justify-center transition-colors"
+                                    title="Contraer menú"
+                                >
+                                    <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <div className="flex justify-center">
                             <button
                                 onClick={toggleSidebar}
                                 className="w-12 h-12 bg-gray-100 hover:bg-gray-200 
-                                         rounded-lg flex items-center justify-center transition-colors"
+                         rounded-lg flex items-center justify-center transition-colors"
                                 title="Expandir menú"
                             >
-                                <FaBars className="text-gray-700 text-lg" />
+                                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                </svg>
                             </button>
                         </div>
                     )}
@@ -352,13 +322,13 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
                     <div className="p-4 bg-orange-50 border-b border-gray-200">
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-xl">👤</span>
+                                <FaUserCircle className="text-white text-2xl" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-gray-900 truncate">
+                                <p className="text-sm font-semibold text-gray-900 truncate capitalize">
                                     {cliente?.nombre || "Cliente"}
                                 </p>
-                                <p className="text-xs text-gray-600 truncate">
+                                <p className="text-xs text-gray-600 truncate uppercase">
                                     {cliente?.direccion || "Sin dirección"}
                                 </p>
                                 {cliente?.telefono && (
@@ -375,10 +345,10 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
                 ) : (
                     <div className="p-4 bg-orange-50 border-b border-gray-200 flex justify-center">
                         <div
-                            className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center"
+                            className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center capitalize"
                             title={cliente?.nombre || "Cliente"}
                         >
-                            <span className="text-white text-xl">👤</span>
+                            <FaUserCircle className="text-white text-2xl" />
                         </div>
                     </div>
                 )}
@@ -387,13 +357,13 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
                 {!sidebarCollapsed && (
                     <div className="p-4 bg-blue-50 border-b border-gray-200">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-lg">🚚</span>
+                            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <MdDeliveryDining className="text-white text-lg" />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="text-sm font-semibold text-gray-900">Pedidos a Domicilio</p>
                                 <div className="flex items-center gap-1 mt-1">
-                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                                     <span className="text-xs text-gray-600 font-medium">30-45 min</span>
                                 </div>
                             </div>
@@ -424,8 +394,8 @@ export default function DomiciliosLayout({ children }: { children: React.ReactNo
             {/* Contenido principal - AJUSTADO PARA SCROLL HORIZONTAL */}
             <main
                 className={`flex-1 transition-all duration-300 overflow-x-hidden
-                           pt-16 lg:pt-0 min-w-0
-                           ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"}`}
+                   pt-16 pb-16 lg:pt-0 lg:pb-0 min-w-0
+                   ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"}`}
             >
                 <div className="w-full h-full overflow-x-hidden">
                     {children}

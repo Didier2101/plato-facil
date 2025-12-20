@@ -1,18 +1,20 @@
 # Estructura del Proyecto
 
-Generado el: 15/12/2025, 3:16:31 p. m.
+Generado el: 20/12/2025, 1:23:30 p. m.
 
 ```
 Kavvo/
 ├── 📁 app
 │   ├── 📁 (public)
-│   │   ├── 📁 a-domicilio
+│   │   ├── 📁 a-domicilios
 │   │   │   ├── 📁 domicilios
 │   │   │   │   └── 📄 page.tsx
 │   │   │   ├── 📁 informacion
 │   │   │   │   └── 📄 page.tsx
-│   │   │   └── 📁 mis-ordenes
-│   │   │       └── 📄 page.tsx
+│   │   │   ├── 📁 mis-ordenes
+│   │   │   │   └── 📄 page.tsx
+│   │   │   ├── 📄 layout.tsx
+│   │   │   └── 📄 page.tsx
 │   │   ├── 📁 establecimiento
 │   │   │   └── 📄 page.tsx
 │   │   └── 📁 login
@@ -29,7 +31,8 @@ Kavvo/
 │   │   │   │   └── 📄 page.tsx
 │   │   │   ├── 📁 tienda
 │   │   │   │   └── 📄 page.tsx
-│   │   │   └── 📄 layout.tsx
+│   │   │   ├── 📄 layout.tsx
+│   │   │   └── 📄 loading.tsx
 │   │   ├── 📁 (dueno)
 │   │   │   ├── 📁 configuraciones
 │   │   │   │   └── 📄 page.tsx
@@ -37,13 +40,15 @@ Kavvo/
 │   │   │   │   └── 📄 page.tsx
 │   │   │   ├── 📁 usuarios
 │   │   │   │   └── 📄 page.tsx
-│   │   │   └── 📄 layout.tsx
+│   │   │   ├── 📄 layout.tsx
+│   │   │   └── 📄 loading.tsx
 │   │   └── 📁 (repartidor)
 │   │       ├── 📁 mis-entregas
 │   │       │   └── 📄 page.tsx
 │   │       ├── 📁 ordenes-listas
 │   │       │   └── 📄 page.tsx
-│   │       └── 📄 layout.tsx
+│   │       ├── 📄 layout.tsx
+│   │       └── 📄 loading.tsx
 │   ├── 📁 unauthorized
 │   │   └── 📄 page.tsx
 │   ├── 📄 globals.css
@@ -60,10 +65,6 @@ Kavvo/
 ├── 📁 scripts
 │   └── 📄 generate-structure.ts
 ├── 📁 src
-│   ├── 📁 components
-│   │   └── 📁 PanelCobro
-│   │       ├── 📄 PanelCobro.tsx
-│   │       └── 📄 index.ts
 │   ├── 📁 lib
 │   │   ├── 📁 auth
 │   │   │   └── 📄 checkRole.ts
@@ -80,6 +81,7 @@ Kavvo/
 │   │   │   │   ├── 📁 components
 │   │   │   │   │   ├── 📄 BotonConfirmarCobro.tsx
 │   │   │   │   │   ├── 📄 CajaLista.tsx
+│   │   │   │   │   ├── 📄 GeneradorRecibo.tsx
 │   │   │   │   │   ├── 📄 PanelCobro.tsx
 │   │   │   │   │   ├── 📄 ResumenTotales.tsx
 │   │   │   │   │   ├── 📄 SelectorComprobante.tsx
@@ -106,13 +108,23 @@ Kavvo/
 │   │   │   │   ├── 📁 components
 │   │   │   │   │   ├── 📄 OrdenCard.tsx
 │   │   │   │   │   └── 📄 Ordenes.tsx
+│   │   │   │   ├── 📁 hooks
+│   │   │   │   │   └── 📄 useOrdenes.ts
 │   │   │   │   └── 📁 types
 │   │   │   │       └── 📄 orden.ts
 │   │   │   ├── 📁 productos
 │   │   │   │   ├── 📁 actions
+│   │   │   │   │   ├── 📄 actualizarCategoriaAction.ts
+│   │   │   │   │   ├── 📄 actualizarIngredienteAction.ts
 │   │   │   │   │   ├── 📄 actualizarProductoAction.ts
+│   │   │   │   │   ├── 📄 crearCategoriaAction.ts
+│   │   │   │   │   ├── 📄 crearIngredienteAction.ts
 │   │   │   │   │   ├── 📄 crearProductoAction.ts
+│   │   │   │   │   ├── 📄 desactivarCategoriaAction.ts
+│   │   │   │   │   ├── 📄 desactivarIngredienteAction.ts
 │   │   │   │   │   ├── 📄 desactivarProductoAction.ts
+│   │   │   │   │   ├── 📄 obtenerCategoriasAction.ts
+│   │   │   │   │   ├── 📄 obtenerIngredientesAction.ts
 │   │   │   │   │   └── 📄 obtenerProductosAction.ts
 │   │   │   │   ├── 📁 components
 │   │   │   │   │   ├── 📄 DetalleProducto.tsx
@@ -123,6 +135,7 @@ Kavvo/
 │   │   │   │   │   ├── 📄 index.ts
 │   │   │   │   │   ├── 📄 useCategorias.ts
 │   │   │   │   │   ├── 📄 useCrearProducto.ts
+│   │   │   │   │   ├── 📄 useDetalleProducto.ts
 │   │   │   │   │   ├── 📄 useIngredientes.ts
 │   │   │   │   │   └── 📄 useProductos.ts
 │   │   │   │   ├── 📁 schemas
@@ -139,6 +152,11 @@ Kavvo/
 │   │   │       │   ├── 📄 ProductoCard.tsx
 │   │   │       │   ├── 📄 ProductoDetalleModal.tsx
 │   │   │       │   └── 📄 TiendaProductos.tsx
+│   │   │       ├── 📁 hooks
+│   │   │       │   ├── 📄 useCarritoResumen.ts
+│   │   │       │   ├── 📄 useProductoCard.ts
+│   │   │       │   ├── 📄 useProductoDetalleTienda.ts
+│   │   │       │   └── 📄 useTienda.ts
 │   │   │       └── 📁 store
 │   │   │           └── 📄 carritoStore.ts
 │   │   ├── 📁 auth
@@ -169,7 +187,9 @@ Kavvo/
 │   │   │   │   │   ├── 📄 MapaUbicacion.tsx
 │   │   │   │   │   └── 📄 ModalDatosCliente.tsx
 │   │   │   │   ├── 📁 hooks
-│   │   │   │   │   └── 📄 useDomicilioCalculator.ts
+│   │   │   │   │   ├── 📄 useCliente.ts
+│   │   │   │   │   ├── 📄 useDomicilioCalculator.ts
+│   │   │   │   │   └── 📄 useDomicilios.ts
 │   │   │   │   ├── 📁 store
 │   │   │   │   │   └── 📄 clienteStore.ts
 │   │   │   │   └── 📁 types
@@ -312,7 +332,8 @@ Kavvo/
 ├── 📄 next.config.ts
 ├── 📄 package.json
 ├── 📄 postcss.config.mjs
-└── 📄 tsconfig.json
+├── 📄 tsconfig.json
+└── 📄 tsconfig.tsbuildinfo
 
 ```
 
