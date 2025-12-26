@@ -102,7 +102,7 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                         </div>
 
                         {/* Content Area */}
-                        <div className="flex-1 overflow-y-auto px-10 py-8 space-y-10 pb-40 scrollbar-hide">
+                        <div className="flex-1 overflow-y-auto px-10 py-8 space-y-10 pb-96 scrollbar-hide">
                             {productos.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center space-y-8">
                                     <div className="h-32 w-32 bg-slate-50 rounded-full flex items-center justify-center ring-[20px] ring-slate-50/30">

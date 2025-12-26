@@ -20,6 +20,8 @@ import { useEntregasActivas } from '../hooks/useEntregasActivas';
 import Loading from '@/src/shared/components/ui/Loading';
 import PanelCobro from '@/src/modules/admin/caja/components/PanelCobro';
 import type { EntregaRepartidor } from '../types/entrega';
+import { ESTADOS_ORDEN } from '@/src/shared/constants/estado-orden';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface DomiciliarioPanelProps {
     usuarioId: string;
@@ -85,7 +87,7 @@ export default function DomiciliarioPanel({ usuarioId }: DomiciliarioPanelProps)
                         {ordenesEnCurso.map((orden) => (
                             <div
                                 key={orden.id}
-                                className={`bg-white rounded-[3rem] shadow-xl border-2 transition-all duration-500 overflow-hidden group animate-in zoom-in-95 duration-700 ${orden.estado === 'llegue_a_destino'
+                                className={`bg-white rounded-[3rem] shadow-xl border-2 transition-all duration-500 overflow-hidden group animate-in zoom-in-95 duration-700 ${orden.estado === ESTADOS_ORDEN.LLEGUE_A_DESTINO
                                     ? 'border-orange-500 shadow-orange-100/50 scale-[1.02]'
                                     : 'border-slate-50 hover:border-orange-200 shadow-slate-100'
                                     }`}
@@ -93,7 +95,7 @@ export default function DomiciliarioPanel({ usuarioId }: DomiciliarioPanelProps)
                                 <div className="p-10 space-y-8">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-5">
-                                            <div className={`h-16 w-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-500 shadow-lg ${orden.estado === 'llegue_a_destino'
+                                            <div className={`h-16 w-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-500 shadow-lg ${orden.estado === ESTADOS_ORDEN.LLEGUE_A_DESTINO
                                                 ? 'bg-orange-500 text-white shadow-orange-200 rotate-12'
                                                 : 'bg-slate-50 text-slate-400 group-hover:rotate-6'
                                                 }`}>
@@ -103,7 +105,7 @@ export default function DomiciliarioPanel({ usuarioId }: DomiciliarioPanelProps)
                                                 <p className="text-lg font-black text-slate-900 tracking-tighter flex items-center gap-2">
                                                     #{orden.id.slice(-6).toUpperCase()}
                                                     <span className="text-orange-500 opacity-50">/</span>
-                                                    <span className="text-orange-500 text-xs font-black uppercase tracking-widest">{orden.estado === 'en_camino' ? 'En ruta' : 'Finalizando'}</span>
+                                                    <span className="text-orange-500 text-xs font-black uppercase tracking-widest">{orden.estado === ESTADOS_ORDEN.EN_CAMINO ? 'En ruta' : 'Finalizando'}</span>
                                                 </p>
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
                                                     Entrega Express
@@ -172,7 +174,7 @@ export default function DomiciliarioPanel({ usuarioId }: DomiciliarioPanelProps)
                                         </button>
                                     </div>
 
-                                    {orden.estado === 'en_camino' ? (
+                                    {orden.estado === ESTADOS_ORDEN.EN_CAMINO ? (
                                         <button
                                             onClick={() => marcarLlegada(orden.id)}
                                             disabled={actualizando === orden.id}
@@ -274,26 +276,51 @@ export default function DomiciliarioPanel({ usuarioId }: DomiciliarioPanelProps)
             </section>
 
             {/* Modal de Cobro */}
-            {ordenParaCobrar && (
-                <PanelCobro
-                    ordenSeleccionada={ordenParaCobrar}
-                    usuarioId={usuarioId}
-                    metodoPago={metodoPago}
-                    setMetodoPago={setMetodoPago}
-                    propina={propina}
-                    setPropina={setPropina}
-                    propinaPorcentaje={propinaPorcentaje}
-                    setPropinaPorcentaje={setPropinaPorcentaje}
-                    onSuccess={handleCobroExitoso}
-                    onRecargarOrdenes={cargarOrdenes}
-                    onClose={() => {
-                        setOrdenParaCobrar(null);
-                        setMetodoPago('');
-                        setPropina(0);
-                        setPropinaPorcentaje(null);
-                    }}
-                />
-            )}
+            {/* Modal de Cobro */}
+            <AnimatePresence>
+                {ordenParaCobrar && (
+                    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-6">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => setOrdenParaCobrar(null)}
+                        />
+
+                        {/* Modal Content */}
+                        <motion.div
+                            initial={{ y: "100%" }}
+                            animate={{ y: 0 }}
+                            exit={{ y: "100%" }}
+                            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                            className="relative w-full max-w-2xl bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                        >
+                            <div className="overflow-y-auto p-6 sm:p-8 custom-scrollbar">
+                                <PanelCobro
+                                    ordenSeleccionada={ordenParaCobrar}
+                                    usuarioId={usuarioId}
+                                    metodoPago={metodoPago}
+                                    setMetodoPago={setMetodoPago}
+                                    propina={propina}
+                                    setPropina={setPropina}
+                                    propinaPorcentaje={propinaPorcentaje}
+                                    setPropinaPorcentaje={setPropinaPorcentaje}
+                                    onSuccess={handleCobroExitoso}
+                                    onRecargarOrdenes={cargarOrdenes}
+                                    onClose={() => {
+                                        setOrdenParaCobrar(null);
+                                        setMetodoPago('');
+                                        setPropina(0);
+                                        setPropinaPorcentaje(null);
+                                    }}
+                                />
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

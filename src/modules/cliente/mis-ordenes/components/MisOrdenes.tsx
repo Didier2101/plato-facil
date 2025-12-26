@@ -10,10 +10,7 @@ import {
     XCircle,
     Package,
     MapPin,
-    Phone,
     AlertTriangle,
-    ChevronRight,
-    User,
     ArrowRight,
     Loader2,
     Truck,
@@ -23,6 +20,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { ESTADOS_ORDEN } from '@/src/shared/constants/estado-orden';
+
 // Tipos para el seguimiento
 interface OrdenEstado {
     id: string;
@@ -30,7 +29,7 @@ interface OrdenEstado {
     cliente_telefono?: string;
     cliente_direccion: string;
     total: number;
-    estado: "orden_tomada" | "lista" | "en_camino" | "llegue_a_destino" | "entregada" | "cancelada";
+    estado: typeof ESTADOS_ORDEN[keyof typeof ESTADOS_ORDEN];
     tipo_orden: "establecimiento" | "domicilio";
     created_at: string;
     updated_at: string;
@@ -44,7 +43,7 @@ interface OrdenEstado {
 
 // Configuración de estados premium
 const estadosConfig = {
-    orden_tomada: {
+    [ESTADOS_ORDEN.ORDEN_TOMADA]: {
         label: "Preparando",
         desc: "Tu pedido está en cocina siendo preparado con amor.",
         icon: Clock,
@@ -52,7 +51,15 @@ const estadosConfig = {
         bgColor: "bg-orange-50",
         progress: 25,
     },
-    lista: {
+    [ESTADOS_ORDEN.EN_PREPARACION]: {
+        label: "Cocinando",
+        desc: "Nuestros chefs están preparando tu pedido.",
+        icon: Clock,
+        color: "text-yellow-500",
+        bgColor: "bg-yellow-50",
+        progress: 40,
+    },
+    [ESTADOS_ORDEN.LISTA]: {
         label: "¡Listo!",
         desc: "Tu pedido está listo y esperando ser despachado.",
         icon: Box,
@@ -60,7 +67,7 @@ const estadosConfig = {
         bgColor: "bg-blue-50",
         progress: 50,
     },
-    en_camino: {
+    [ESTADOS_ORDEN.EN_CAMINO]: {
         label: "En Camino",
         desc: "Un repartidor lleva tu pedido a toda velocidad.",
         icon: Truck,
@@ -68,7 +75,7 @@ const estadosConfig = {
         bgColor: "bg-purple-50",
         progress: 75,
     },
-    llegue_a_destino: {
+    [ESTADOS_ORDEN.LLEGUE_A_DESTINO]: {
         label: "¡Llegamos!",
         desc: "El repartidor está en la puerta de tu dirección.",
         icon: MapPin,
@@ -76,7 +83,7 @@ const estadosConfig = {
         bgColor: "bg-pink-50",
         progress: 90,
     },
-    entregada: {
+    [ESTADOS_ORDEN.ENTREGADA]: {
         label: "Entregado",
         desc: "¡Buen provecho! Esperamos que lo disfrutes.",
         icon: CheckCircle,
@@ -84,7 +91,7 @@ const estadosConfig = {
         bgColor: "bg-green-50",
         progress: 100,
     },
-    cancelada: {
+    [ESTADOS_ORDEN.CANCELADA]: {
         label: "Cancelado",
         desc: "Este pedido ha sido cancelado.",
         icon: XCircle,
@@ -150,7 +157,7 @@ export default function MisOrdenes() {
                     setOrden(null);
                 }
             }
-        } catch (err) {
+        } catch {
             if (isComponentMounted.current) {
                 setError("Error al buscar tu pedido. Intenta de nuevo.");
                 setOrden(null);
@@ -173,13 +180,13 @@ export default function MisOrdenes() {
     }, [buscarOrden]);
 
     useEffect(() => {
-        if (orden && !["entregada", "cancelada"].includes(orden.estado) && !actualizandoEnTiempoReal) {
+        if (orden && !([ESTADOS_ORDEN.ENTREGADA, ESTADOS_ORDEN.CANCELADA] as string[]).includes(orden.estado) && !actualizandoEnTiempoReal) {
             iniciarActualizacionesEnTiempoReal();
         }
     }, [orden, actualizandoEnTiempoReal, iniciarActualizacionesEnTiempoReal]);
 
     useEffect(() => {
-        if (orden && ["entregada", "cancelada"].includes(orden.estado)) {
+        if (orden && ([ESTADOS_ORDEN.ENTREGADA, ESTADOS_ORDEN.CANCELADA] as string[]).includes(orden.estado)) {
             detenerActualizacionesEnTiempoReal();
         }
     }, [orden, detenerActualizacionesEnTiempoReal]);
@@ -305,7 +312,7 @@ export default function MisOrdenes() {
                             </div>
 
                             {/* Barra de Progreso Premium */}
-                            {orden.estado !== "cancelada" && (
+                            {orden.estado !== ESTADOS_ORDEN.CANCELADA && (
                                 <div className="space-y-4">
                                     <div className="h-4 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-1">
                                         <motion.div

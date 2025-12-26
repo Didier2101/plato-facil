@@ -5,6 +5,7 @@ import { obtenerOrdenesAction } from '@/src/modules/admin/ordenes/actions/obtene
 import { tomarOrdenAction } from '../actions/tomarOrdenAction';
 import { marcarLlegadaAction } from '../actions/marcarLlegadaAction';
 import type { EntregaRepartidor } from '../types/entrega';
+import { ESTADOS_ORDEN } from '@/src/shared/constants/estado-orden';
 
 export function useEntregasActivas(usuarioId: string) {
     const [ordenes, setOrdenes] = useState<EntregaRepartidor[]>([]);
@@ -25,9 +26,9 @@ export function useEntregasActivas(usuarioId: string) {
                 // 2. Órdenes EN_CAMINO o LLEGUE_A_DESTINO que pertenecen a ESTE repartidor
                 const filtered = result.ordenes.filter(orden =>
                     orden.tipo_orden === 'domicilio' && (
-                        orden.estado === 'lista' ||
+                        orden.estado === ESTADOS_ORDEN.LISTA ||
                         (orden.usuario_entregador_id === usuarioId &&
-                            ['en_camino', 'llegue_a_destino'].includes(orden.estado))
+                            (orden.estado === ESTADOS_ORDEN.EN_CAMINO || orden.estado === ESTADOS_ORDEN.LLEGUE_A_DESTINO))
                     )
                 ) as EntregaRepartidor[];
 
@@ -35,7 +36,7 @@ export function useEntregasActivas(usuarioId: string) {
             } else {
                 setError(result.error || 'Error al cargar las órdenes');
             }
-        } catch (_err) {
+        } catch {
             setError('Error inesperado al cargar las órdenes');
         } finally {
             setLoading(false);
@@ -51,7 +52,7 @@ export function useEntregasActivas(usuarioId: string) {
                 return { success: true };
             }
             return { success: false, error: result.error };
-        } catch (_err) {
+        } catch {
             return { success: false, error: 'Error al tomar la orden' };
         } finally {
             setActualizando(null);
@@ -67,7 +68,7 @@ export function useEntregasActivas(usuarioId: string) {
                 return { success: true };
             }
             return { success: false, error: result.error };
-        } catch (_err) {
+        } catch {
             return { success: false, error: 'Error al marcar llegada' };
         } finally {
             setActualizando(null);
@@ -96,7 +97,7 @@ export function useEntregasActivas(usuarioId: string) {
         tomarOrden,
         marcarLlegada,
         abrirMapa,
-        ordenesListas: ordenes.filter(o => o.estado === 'lista'),
-        ordenesEnCurso: ordenes.filter(o => o.estado === 'en_camino' || o.estado === 'llegue_a_destino')
+        ordenesListas: ordenes.filter(o => o.estado === ESTADOS_ORDEN.LISTA),
+        ordenesEnCurso: ordenes.filter(o => o.estado === ESTADOS_ORDEN.EN_CAMINO || o.estado === ESTADOS_ORDEN.LLEGUE_A_DESTINO)
     };
 }

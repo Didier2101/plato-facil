@@ -2,6 +2,8 @@
 
 import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
 
+import { ESTADOS_ORDEN } from '@/src/shared/constants/estado-orden';
+
 interface MarcarLlegadaParams {
     ordenId: string;
     usuarioId: string;
@@ -16,7 +18,7 @@ export async function marcarLlegadaAction({ ordenId, usuarioId }: MarcarLlegadaP
         const { error: updateError } = await supabaseAdmin
             .from("ordenes")
             .update({
-                estado: "llegue_a_destino",
+                estado: ESTADOS_ORDEN.LLEGUE_A_DESTINO,
                 updated_at: new Date().toISOString()
             })
             .eq("id", ordenId);
@@ -31,8 +33,8 @@ export async function marcarLlegadaAction({ ordenId, usuarioId }: MarcarLlegadaP
                 .from("orden_historial")
                 .insert({
                     orden_id: ordenId,
-                    estado_anterior: "en_camino",
-                    estado_nuevo: "llegue_a_destino",
+                    estado_anterior: ESTADOS_ORDEN.EN_CAMINO,
+                    estado_nuevo: ESTADOS_ORDEN.LLEGUE_A_DESTINO,
                     usuario_id: usuarioId,
                     notas: "Repartidor llegó a destino"
                 });

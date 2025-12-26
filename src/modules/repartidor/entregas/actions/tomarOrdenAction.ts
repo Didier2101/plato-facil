@@ -3,6 +3,8 @@
 import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
 import { actualizarEstadoOrdenAction } from "@/src/modules/admin/ordenes/actions/actualizarEstadoOrdenAction";
 
+import { ESTADOS_ORDEN } from '@/src/shared/constants/estado-orden';
+
 interface TomarOrdenParams {
     ordenId: string;
     usuarioId: string;
@@ -19,7 +21,7 @@ export async function tomarOrdenAction({ ordenId, usuarioId }: TomarOrdenParams)
             .from("ordenes")
             .update({
                 usuario_entregador_id: usuarioId,
-                estado: "en_camino",
+                estado: ESTADOS_ORDEN.EN_CAMINO,
                 updated_at: new Date().toISOString()
             })
             .eq("id", ordenId);
@@ -35,8 +37,8 @@ export async function tomarOrdenAction({ ordenId, usuarioId }: TomarOrdenParams)
                 .from("orden_historial")
                 .insert({
                     orden_id: ordenId,
-                    estado_anterior: "lista",
-                    estado_nuevo: "en_camino",
+                    estado_anterior: ESTADOS_ORDEN.LISTA,
+                    estado_nuevo: ESTADOS_ORDEN.EN_CAMINO,
                     usuario_id: usuarioId,
                     notas: "Orden tomada por el repartidor"
                 });
