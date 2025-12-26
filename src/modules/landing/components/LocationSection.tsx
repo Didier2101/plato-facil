@@ -1,118 +1,102 @@
-// app/components/restaurant/LocationSection.tsx
-import { APP_ROUTES } from '@/src/shared/constants/app-routes';
-import { MapPin, Clock, Phone } from 'lucide-react';
+"use client";
+import { MapPin, Navigation, Clock, Phone } from 'lucide-react';
+import type { ConfiguracionRestaurante } from '../../dueno/configuraciones/actions/configuracionRestauranteActions';
+import { motion } from 'framer-motion';
 
-export default function LocationSection() {
-    const restaurantLocation = {
-        lat: 4.60971,
-        lng: -74.08175,
-        address: "Carrera 18 # 1h 12, Bogotá, Colombia",
-        phone: "302 864 5014"
-    };
+interface LocationSectionProps {
+    config?: ConfiguracionRestaurante;
+}
+
+export default function LocationSection({ config }: LocationSectionProps) {
+    // Si no hay coordenadas, usamos unas por defecto para el placeholder del mapa
+    const lat = config?.latitud || 4.570868;
+    const lng = config?.longitud || -74.297333;
 
     return (
-        <section id="ubicacion" className="py-20 bg-white">
-            <div className="max-w-7xl mx-auto px-4">
+        <section id="ubicacion" className="py-24 bg-gray-50 overflow-hidden">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                        Nuestra Ubicación
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="inline-flex items-center space-x-2 bg-orange-100/50 px-4 py-2 rounded-2xl mb-4"
+                    >
+                        <MapPin className="h-4 w-4 text-orange-600" />
+                        <span className="text-xs font-black text-orange-600 uppercase tracking-widest">Encuéntranos</span>
+                    </motion.div>
+                    <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter mb-4">
+                        Visítanos en nuestro local
                     </h2>
-                    <p className="text-gray-600 text-lg">
-                        Visítanos o pide a domicilio desde cualquier parte de la ciudad
+                    <p className="text-lg text-gray-600 max-w-2xl mx-auto font-medium">
+                        Estamos ubicados en el corazón de la ciudad, listos para brindarte la mejor atención.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    {/* Mapa */}
-                    <div className="rounded-xl overflow-hidden shadow-lg h-96 border border-gray-200">
-                        <iframe
-                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${restaurantLocation.lng - 0.01},${restaurantLocation.lat - 0.01},${restaurantLocation.lng + 0.01},${restaurantLocation.lat + 0.01}&layer=mapnik&marker=${restaurantLocation.lat},${restaurantLocation.lng}`}
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            allowFullScreen
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                            title="Ubicación de Kavvo Delivery"
-                        ></iframe>
-                    </div>
-
-                    {/* Información */}
-                    <div className="space-y-6">
-                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                            <div className="flex items-start space-x-4">
-                                <div className="bg-orange-100 p-3 rounded-lg">
-                                    <MapPin className="h-6 w-6 text-orange-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2">Dirección</h3>
-                                    <p className="text-gray-700">{restaurantLocation.address}</p>
-                                    <a
-                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantLocation.address)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-orange-500 hover:text-orange-600 font-medium inline-flex items-center mt-2 text-sm"
-                                    >
-                                        Abrir en Google Maps →
-                                    </a>
-                                </div>
+                <div className="grid lg:grid-cols-5 gap-8 items-stretch">
+                    {/* Info Cards */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 flex items-start space-x-6">
+                            <div className="bg-orange-500 p-4 rounded-2xl shadow-lg shadow-orange-100">
+                                <MapPin className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-gray-900 mb-2">Nuestra Dirección</h3>
+                                <p className="text-gray-600 font-bold leading-relaxed italic">
+                                    {config?.direccion_completa || "Cargando ubicación..."}
+                                </p>
                             </div>
                         </div>
 
-                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                            <div className="flex items-start space-x-4">
-                                <div className="bg-orange-100 p-3 rounded-lg">
-                                    <Clock className="h-6 w-6 text-orange-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2">Horarios</h3>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-700">Lunes - Viernes</span>
-                                            <span className="font-medium text-gray-900">10:00 AM - 11:00 PM</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-700">Sábados</span>
-                                            <span className="font-medium text-gray-900">11:00 AM - 12:00 AM</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-700">Domingos</span>
-                                            <span className="font-medium text-gray-900">12:00 PM - 10:00 PM</span>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 flex items-start space-x-6">
+                            <div className="bg-gray-900 p-4 rounded-2xl">
+                                <Clock className="h-6 w-6 text-white" />
                             </div>
-                        </div>
-
-                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                            <div className="flex items-start space-x-4">
-                                <div className="bg-orange-100 p-3 rounded-lg">
-                                    <Phone className="h-6 w-6 text-orange-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2">Contacto</h3>
-                                    <a
-                                        href={`tel:+57${restaurantLocation.phone.replace(/\s/g, '')}`}
-                                        className="text-xl font-bold text-gray-900 hover:text-orange-500 transition-colors"
-                                    >
-                                        {restaurantLocation.phone}
-                                    </a>
-                                    <p className="text-gray-600 text-sm mt-2">Llámanos para pedidos telefónicos o consultas</p>
-                                    <p className="text-gray-600 text-sm mt-3">
-                                        <strong className="font-semibold">Zona de cobertura:</strong> 10km a la redonda
+                            <div>
+                                <h3 className="text-lg font-black text-gray-900 mb-2">Horario</h3>
+                                <div className="space-y-1">
+                                    <p className="text-gray-600 font-bold">Lunes - Domingo</p>
+                                    <p className="text-orange-600 font-black">
+                                        {config?.hora_apertura || "08:00 AM"} - {config?.hora_cierre || "10:00 PM"}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Botón para pedir a domicilio */}
-                        <div className="mt-8">
-                            <a
-                                href={APP_ROUTES.PUBLIC.DOMICILIO.PEDIDOS}
-                                className="block w-full bg-orange-500 hover:bg-orange-600 text-white text-center py-3 rounded-lg font-bold transition-colors"
-                            >
-                                🚚 Pedir a Domicilio desde Aquí
-                            </a>
+                        <div className="bg-orange-500 p-8 rounded-[2.5rem] shadow-2xl shadow-orange-200 text-white flex items-start space-x-6">
+                            <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md">
+                                <Phone className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black mb-1">Dudas o Pedidos</h3>
+                                <p className="text-4xl font-black tracking-tighter">
+                                    {config?.telefono?.slice(-4) || "..."}
+                                </p>
+                                <p className="text-orange-100 text-sm font-bold opacity-80">Llámanos ahora</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Map Placeholder/Preview */}
+                    <div className="lg:col-span-3 bg-white p-4 rounded-[3rem] shadow-2xl shadow-gray-200/50 border-8 border-white">
+                        <div className="w-full h-full min-h-[400px] bg-gray-100 rounded-[2.5rem] relative overflow-hidden group">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
+                                style={{ border: 0 }}
+                                src={`https://www.google.com/maps/embed/v1/place?key=REPLACE_WITH_GOOGLE_MAPS_API_KEY&q=${lat},${lng}&zoom=15`}
+                                allowFullScreen
+                                className="grayscale contrast-125 opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                            ></iframe>
+
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="bg-gray-900/90 backdrop-blur-md px-8 py-6 rounded-[2rem] border border-gray-700 shadow-2xl text-center transform group-hover:scale-95 transition-transform duration-500">
+                                    <Navigation className="h-8 w-8 text-orange-500 mx-auto mb-3 animate-pulse" />
+                                    <h4 className="text-white font-black tracking-tighter">Vista Satelital</h4>
+                                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Requiere Conexión</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

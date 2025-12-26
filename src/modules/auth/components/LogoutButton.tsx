@@ -1,62 +1,74 @@
 // src/modules/auth/components/LogoutButton.tsx
 'use client';
 
-import { FiLogOut } from 'react-icons/fi';
-import { FaSpinner } from 'react-icons/fa';
+import { LogOut, Loader2 } from 'lucide-react';
 import { useLogout } from '../hooks/useLogout';
 
 interface LogoutButtonProps {
-    isExpanded?: boolean;
+    variant?: 'ghost' | 'expanded' | 'sidebar';
     className?: string;
 }
 
 export default function LogoutButton({
-    isExpanded = true,
+    variant = 'expanded',
     className = ''
 }: LogoutButtonProps) {
     const { logout, loading } = useLogout();
 
-    const handleLogout = async () => {
+    const handleLogout = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (!loading) {
             await logout();
-            // Redirigir al login después de cerrar sesión
         }
     };
 
-    if (!isExpanded) {
-        // Versión colapsada (solo ícono)
+    if (variant === 'ghost') {
         return (
             <button
                 onClick={handleLogout}
                 disabled={loading}
-                className={`p-2 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200
-                    disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+                className={`p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all duration-300 disabled:opacity-50 ${className}`}
                 title="Cerrar sesión"
             >
                 {loading ? (
-                    <FaSpinner className="animate-spin text-lg" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                    <FiLogOut className="text-lg" />
+                    <LogOut className="h-5 w-5" />
                 )}
             </button>
         );
     }
 
-    // Versión expandida (ícono + texto)
+    if (variant === 'sidebar') {
+        return (
+            <button
+                onClick={handleLogout}
+                disabled={loading}
+                className={`flex items-center gap-3 w-full px-4 py-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all duration-300 disabled:opacity-50 group font-bold text-xs uppercase tracking-widest ${className}`}
+            >
+                {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                    <LogOut className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                )}
+                <span>Cerrar sesión</span>
+            </button>
+        );
+    }
+
     return (
         <button
             onClick={handleLogout}
             disabled={loading}
-            className={`flex items-center justify-center gap-3 w-full px-4 py-3 bg-red-50 hover:bg-red-100 
-                text-red-600 hover:text-red-700 rounded-xl transition-all duration-200
-                disabled:opacity-50 disabled:cursor-not-allowed border border-red-200 ${className}`}
+            className={`flex items-center justify-center gap-3 w-full px-6 py-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-[1.5rem] transition-all duration-300 disabled:opacity-50 font-black text-xs uppercase tracking-[0.2em] border border-red-100 shadow-sm hover:shadow-red-100 active:scale-95 ${className}`}
         >
             {loading ? (
-                <FaSpinner className="animate-spin text-lg" />
+                <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-                <FiLogOut className="text-lg" />
+                <LogOut className="h-5 w-5" />
             )}
-            <span className="font-medium">Cerrar sesión</span>
+            <span>Cerrar sesión</span>
         </button>
     );
 }

@@ -1,20 +1,25 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Eye, Package } from "lucide-react"; // Añadí Package
+import {
+    Package,
+    Search,
+    Plus,
+    Sparkles,
+    Eye,
+    X
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import DetalleProducto from "./DetalleProducto";
 import { formatearPrecioCOP } from "@/src/shared/utils/precio";
 import type { ProductoFrontend } from "@/src/modules/admin/productos/types/producto";
-import { capitalizarSoloPrimera } from "@/src/shared/utils/texto";
-import { FaList, FaBoxOpen, FaSearch } from "react-icons/fa";
-import { AiOutlineClose } from "react-icons/ai";
 import Loading from "@/src/shared/components/ui/Loading";
 import Paginacion from "@/src/shared/components/Paginacion";
 import { useProductos } from "@/src/modules/admin/productos/hooks/useProductos";
 import { PRIVATE_ROUTES } from '@/src/shared/constants/app-routes';
-import { PageHeader } from '@/src/shared/components'; // Importar PageHeader
+import { PageHeader } from '@/src/shared/components';
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProductosLista() {
     const {
@@ -30,17 +35,15 @@ export default function ProductosLista() {
 
     // Paginación
     const [pagina, setPagina] = useState(1);
-    const [itemsPorPagina, setItemsPorPagina] = useState(5);
+    const [itemsPorPagina, setItemsPorPagina] = useState(8);
 
     // Modal detalle
     const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoFrontend | null>(null);
     const [mostrarDetalle, setMostrarDetalle] = useState(false);
 
-    // Mover la función aplicarFiltros dentro de useCallback
     const aplicarFiltros = useCallback(() => {
         let filtrados = [...productos];
 
-        // Filtrar por término de búsqueda (nombre)
         if (terminoBusqueda.trim()) {
             const termino = terminoBusqueda.toLowerCase().trim();
             filtrados = filtrados.filter(
@@ -51,12 +54,12 @@ export default function ProductosLista() {
         }
 
         setProductosFiltrados(filtrados);
-        setPagina(1); // Resetear a primera página cuando cambia la búsqueda
+        setPagina(1);
     }, [productos, terminoBusqueda]);
 
     useEffect(() => {
         aplicarFiltros();
-    }, [aplicarFiltros]); // Ahora aplicarFiltros es una dependencia estable
+    }, [aplicarFiltros]);
 
     const limpiarBusqueda = () => {
         setTerminoBusqueda("");
@@ -77,343 +80,202 @@ export default function ProductosLista() {
     };
 
     const handleProductoActualizado = async (productoActualizado: ProductoFrontend) => {
-        // Usar la función del hook para actualizar
         await actualizarProducto(productoActualizado.id, productoActualizado);
         handleCerrarDetalle();
     };
 
     const handleProductoEliminado = async (productoId: string, activo: boolean) => {
-        // Usar la función del hook para desactivar/activar
         await desactivarProducto(productoId, activo);
         handleCerrarDetalle();
     };
 
     if (loading) {
         return (
-            <Loading texto="Cargando productos..." tamaño="mediano" color="orange-500" />
-        );
-    }
-
-    if (productos.length === 0) {
-        return (
-            <div className="min-h-screen bg-gray-50">
-                {/* Usando PageHeader aquí también */}
-                <PageHeader
-                    title="Gestión de Productos"
-                    description="Administra y organiza tu menú"
-                    icon={<Package />}
-                    variant="productos"
-                    showBorder={true}
-                />
-
-                <div className="px-6 py-8">
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
-                        <div className="text-gray-400 mb-6">
-                            <FaBoxOpen className="mx-auto text-5xl mb-4" />
-                            <h3 className="text-2xl font-semibold text-gray-900 mb-3">No hay productos</h3>
-                            <p className="text-gray-600 mb-8 text-lg">
-                                Aún no has agregado ningún producto. ¡Crea tu primer producto!
-                            </p>
-                            <Link
-                                className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white text-lg font-semibold px-8 py-4 rounded-2xl hover:from-orange-700 hover:to-orange-800 transition-all shadow-lg hover:shadow-xl"
-                                href={PRIVATE_ROUTES.ADMIN.PRODUCTOS_NUEVO}
-                            >
-                                <FaList className="text-xl" />
-                                Crear primer producto
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <Loading texto="Desplegando Menú Elite..." tamaño="grande" color="orange-500" />
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Usando PageHeader */}
+        <div className="min-h-screen bg-slate-50/50">
             <PageHeader
-                title="Gestión de Productos"
-                description="Administra y organiza tu menú"
-                icon={<Package />}
+                title="Menú Elite"
+                description="Gestión de productos y experiencias gastronómicas"
+                icon={<Package className="h-8 w-8 text-orange-500" />}
                 variant="productos"
                 showBorder={true}
             />
 
-            <div className="px-6 py-8">
-                <div className="space-y-6">
-                    {/* Búsqueda - ahora en una card separada */}
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-                        <div className="flex flex-col lg:flex-row gap-4 items-end">
-                            <div className="flex-1 w-full">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Buscar productos
-                                </label>
-                                <div className="relative">
-                                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Buscar por nombre o descripción..."
-                                        value={terminoBusqueda}
-                                        onChange={(e) => setTerminoBusqueda(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
-                                    />
-                                    {terminoBusqueda && (
-                                        <button
-                                            onClick={limpiarBusqueda}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            <AiOutlineClose className="h-5 w-5" />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="w-full lg:w-auto">
-                                <Link
-                                    href={PRIVATE_ROUTES.ADMIN.PRODUCTOS_NUEVO}
-                                    className="w-full lg:w-auto inline-flex items-center justify-center gap-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white font-semibold px-6 py-3 rounded-xl hover:from-orange-700 hover:to-orange-800 transition-all shadow-md hover:shadow-lg"
+            <div className="px-6 lg:px-10 py-10 space-y-12 max-w-[1600px] mx-auto">
+                {/* Panel de Control - Filtros y Búsqueda */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-2xl shadow-slate-200/50 p-8"
+                >
+                    <div className="flex flex-col lg:flex-row gap-6 items-center">
+                        <div className="relative flex-1 w-full">
+                            <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                            <input
+                                type="text"
+                                placeholder="BUSCAR EN EL CATÁLOGO..."
+                                value={terminoBusqueda}
+                                onChange={(e) => setTerminoBusqueda(e.target.value)}
+                                className="w-full h-16 pl-14 pr-14 bg-slate-50/50 border border-slate-100 rounded-[1.5rem] focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-bold text-slate-900 uppercase tracking-widest text-[11px]"
+                            />
+                            {terminoBusqueda && (
+                                <button
+                                    onClick={limpiarBusqueda}
+                                    className="absolute right-6 top-1/2 transform -translate-y-1/2 p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-900"
                                 >
-                                    <FaList className="text-lg" />
-                                    Crear nuevo producto
-                                </Link>
-                            </div>
+                                    <X className="h-5 w-5" />
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-4 w-full lg:w-auto">
+                            <Link
+                                href={PRIVATE_ROUTES.ADMIN.PRODUCTOS_NUEVO}
+                                className="flex-1 lg:flex-none h-16 px-8 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-orange-500 transition-all duration-500 shadow-xl shadow-slate-200/50 hover:shadow-orange-200"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Nuevo Producto
+                            </Link>
                         </div>
                     </div>
+                </motion.div>
 
-                    {/* Desktop: Tabla */}
-                    <div className="hidden lg:block bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                        {productosFiltrados.length === 0 ? (
-                            <div className="text-center py-16">
-                                <FaBoxOpen className="mx-auto text-5xl text-gray-300 mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                                    No se encontraron productos
-                                </h3>
-                                <p className="text-gray-600 mb-6">
-                                    {terminoBusqueda
-                                        ? "No hay productos que coincidan con tu búsqueda."
-                                        : "No hay productos disponibles."}
-                                </p>
-                                {terminoBusqueda ? (
-                                    <button
-                                        onClick={limpiarBusqueda}
-                                        className="px-6 py-3 text-sm font-semibold text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 transition-all duration-200 border border-orange-200"
-                                    >
-                                        Limpiar búsqueda
-                                    </button>
-                                ) : (
-                                    <Link
-                                        href={PRIVATE_ROUTES.ADMIN.PRODUCTOS_NUEVO}
-                                        className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 transition-all duration-200 border border-orange-200"
-                                    >
-                                        <FaList />
-                                        Crear nuevo producto
-                                    </Link>
-                                )}
-                            </div>
+                {/* Grid de Productos */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+                    <AnimatePresence mode="popLayout">
+                        {productosPaginados.length === 0 ? (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="col-span-full py-24 flex flex-col items-center text-center"
+                            >
+                                <div className="h-24 w-24 bg-slate-100 rounded-[2.5rem] flex items-center justify-center mb-6 border border-slate-200 shadow-inner">
+                                    <Package className="h-10 w-10 text-slate-300" />
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-2">No se encontraron productos</h3>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Ajusta los filtros para refinar la búsqueda</p>
+                            </motion.div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="bg-orange-50 border-b border-orange-100">
-                                            <th className="p-6 text-left font-semibold text-gray-900">Producto</th>
-                                            <th className="p-6 text-left font-semibold text-gray-900">Precio</th>
-                                            <th className="p-6 text-left font-semibold text-gray-900">Categoría</th>
-                                            <th className="p-6 text-left font-semibold text-gray-900">Estado</th>
-                                            <th className="p-6 text-center font-semibold text-gray-900">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {productosPaginados.map((producto) => (
-                                            <tr key={producto.id} className="hover:bg-orange-50/30 transition">
-                                                <td className="p-6">
-                                                    <div className="flex items-center space-x-4">
-                                                        {producto.imagen_url ? (
-                                                            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
-                                                                <Image
-                                                                    src={producto.imagen_url}
-                                                                    alt={producto.nombre}
-                                                                    fill
-                                                                    priority
-                                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                                    className="object-cover"
-                                                                />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center border border-orange-200">
-                                                                <Eye size={20} className="text-orange-500" />
-                                                            </div>
-                                                        )}
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="font-semibold text-gray-900 truncate">
-                                                                {capitalizarSoloPrimera(producto.nombre)}
-                                                            </div>
-                                                            {producto.descripcion && (
-                                                                <div className="text-sm text-gray-500 truncate max-w-xs">
-                                                                    {capitalizarSoloPrimera(producto.descripcion)}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="p-6">
-                                                    <span className="font-bold text-green-600 text-lg">
-                                                        {formatearPrecioCOP(producto.precio)}
-                                                    </span>
-                                                </td>
-                                                <td className="p-6">
-                                                    <span className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                                                        {capitalizarSoloPrimera(producto.categoria ?? "Sin categoría")}
-                                                    </span>
-                                                </td>
-                                                <td className="p-6">
-                                                    <span
-                                                        className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium border ${producto.activo
-                                                            ? "bg-green-100 text-green-800 border-green-200"
-                                                            : "bg-red-100 text-red-800 border-red-200"
-                                                            }`}
-                                                    >
-                                                        {producto.activo ? "Activo" : "Inactivo"}
-                                                    </span>
-                                                </td>
-                                                <td className="p-6 text-center">
-                                                    <button
-                                                        onClick={() => handleVerDetalles(producto)}
-                                                        className="px-5 py-2.5 text-sm font-semibold text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 transition-all duration-200 border border-orange-200 hover:border-orange-300"
-                                                    >
-                                                        Ver Detalles
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Mobile: Cards */}
-                    <div className="grid gap-4 lg:hidden">
-                        {productosFiltrados.length === 0 ? (
-                            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 text-center">
-                                <FaBoxOpen className="mx-auto text-3xl text-gray-300 mb-3" />
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                    No se encontraron productos
-                                </h3>
-                                <p className="text-gray-600 mb-4">
-                                    {terminoBusqueda
-                                        ? "No hay productos que coincidan con tu búsqueda."
-                                        : "No hay productos disponibles."}
-                                </p>
-                                {terminoBusqueda ? (
-                                    <button
-                                        onClick={limpiarBusqueda}
-                                        className="px-6 py-2 text-sm font-semibold text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 transition-all duration-200 border border-orange-200"
-                                    >
-                                        Limpiar búsqueda
-                                    </button>
-                                ) : (
-                                    <Link
-                                        href={PRIVATE_ROUTES.ADMIN.PRODUCTOS_NUEVO}
-                                        className="inline-flex items-center gap-2 px-6 py-2 text-sm font-semibold text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 transition-all duration-200 border border-orange-200"
-                                    >
-                                        <FaList />
-                                        Crear nuevo producto
-                                    </Link>
-                                )}
-                            </div>
-                        ) : (
-                            productosPaginados.map((producto) => (
-                                <div
+                            productosPaginados.map((producto, index) => (
+                                <motion.div
                                     key={producto.id}
-                                    className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                    transition={{ duration: 0.4, delay: index * 0.05, ease: "circOut" }}
+                                    className="group relative bg-white/70 backdrop-blur-xl rounded-[3rem] border border-white/50 shadow-xl shadow-slate-200/40 overflow-hidden hover:shadow-2xl hover:shadow-slate-300/50 transition-all duration-500"
                                 >
-                                    <div className="flex gap-4">
-                                        {producto.imagen_url ? (
-                                            <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                                    <div className="p-4 h-full flex flex-col">
+                                        {/* Imagen y Estado */}
+                                        <div className="relative aspect-square rounded-[2.5rem] overflow-hidden bg-slate-100 mb-6">
+                                            {producto.imagen_url ? (
                                                 <Image
                                                     src={producto.imagen_url}
                                                     alt={producto.nombre}
                                                     fill
-                                                    priority
-                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                    className="object-cover"
+                                                    className="object-cover transition-transform duration-1000 group-hover:scale-110"
                                                 />
-                                            </div>
-                                        ) : (
-                                            <div className="w-20 h-20 bg-orange-100 rounded-xl flex items-center justify-center border border-orange-200">
-                                                <Eye size={24} className="text-orange-500" />
-                                            </div>
-                                        )}
-                                        <div className="flex-1 flex flex-col justify-between">
-                                            <div>
-                                                <div className="font-semibold text-gray-900 mb-1">
-                                                    {capitalizarSoloPrimera(producto.nombre)}
+                                            ) : (
+                                                <div className="h-full w-full flex items-center justify-center text-slate-300">
+                                                    <Package className="h-16 w-16 opacity-30" />
                                                 </div>
-                                                {producto.descripcion && (
-                                                    <div className="text-sm text-gray-500 line-clamp-2">
-                                                        {capitalizarSoloPrimera(producto.descripcion)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center justify-between mt-3">
-                                                <span className="text-green-600 font-bold text-lg">
-                                                    {formatearPrecioCOP(producto.precio)}
+                                            )}
+
+                                            <div className="absolute top-4 left-4">
+                                                <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 shadow-sm ${producto.activo
+                                                    ? "bg-white/90 border-green-500 text-green-600 backdrop-blur-md"
+                                                    : "bg-white/90 border-red-500 text-red-600 backdrop-blur-md"
+                                                    }`}>
+                                                    {producto.activo ? "Activo" : "Inactivo"}
                                                 </span>
+                                            </div>
+
+                                            <div className="absolute bottom-4 right-4 translate-y-12 group-hover:translate-y-0 transition-all duration-500">
                                                 <button
                                                     onClick={() => handleVerDetalles(producto)}
-                                                    className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-all duration-200"
+                                                    className="h-12 w-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-2xl hover:bg-orange-500 transition-colors"
                                                 >
-                                                    Ver
+                                                    <Eye className="h-5 w-5" />
                                                 </button>
                                             </div>
                                         </div>
+
+                                        {/* Información */}
+                                        <div className="flex-1 flex flex-col px-4 pb-4">
+                                            <div className="flex items-start justify-between gap-4 mb-2">
+                                                <div className="min-w-0">
+                                                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest block mb-1">
+                                                        {producto.categoria || "Menú General"}
+                                                    </span>
+                                                    <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-tight line-clamp-1 group-hover:text-orange-500 transition-colors">
+                                                        {producto.nombre}
+                                                    </h3>
+                                                </div>
+                                            </div>
+
+                                            {producto.descripcion && (
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest line-clamp-2 mb-6 leading-relaxed">
+                                                    {producto.descripcion}
+                                                </p>
+                                            )}
+
+                                            <div className="mt-auto flex items-center justify-between pt-6 border-t border-slate-50">
+                                                <div>
+                                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block">Inversión</span>
+                                                    <span className="text-xl font-black text-slate-900 tracking-tighter">
+                                                        {formatearPrecioCOP(producto.precio)}
+                                                    </span>
+                                                </div>
+
+                                                <Sparkles className={`h-5 w-5 ${producto.activo ? "text-orange-400 animate-pulse" : "text-slate-200"}`} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                                            {capitalizarSoloPrimera(producto.categoria ?? "Sin categoría")}
-                                        </span>
-                                        <span
-                                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${producto.activo
-                                                ? "bg-green-100 text-green-800"
-                                                : "bg-red-100 text-red-800"
-                                                }`}
-                                        >
-                                            {producto.activo ? "Activo" : "Inactivo"}
-                                        </span>
-                                    </div>
-                                </div>
+                                </motion.div>
                             ))
                         )}
-                    </div>
-
-                    {/* Paginación */}
-                    {totalPaginas > 1 && productosFiltrados.length > 0 && (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-                            <Paginacion
-                                pagina={pagina}
-                                setPagina={setPagina}
-                                totalPaginas={totalPaginas}
-                                itemsPorPagina={itemsPorPagina}
-                                setItemsPorPagina={setItemsPorPagina}
-                            />
-                        </div>
-                    )}
+                    </AnimatePresence>
                 </div>
+
+                {/* Paginación Modernizada */}
+                {totalPaginas > 1 && productosFiltrados.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="bg-white/70 backdrop-blur-xl rounded-[2rem] border border-white/50 shadow-xl shadow-slate-200/30 p-4"
+                    >
+                        <Paginacion
+                            pagina={pagina}
+                            setPagina={setPagina}
+                            totalPaginas={totalPaginas}
+                            itemsPorPagina={itemsPorPagina}
+                            setItemsPorPagina={setItemsPorPagina}
+                        />
+                    </motion.div>
+                )}
             </div>
 
             {/* Modal de detalles */}
-            {mostrarDetalle && productoSeleccionado && (
-                <DetalleProducto
-                    producto={productoSeleccionado}
-                    onCerrar={handleCerrarDetalle}
-                    onProductoActualizado={handleProductoActualizado}
-                    onProductoEliminado={(productoId) =>
-                        handleProductoEliminado(
-                            productoId,
-                            !productoSeleccionado.activo
-                        )
-                    }
-                />
-            )}
+            <AnimatePresence>
+                {mostrarDetalle && productoSeleccionado && (
+                    <DetalleProducto
+                        producto={productoSeleccionado}
+                        onCerrar={handleCerrarDetalle}
+                        onProductoActualizado={handleProductoActualizado}
+                        onProductoEliminado={(productoId) =>
+                            handleProductoEliminado(
+                                productoId,
+                                !productoSeleccionado.activo
+                            )
+                        }
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

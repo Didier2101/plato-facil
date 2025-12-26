@@ -3,7 +3,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from '@/src/shared/services/toast.service';
-import { obtenerCategoriasAction, type CategoriaFrontend } from '../actions/obtenerCategoriasAction';
+import { obtenerCategoriasAction } from '../actions/obtenerCategoriasAction';
+import type { CategoriaFrontend } from '../types/producto';
 import { crearCategoriaAction, type CrearCategoriaInput } from '../actions/crearCategoriaAction';
 import { actualizarCategoriaAction, type ActualizarCategoriaInput } from '../actions/actualizarCategoriaAction';
 import { desactivarCategoriaAction } from '../actions/desactivarCategoriaAction';

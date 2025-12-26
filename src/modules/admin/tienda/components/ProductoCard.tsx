@@ -4,7 +4,7 @@ import type { ProductoFrontend } from "@/src/modules/admin/productos/types/produ
 import Image from "next/image";
 import ProductoDetalleModal from "./ProductoDetalleModal";
 import { useProductoCard } from "../hooks/useProductoCard";
-import { IoMdAddCircle } from "react-icons/io";
+import { Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ProductoCardSliderProps {
@@ -33,112 +33,81 @@ export default function ProductoCard({
     return (
         <>
             <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ y: -5, scale: 1.02 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -8, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="overflow-hidden cursor-pointer transition-all duration-300 flex flex-col h-full relative max-w-[250px] bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-100"
-                role="button"
-                tabIndex={0}
                 onClick={abrirModal}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        abrirModal();
-                    }
-                }}
-                aria-label={`Ver detalles de ${producto.nombre}, precio: $${producto.precio.toLocaleString("es-CO")}`}
+                className="group relative flex flex-col h-full bg-white rounded-[2.5rem] p-4 border-2 border-slate-50 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-orange-100/50 hover:border-orange-100 transition-all duration-500 cursor-pointer overflow-hidden"
             >
-                {/* Imagen del producto */}
-                <div className="relative h-32 w-full">
+                {/* Image Section */}
+                <div className="relative h-44 w-full rounded-[2rem] overflow-hidden mb-5 bg-slate-50 ring-4 ring-slate-50">
                     {producto.imagen_url && !imageError ? (
                         <Image
                             src={producto.imagen_url}
                             alt={producto.nombre}
                             fill
-                            priority
-                            className="object-cover"
+                            className="object-cover transition-transform duration-700 group-hover:scale-110"
                             onError={() => setImageError(true)}
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                     ) : (
-                        <div
-                            className="w-full h-full bg-gradient-to-br from-orange-50 to-gray-100 flex items-center justify-center"
-                            role="img"
-                            aria-label={`${producto.nombre} - Imagen no disponible`}
-                        >
-                            <div className="text-3xl text-orange-500" aria-hidden="true">🍔</div>
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-50 to-white">
+                            <span className="text-5xl grayscale opacity-20 filter group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500">🍔</span>
                         </div>
                     )}
+
+                    {/* Badge status */}
+                    {!producto.activo && (
+                        <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-[0.2em] shadow-lg">
+                            Agotado
+                        </div>
+                    )}
+
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
 
-                {/* Estado del producto */}
-                {!producto.activo && (
-                    <div
-                        className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full"
-                        aria-label="Producto agotado"
-                    >
-                        AGOTADO
-                    </div>
-                )}
-
-                {/* Botón flotante para agregar al carrito */}
-                <div className="absolute top-2 right-2 z-20">
-                    <motion.button
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleAgregarDirectoAlCarrito();
-                        }}
-                        disabled={!producto.activo}
-                        className="flex items-center justify-center bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white p-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
-                        aria-label={`Agregar ${producto.nombre} al carrito por $${producto.precio.toLocaleString("es-CO")}`}
-                        aria-disabled={!producto.activo}
-                        title={producto.activo ? `Agregar ${producto.nombre} al carrito` : 'Producto agotado'}
-                    >
-                        <IoMdAddCircle className="text-xl" aria-hidden="true" />
-                        <span className="sr-only">
-                            {producto.activo ? `Agregar ${producto.nombre} al carrito` : 'Producto agotado'}
-                        </span>
-                    </motion.button>
-                </div>
-
-                {/* Contenido de la card */}
-                <div className="p-3 flex flex-col flex-1">
-                    {/* Precio */}
-                    <div className="mb-1">
-                        <span
-                            className="text-lg font-bold text-orange-600"
-                            aria-label={`Precio: $${producto.precio.toLocaleString("es-CO")}`}
-                        >
-                            ${producto.precio.toLocaleString("es-CO")}
-                        </span>
+                {/* Content Section */}
+                <div className="flex flex-col flex-1 px-1">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                        <h3 className="text-sm font-black text-slate-900 tracking-tight leading-snug line-clamp-2 uppercase group-hover:text-orange-600 transition-colors">
+                            {producto.nombre}
+                        </h3>
                     </div>
 
-                    {/* Nombre del producto */}
-                    <h3
-                        className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight mb-1"
-                        aria-label={producto.nombre}
-                    >
-                        {producto.nombre}
-                    </h3>
-
-                    {/* Descripción del producto */}
                     {producto.descripcion && (
-                        <p
-                            className="text-xs text-gray-600 line-clamp-2 leading-tight"
-                            aria-label={`Descripción: ${producto.descripcion}`}
-                        >
+                        <p className="text-[11px] font-bold text-slate-400 line-clamp-2 leading-relaxed mb-4">
                             {producto.descripcion}
                         </p>
                     )}
+
+                    <div className="mt-auto flex items-center justify-between pt-2">
+                        <div className="flex flex-col">
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5 opacity-50">Precio</span>
+                            <span className="text-lg font-black text-slate-900 tracking-tighter">
+                                <span className="text-orange-500 text-sm mr-0.5">$</span>
+                                {producto.precio.toLocaleString("es-CO")}
+                            </span>
+                        </div>
+
+                        <motion.button
+                            whileHover={{ scale: 1.1, rotate: 90 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleAgregarDirectoAlCarrito();
+                            }}
+                            disabled={!producto.activo}
+                            className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-slate-200 group-hover:bg-orange-500 group-hover:shadow-orange-200 transition-all duration-500 disabled:opacity-30"
+                        >
+                            <Plus className="h-6 w-6" />
+                        </motion.button>
+                    </div>
                 </div>
 
-                {/* Indicador de hover para accesibilidad */}
-                <div className="absolute inset-0 pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-200 border-2 border-orange-300 rounded-xl" aria-hidden="true"></div>
+                {/* Accessibility */}
+                <span className="sr-only">Ver detalles de {producto.nombre}</span>
             </motion.div>
 
             {/* Renderizar todos los modales en la pila */}

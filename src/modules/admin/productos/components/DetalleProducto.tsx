@@ -1,12 +1,26 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
-import { X, Edit, Trash2, Save, Image as ImageIcon, Plus, Minus, AlertCircle, ChevronDown, CheckCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    X,
+    Edit,
+    Trash2,
+    Save,
+    Image as ImageIcon,
+    Plus,
+    Minus,
+    AlertCircle,
+    ChevronDown,
+    CheckCircle,
+    Utensils,
+    DollarSign,
+    Tag,
+    Trash
+} from "lucide-react";
 import Image from "next/image";
 import type { ProductoFrontend } from "@/src/modules/admin/productos/types/producto";
 import { formatearPrecioCOP, formatearNumero } from "@/src/shared/utils/precio";
-import { capitalizarSoloPrimera } from "@/src/shared/utils/texto";
 import { useDetalleProducto } from "../hooks/useDetalleProducto";
 
 interface Props {
@@ -56,365 +70,278 @@ export default function DetalleProducto({
 
     const panelContent = useMemo(() => {
         return (
-            <div className="space-y-6">
-                <div className="p-4 bg-orange-50 rounded-xl">
-                    <p className="font-semibold text-gray-800">
-                        {capitalizarSoloPrimera(producto.nombre)}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                        Categoría: {producto.categoria}
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-10">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    {/* Media Section */}
                     <div className="space-y-6">
-                        <div>
-                            <h4 className="font-semibold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                                <ImageIcon className="text-orange-500" />
-                                Imagen del Producto
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-8 w-8 bg-slate-900 rounded-lg flex items-center justify-center">
+                                <ImageIcon className="h-4 w-4 text-orange-500" />
+                            </div>
+                            <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">
+                                Activo Visual
                             </h4>
+                        </div>
 
+                        <div className="relative aspect-square lg:aspect-video rounded-[2.5rem] overflow-hidden bg-slate-100 border border-slate-200 group shadow-inner">
                             {modoEdicion ? (
-                                <div className="space-y-4">
-                                    <div className="relative w-full h-64 lg:h-80 rounded-2xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300">
-                                        {previewImagen ? (
-                                            <>
-                                                <Image
-                                                    src={previewImagen}
-                                                    alt="Preview"
-                                                    fill
-                                                    className="object-cover"
-                                                    priority
-                                                />
-                                                <button
-                                                    onClick={handleEliminarImagen}
-                                                    className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg z-10"
-                                                    disabled={loading}
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            </>
-                                        ) : producto.imagen_url ? (
-                                            <Image
-                                                src={producto.imagen_url}
-                                                alt={producto.nombre}
-                                                fill
-                                                className="object-cover"
-                                                priority
-                                            />
-                                        ) : (
-                                            <div className="flex items-center justify-center h-full text-gray-400">
-                                                <div className="text-center">
-                                                    <ImageIcon size={32} className="mx-auto mb-2" />
-                                                    <p>Sin imagen</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleCambioImagen}
-                                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors"
-                                            disabled={loading}
+                                <>
+                                    {previewImagen ? (
+                                        <Image
+                                            src={previewImagen}
+                                            alt="Preview"
+                                            fill
+                                            className="object-cover"
                                         />
-                                        <p className="text-sm text-gray-500 mt-2 text-center">
-                                            Formatos: JPG, PNG, WEBP • Máximo 5MB (Se optimizará automáticamente)
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="relative w-full h-64 lg:h-80 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 shadow-lg">
-                                    {producto.imagen_url ? (
+                                    ) : producto.imagen_url ? (
                                         <Image
                                             src={producto.imagen_url}
                                             alt={producto.nombre}
                                             fill
                                             className="object-cover"
-                                            priority
                                         />
                                     ) : (
-                                        <div className="flex items-center justify-center h-full text-gray-400">
-                                            <div className="text-center">
-                                                <ImageIcon size={48} className="mx-auto mb-2" />
-                                                <p className="text-lg">Sin imagen</p>
-                                            </div>
+                                        <div className="h-full w-full flex flex-col items-center justify-center text-slate-300">
+                                            <ImageIcon className="h-12 w-12 mb-2 opacity-20" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Sin Imagen</span>
                                         </div>
                                     )}
-                                </div>
+
+                                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-4">
+                                        <label className="h-14 w-14 bg-white rounded-2xl flex items-center justify-center text-slate-900 cursor-pointer hover:bg-orange-500 hover:text-white transition-all shadow-2xl">
+                                            <Edit className="h-6 w-6" />
+                                            <input type="file" className="hidden" accept="image/*" onChange={handleCambioImagen} disabled={loading} />
+                                        </label>
+                                        {(previewImagen || producto.imagen_url) && (
+                                            <button
+                                                onClick={handleEliminarImagen}
+                                                className="h-14 w-14 bg-white rounded-2xl flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-2xl"
+                                                disabled={loading}
+                                            >
+                                                <Trash className="h-6 w-6" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {producto.imagen_url ? (
+                                        <Image
+                                            src={producto.imagen_url}
+                                            alt={producto.nombre}
+                                            fill
+                                            className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                                        />
+                                    ) : (
+                                        <div className="h-full w-full flex flex-col items-center justify-center text-slate-300 text-center">
+                                            <ImageIcon className="h-16 w-16 mb-4 opacity-10" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-20 px-10">Este producto aún no cuenta con un activo visual de alta definición</p>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
 
-                        <div className="hidden lg:block bg-orange-50 p-4 rounded-xl border border-orange-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Estado del Producto
-                            </label>
-                            {modoEdicion ? (
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={datosEdicion.activo}
-                                        onChange={(e) => setDatosEdicion(prev => ({ ...prev, activo: e.target.checked }))}
-                                        className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                                        disabled={loading}
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">Producto activo</span>
-                                </label>
-                            ) : (
-                                <div className="flex items-center space-x-2">
-                                    <div className={`w-3 h-3 rounded-full ${producto.activo ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                    <span className={`text-sm font-semibold ${producto.activo ? 'text-green-700' : 'text-red-700'}`}>
-                                        {producto.activo ? "Activo" : "Inactivo"}
-                                    </span>
-                                </div>
+                        <div className="bg-slate-50/50 rounded-[1.5rem] p-6 border border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className={`h-3 w-3 rounded-full ${producto.activo ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${producto.activo ? 'text-green-600' : 'text-red-600'}`}>
+                                    {producto.activo ? "Canal Activo" : "Canal Inactivo"}
+                                </span>
+                            </div>
+                            {modoEdicion && (
+                                <button
+                                    onClick={() => setDatosEdicion(prev => ({ ...prev, activo: !prev.activo }))}
+                                    className={`h-10 px-6 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${datosEdicion.activo ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                                        }`}
+                                >
+                                    {datosEdicion.activo ? 'Desactivar' : 'Activar'}
+                                </button>
                             )}
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <div className="bg-orange-50 p-4 rounded-xl border border-orange-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Nombre del Producto
-                            </label>
+                    {/* Data Section */}
+                    <div className="space-y-8">
+                        {/* Title & Description */}
+                        <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl shadow-slate-100/50 group">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="h-8 w-8 bg-slate-900 rounded-lg flex items-center justify-center">
+                                    <Utensils className="h-4 w-4 text-orange-500" />
+                                </div>
+                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">
+                                    Definición Técnica
+                                </h4>
+                            </div>
+
                             {modoEdicion ? (
-                                <input
-                                    type="text"
-                                    value={datosEdicion.nombre}
-                                    onChange={(e) => setDatosEdicion(prev => ({ ...prev, nombre: e.target.value }))}
-                                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
-                                    disabled={loading}
-                                    placeholder="Ingresa el nombre del producto"
-                                />
+                                <div className="space-y-4">
+                                    <input
+                                        type="text"
+                                        value={datosEdicion.nombre}
+                                        onChange={(e) => setDatosEdicion(prev => ({ ...prev, nombre: e.target.value }))}
+                                        className="w-full text-2xl font-black text-slate-900 tracking-tighter uppercase p-0 border-none focus:ring-0 placeholder:text-slate-200"
+                                        placeholder="NOMBRE DEL PRODUCTO"
+                                    />
+                                    <textarea
+                                        value={datosEdicion.descripcion}
+                                        onChange={(e) => setDatosEdicion(prev => ({ ...prev, descripcion: e.target.value }))}
+                                        className="w-full text-[11px] font-black text-slate-400 uppercase tracking-widest leading-relaxed p-0 border-none focus:ring-0 resize-none h-24 placeholder:text-slate-200"
+                                        placeholder="DESCRIPCIÓN DETALLADA..."
+                                    />
+                                </div>
                             ) : (
-                                <p className="text-xl font-bold text-gray-900">
-                                    {capitalizarSoloPrimera(producto.nombre)}
-                                </p>
+                                <div>
+                                    <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-2 line-clamp-2">
+                                        {producto.nombre}
+                                    </h1>
+                                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                                        {producto.descripcion || "Sin descripción técnica disponible"}
+                                    </p>
+                                </div>
                             )}
                         </div>
 
-                        <div className="bg-orange-50 p-4 rounded-xl border border-orange-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Descripción
-                            </label>
-                            {modoEdicion ? (
-                                <textarea
-                                    value={datosEdicion.descripcion}
-                                    onChange={(e) => setDatosEdicion(prev => ({ ...prev, descripcion: e.target.value }))}
-                                    rows={4}
-                                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors resize-none"
-                                    disabled={loading}
-                                    placeholder="Describe el producto..."
-                                />
-                            ) : (
-                                <p className="text-gray-700 leading-relaxed">
-                                    {producto.descripcion
-                                        ? capitalizarSoloPrimera(producto.descripcion)
-                                        : "Este producto no tiene descripción."
-                                    }
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Precio
-                                </label>
+                        {/* Price & Category */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-slate-900 rounded-[2rem] p-8 text-white shadow-2xl shadow-slate-300">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <DollarSign className="h-4 w-4 text-orange-500" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60">Inversión</h4>
+                                </div>
                                 {modoEdicion ? (
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 font-bold">
-                                            $
-                                        </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-2xl font-black text-orange-500">$</span>
                                         <input
                                             type="text"
                                             value={formatearNumero(datosEdicion.precio)}
                                             onChange={handleCambioPrecio}
-                                            className="w-full pl-8 pr-3 py-2 font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-right"
-                                            disabled={loading}
-                                            placeholder="0"
+                                            className="w-full bg-transparent border-none focus:ring-0 text-3xl font-black tracking-tighter appearance-none p-0"
                                         />
                                     </div>
                                 ) : (
-                                    <div className="text-center">
-                                        <div className="text-xl font-bold text-green-700">
-                                            {formatearPrecioCOP(producto.precio)}
-                                        </div>
-                                        <p className="text-xs text-green-600 mt-1">Pesos colombianos</p>
+                                    <div className="text-3xl font-black tracking-tighter">
+                                        {formatearPrecioCOP(producto.precio)}
                                     </div>
                                 )}
                             </div>
 
-                            <div className="sm:col-span-1 bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Categoría
-                                </label>
-                                <div className="text-center">
-                                    {modoEdicion ? (
-                                        <div className="relative">
-                                            <select
-                                                value={datosEdicion.categoria_id}
-                                                onChange={(e) => setDatosEdicion(prev => ({ ...prev, categoria_id: e.target.value }))}
-                                                className="w-full pl-4 pr-10 py-2 bg-white border border-purple-300 rounded-xl focus:ring-2 focus:ring-purple-400 appearance-none font-medium text-purple-900"
-                                                disabled={loading || cargandoCategorias}
-                                            >
-                                                <option value="">Selecciona categoría</option>
-                                                {categorias.map(cat => (
-                                                    <option key={cat.id} value={cat.id}>
-                                                        {cat.nombre}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-purple-500">
-                                                <ChevronDown size={20} />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <span className="text-lg font-semibold text-purple-800 bg-purple-200 px-4 py-2 rounded-full">
-                                            {producto.categoria}
-                                        </span>
-                                    )}
+                            <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl shadow-slate-100/50">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <Tag className="h-4 w-4 text-orange-500" />
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Colección</h4>
                                 </div>
+                                {modoEdicion ? (
+                                    <select
+                                        value={datosEdicion.categoria_id}
+                                        onChange={(e) => setDatosEdicion(prev => ({ ...prev, categoria_id: e.target.value }))}
+                                        className="w-full bg-slate-50 border-none rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-900 focus:ring-2 focus:ring-orange-500/20"
+                                    >
+                                        <option value="">SELECCIONAR...</option>
+                                        {categorias.map(cat => (
+                                            <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="text-xl font-black text-slate-900 tracking-tighter uppercase line-clamp-1">
+                                        {producto.categoria || "Geral"}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* SECCIÓN DE INGREDIENTES */}
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl border border-yellow-200">
-                    <h4 className="font-semibold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                        🥗 Ingredientes del Producto
-                    </h4>
-
-                    {modoEdicion ? (
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-sm font-medium text-gray-700 mb-3">
-                                    Ingredientes actuales ({ingredientesSeleccionados.length})
-                                </p>
-
-                                {ingredientesSeleccionados.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-500">
-                                        <p>No hay ingredientes agregados</p>
-                                        <p className="text-sm">Agrega ingredientes desde el selector de abajo</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                        {ingredientesSeleccionados.map(ing => (
-                                            <div
-                                                key={ing.ingrediente_id}
-                                                className="flex items-center justify-between bg-white p-3 rounded-lg border border-yellow-300 shadow-sm"
-                                            >
-                                                <div className="flex items-center gap-3 flex-1">
-                                                    <span className="font-medium text-gray-800">
-                                                        {capitalizarSoloPrimera(ing.nombre)}
-                                                    </span>
-
-                                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={ing.obligatorio}
-                                                            onChange={() => handleToggleObligatorio(ing.ingrediente_id)}
-                                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                                                        />
-                                                        <span className={ing.obligatorio ? "text-orange-600 font-semibold" : "text-gray-500"}>
-                                                            Obligatorio
-                                                        </span>
-                                                    </label>
-                                                </div>
-
-                                                <button
-                                                    onClick={() => handleQuitarIngrediente(ing.ingrediente_id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    disabled={loading}
-                                                >
-                                                    <Minus size={16} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                {/* Ingredients Section */}
+                <div className="bg-slate-50/50 rounded-[3rem] p-10 border border-slate-100">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                        <div className="flex items-center gap-4">
+                            <div className="h-14 w-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-2xl">
+                                <Utensils className="h-7 w-7 text-orange-500" />
                             </div>
-
                             <div>
-                                <p className="text-sm font-medium text-gray-700 mb-3">
-                                    Agregar ingredientes
+                                <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-tight">Configuración de Componentes</h3>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                    <CheckCircle className="h-3 w-3 text-orange-500" />
+                                    Personalización del Producto
                                 </p>
-
-                                {cargandoIngredientes ? (
-                                    <div className="text-center py-4">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-                                    </div>
-                                ) : ingredientesNoSeleccionados.length === 0 ? (
-                                    <div className="text-center py-4 text-gray-500 bg-white rounded-lg border border-dashed border-gray-300">
-                                        <p>No hay más ingredientes disponibles</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 bg-white rounded-lg border border-gray-200">
-                                        {ingredientesNoSeleccionados.map(ing => (
-                                            <button
-                                                key={ing.id}
-                                                onClick={() => handleAgregarIngrediente(ing)}
-                                                className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-50 hover:bg-orange-100 border border-gray-300 hover:border-orange-300 rounded-lg transition-colors text-left"
-                                                disabled={loading}
-                                            >
-                                                <Plus size={14} className="text-orange-600 flex-shrink-0" />
-                                                <span className="truncate">{capitalizarSoloPrimera(ing.nombre)}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         </div>
+
+                        {modoEdicion && !cargandoIngredientes && (
+                            <div className="flex-1 max-w-md">
+                                <select
+                                    onChange={(e) => {
+                                        const ing = ingredientesNoSeleccionados.find(i => i.id.toString() === e.target.value);
+                                        if (ing) handleAgregarIngrediente(ing);
+                                        e.target.value = "";
+                                    }}
+                                    className="w-full h-12 bg-white/70 backdrop-blur-xl border border-slate-100 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all outline-none"
+                                >
+                                    <option value="">+ AGREGAR COMPONENTE...</option>
+                                    {ingredientesNoSeleccionados.map(ing => (
+                                        <option key={ing.id} value={ing.id}>{ing.nombre}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+
+                    {ingredientesSeleccionados.length === 0 ? (
+                        <div className="text-center py-20 bg-white/40 rounded-[2rem] border-2 border-dashed border-slate-200">
+                            <Utensils className="h-10 w-10 text-slate-200 mx-auto mb-4" />
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Sin componentes de personalización asignados</p>
+                        </div>
                     ) : (
-                        <div>
-                            {ingredientesSeleccionados.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500">
-                                    <p>Este producto no tiene ingredientes configurados</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    {ingredientesSeleccionados.map(ing => (
-                                        <div
-                                            key={ing.ingrediente_id}
-                                            className="flex items-center gap-3 bg-white p-3 rounded-lg border border-yellow-300 shadow-sm"
-                                        >
-                                            <div className="flex-1">
-                                                <p className="font-medium text-gray-800">
-                                                    {capitalizarSoloPrimera(ing.nombre)}
-                                                </p>
-                                                <p className={`text-xs ${ing.obligatorio ? "text-orange-600 font-semibold" : "text-gray-500"}`}>
-                                                    {ing.obligatorio ? "Obligatorio" : "Opcional"}
-                                                </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <AnimatePresence mode="popLayout">
+                                {ingredientesSeleccionados.map((ing) => (
+                                    <motion.div
+                                        key={ing.ingrediente_id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        className="group bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-white/50 shadow-lg shadow-slate-100 flex items-center justify-between"
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-2 truncate">
+                                                {ing.nombre}
+                                            </h5>
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => modoEdicion && handleToggleObligatorio(ing.ingrediente_id)}
+                                                    className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${ing.obligatorio
+                                                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
+                                                            : 'bg-slate-100 text-slate-400'
+                                                        } ${modoEdicion ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
+                                                >
+                                                    {ing.obligatorio ? 'Obligatorio' : 'Opcional'}
+                                                </button>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                        {modoEdicion && (
+                                            <button
+                                                onClick={() => handleQuitarIngrediente(ing.ingrediente_id)}
+                                                className="h-10 w-10 bg-slate-50 text-slate-300 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         </div>
                     )}
                 </div>
             </div>
         );
     }, [
-        producto,
-        modoEdicion,
-        loading,
-        datosEdicion,
-        previewImagen,
-        ingredientesSeleccionados,
-        ingredientesNoSeleccionados,
-        cargandoIngredientes,
-        handleEliminarImagen,
-        handleCambioImagen,
-        handleCambioPrecio,
-        handleAgregarIngrediente,
-        handleQuitarIngrediente,
-        handleToggleObligatorio,
-        categorias,
-        cargandoCategorias,
-        setDatosEdicion
+        producto, modoEdicion, loading, datosEdicion, previewImagen,
+        ingredientesSeleccionados, ingredientesNoSeleccionados, cargandoIngredientes,
+        categorias, cargandoCategorias, setDatosEdicion, setModoEdicion,
+        handleCambioPrecio, handleToggleObligatorio, handleQuitarIngrediente,
+        handleAgregarIngrediente, handleCambioImagen, handleEliminarImagen
     ]);
 
     const footerContent = useMemo(() => {
@@ -424,54 +351,45 @@ export default function DetalleProducto({
                     <>
                         <button
                             onClick={handleCancelarEdicion}
-                            className={`flex items-center justify-center px-6 py-3 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors font-semibold ${isMobile ? 'w-full' : 'flex-1'}`}
+                            className={`h-16 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all ${isMobile ? 'order-2 w-full' : 'flex-1'}`}
                             disabled={loading}
                         >
-                            <X size={18} className="mr-2" />
-                            Cancelar
+                            Abortar Cambios
                         </button>
                         <button
                             onClick={handleGuardarCambios}
-                            className={`flex items-center justify-center px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg disabled:opacity-50 font-semibold ${isMobile ? 'w-full' : 'flex-1'}`}
+                            className={`h-16 px-10 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-orange-500 transition-all ${isMobile ? 'order-1 w-full' : 'flex-2'}`}
                             disabled={loading}
                         >
-                            {loading ? (
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                            ) : (
-                                <Save size={18} className="mr-2" />
-                            )}
-                            Guardar Cambios
+                            {loading ? "Sincronizando..." : "Consolidar Actualización"}
                         </button>
                     </>
                 ) : confirmandoCambioEstado ? (
-                    <div className="w-full bg-orange-50 p-4 rounded-xl border border-orange-200 shadow-inner">
-                        <div className="flex items-start gap-3 mb-4">
-                            <AlertCircle className="text-orange-500 flex-shrink-0 mt-0.5" size={20} />
+                    <div className="w-full bg-slate-900 rounded-[2rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 bg-white/10 rounded-xl flex items-center justify-center">
+                                <AlertCircle className="text-orange-500" />
+                            </div>
                             <div>
-                                <p className="text-orange-800 font-bold text-sm">¿Confirmas {producto.activo ? 'desactivar' : 'activar'} este producto?</p>
-                                <p className="text-orange-600 text-xs">
-                                    {producto.activo
-                                        ? "Ya no estará visible para los clientes."
-                                        : "Volverá a estar visible en el menú."}
-                                </p>
+                                <p className="text-[11px] font-black uppercase tracking-widest">Estado Crítico</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">¿Confirmas el cambio de disponibilidad operativa?</p>
                             </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-4 w-full md:w-auto">
                             <button
                                 onClick={() => setConfirmandoCambioEstado(false)}
-                                className="flex-1 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-bold"
+                                className="flex-1 md:flex-none px-8 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all"
                                 disabled={loading}
                             >
                                 Volver
                             </button>
                             <button
                                 onClick={handleCambiarEstado}
-                                className={`flex-1 px-4 py-2 ${producto.activo ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white rounded-lg transition-colors text-sm font-bold shadow-sm`}
+                                className={`flex-1 md:flex-none px-10 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${producto.activo ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
+                                    }`}
                                 disabled={loading}
                             >
-                                {loading
-                                    ? (producto.activo ? "Desactivando..." : "Activando...")
-                                    : (producto.activo ? "Sí, desactivar" : "Sí, activar")}
+                                {producto.activo ? "Confirmar Desconexión" : "Confirmar Activación"}
                             </button>
                         </div>
                     </div>
@@ -479,134 +397,77 @@ export default function DetalleProducto({
                     <>
                         <button
                             onClick={() => setModoEdicion(true)}
-                            className={`flex items-center justify-center px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg font-semibold ${isMobile ? 'w-full' : 'flex-1'}`}
-                            disabled={loading}
+                            className={`h-16 px-10 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-orange-500 transition-all ${isMobile ? 'w-full' : 'flex-1'}`}
                         >
-                            <Edit size={18} className="mr-2" />
-                            Editar Producto
+                            <div className="flex items-center justify-center gap-3">
+                                <Edit className="h-4 w-4" />
+                                Modificar Definición
+                            </div>
                         </button>
                         <button
                             onClick={() => setConfirmandoCambioEstado(true)}
-                            className={`flex items-center justify-center px-6 py-3 bg-gradient-to-r ${producto.activo ? 'from-red-500 to-red-600' : 'from-green-500 to-green-600'} text-white rounded-xl hover:brightness-110 transition-all shadow-lg disabled:opacity-50 font-semibold ${isMobile ? 'w-full' : 'flex-1'}`}
-                            disabled={loading}
+                            className={`h-16 px-10 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${producto.activo
+                                    ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white'
+                                    : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
+                                } ${isMobile ? 'w-full' : 'flex-1'}`}
                         >
-                            {producto.activo ? (
-                                <Trash2 size={18} className="mr-2" />
-                            ) : (
-                                <CheckCircle size={18} className="mr-2" />
-                            )}
-                            {producto.activo ? "Desactivar" : "Activar"}
+                            {producto.activo ? "Sacar de Inventario" : "Reincorporar al Menú"}
                         </button>
                     </>
                 )}
             </div>
         );
     }, [
-        modoEdicion,
-        loading,
-        isMobile,
-        producto.activo,
-        handleCancelarEdicion,
-        handleGuardarCambios,
-        handleCambiarEstado,
-        confirmandoCambioEstado,
-        setConfirmandoCambioEstado,
-        setModoEdicion
+        modoEdicion, loading, isMobile, producto.activo, confirmandoCambioEstado,
+        handleCancelarEdicion, handleGuardarCambios, handleCambiarEstado,
+        setConfirmandoCambioEstado, setModoEdicion
     ]);
-
-    if (isMobile) {
-        return (
-            <>
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.5 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="fixed inset-0 bg-black z-40"
-                    onClick={onCerrar}
-                />
-
-                <motion.div
-                    initial={{ y: "100%" }}
-                    animate={{ y: 0 }}
-                    exit={{ y: "100%" }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-50 max-h-[90vh] overflow-hidden"
-                    drag="y"
-                    dragConstraints={{ top: 0, bottom: 0 }}
-                    dragElastic={0.2}
-                    onDragEnd={(event, info) => {
-                        if (info.offset.y > 100) {
-                            onCerrar();
-                        }
-                    }}
-                >
-                    <div
-                        className="w-16 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-4 cursor-pointer hover:bg-gray-400 transition-colors"
-                        onClick={onCerrar}
-                    />
-
-                    <div className="px-6 border-b border-gray-200 pb-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-gray-800">
-                                {modoEdicion ? "Editar Producto" : "Detalles del Producto"}
-                            </h3>
-                            <button
-                                onClick={onCerrar}
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                                disabled={loading}
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-140px)]">
-                        {panelContent}
-                    </div>
-
-                    <div className="p-6 border-t border-gray-200 bg-gray-50">
-                        {footerContent}
-                    </div>
-                </motion.div>
-            </>
-        );
-    }
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl"
         >
             <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 20, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col"
+                initial={{ y: 50, scale: 0.95 }}
+                animate={{ y: 0, scale: 1 }}
+                exit={{ y: 50, scale: 0.95 }}
+                className="bg-white rounded-[3.5rem] shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] w-full max-w-7xl max-h-[92vh] overflow-hidden flex flex-col relative"
             >
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
-                    <h3 className="text-2xl font-bold text-gray-800">
-                        {modoEdicion ? "Editar Producto" : "Detalles del Producto"}
-                    </h3>
-                    <button
-                        onClick={onCerrar}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                        disabled={loading}
-                    >
-                        <X size={24} />
-                    </button>
+                {/* Close Button */}
+                <button
+                    onClick={onCerrar}
+                    className="absolute top-8 right-8 z-10 h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all shadow-xl"
+                >
+                    <X className="h-6 w-6" />
+                </button>
+
+                {/* Header Decoration */}
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 via-slate-900 to-orange-500" />
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                    <div className="p-10 lg:p-16">
+                        <div className="mb-12">
+                            <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] block mb-4">
+                                {modoEdicion ? "Cámara de Edición" : "Visualización Elite"}
+                            </span>
+                            <h2 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+                                {modoEdicion ? "Modificando Activo" : "Detalles del Activo"}
+                            </h2>
+                        </div>
+
+                        {panelContent}
+                    </div>
                 </div>
 
-                <div className="p-8 flex-1 overflow-y-auto">
-                    {panelContent}
-                </div>
-
-                <div className="p-6 border-t border-gray-200 bg-gray-50">
-                    {footerContent}
+                {/* Footer */}
+                <div className="p-8 lg:p-12 border-t border-slate-50 bg-slate-50/30 backdrop-blur-md">
+                    <div className="max-w-4xl mx-auto">
+                        {footerContent}
+                    </div>
                 </div>
             </motion.div>
         </motion.div>

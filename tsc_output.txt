@@ -1,0 +1,14 @@
+﻿src/shared/components/PageHeader.tsx(3,8): error TS1259: Module '"D:/Proyectos/Kavvo/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+src/shared/components/PageHeader.tsx(69,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(81,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(86,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(88,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(93,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(94,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(96,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(98,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(100,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(105,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(106,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(110,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/shared/components/PageHeader.tsx(118,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.

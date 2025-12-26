@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { FaMinus, FaPlus, FaShoppingCart, FaTimes, FaArrowLeft } from "react-icons/fa";
+import { FaMinus, FaPlus, FaArrowLeft } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
+import { ShoppingBag, X, Star, Sparkles, Utensils, MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { useEffect } from "react";
 import { ProductoFrontend } from "@/src/modules/admin/productos/types/producto";
@@ -16,7 +17,7 @@ interface ProductoDetalleModalProps {
     zIndexBase?: number;
 }
 
-// 🔘 Switch personalizado (naranja/gris)
+// 🔘 Premium Custom Switch
 function SwitchCustom({
     checked,
     onChange,
@@ -31,13 +32,17 @@ function SwitchCustom({
             type="button"
             onClick={onChange}
             disabled={disabled}
-            className={`${checked ? "bg-orange-500" : "bg-gray-300"}
-        relative inline-flex h-6 w-11 items-center rounded-full transition ${disabled ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+            className={`
+                relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300
+                ${checked ? "bg-orange-500 shadow-lg shadow-orange-200" : "bg-gray-200"}
+                ${disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95"}
+            `}
         >
             <span
-                className={`${checked ? "translate-x-6" : "translate-x-1"
-                    } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+                className={`
+                    inline-block h-5 w-5 transform rounded-full bg-white transition-all duration-300 shadow-sm
+                    ${checked ? "translate-x-6" : "translate-x-1"}
+                `}
             />
         </button>
     );
@@ -67,14 +72,12 @@ export default function ProductoDetalleModal({
         handleSetImageErrorSugerido
     } = useProductoDetalleTienda(producto, onClose);
 
-    // ✅ NUEVO: Cuando se clickea un sugerido, cambiar el producto del modal
     const handleSugeridoClick = (productoSugerido: ProductoFrontend) => {
         if (onProductoSugeridoClick) {
             onProductoSugeridoClick(productoSugerido);
         }
     };
 
-    // 🚫 Bloquear scroll del body mientras el modal está abierto
     useEffect(() => {
         document.body.style.overflow = "hidden";
         return () => {
@@ -84,51 +87,42 @@ export default function ProductoDetalleModal({
 
     return (
         <AnimatePresence>
-            {/* Overlay con animación de entrada/salida */}
+            {/* High-End Overlay */}
             <motion.div
                 key="overlay"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="fixed inset-0 bg-black/50"
+                className="fixed inset-0 bg-gray-900/40 backdrop-blur-md"
                 style={{ zIndex: zIndexBase }}
                 onClick={onClose}
             />
 
-            {/* Modal principal */}
+            {/* Premium Modal - App Delivery Style */}
             <motion.div
                 key="modal"
-                initial={{
-                    x: "100%",
-                    opacity: 0
-                }}
-                animate={{
-                    x: 0,
-                    opacity: 1
-                }}
-                exit={{
-                    x: "100%",
-                    opacity: 0
-                }}
-                transition={{
-                    duration: 0.4,
-                    ease: "easeInOut"
-                }}
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 style={{ zIndex: zIndexBase + 1 }}
                 className="
-                    fixed inset-0 lg:inset-auto 
+                    fixed inset-x-0 bottom-0 lg:inset-auto 
                     lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2
-                    bg-white
-                    lg:rounded-3xl lg:shadow-2xl
-                    lg:max-w-lg lg:w-full lg:max-h-[90vh]
-                    flex flex-col
+                    bg-white 
+                    rounded-t-[3.5rem] lg:rounded-[3.5rem] 
+                    shadow-[0_-20px_50px_rgba(0,0,0,0.1)] lg:shadow-2xl
+                    lg:max-w-2xl lg:w-full lg:max-h-[92vh]
+                    flex flex-col overflow-hidden
+                    border-t-8 border-orange-500 lg:border-t-0
                 "
             >
-                {/* Contenido con scroll */}
-                <div className="flex-1 overflow-y-auto scrollbar-hide">
-                    {/* Imagen del producto - PEGADA ARRIBA EN MÓVIL */}
-                    <div className="relative w-full h-64 lg:h-56 bg-gray-100">
+                {/* Mobile Handle */}
+                <div className="lg:hidden w-16 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 opacity-50" />
+
+                <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+                    {/* Visual Section: Image + Actions */}
+                    <div className="relative w-full aspect-[4/3] lg:aspect-video bg-gray-50 overflow-hidden">
                         {producto.imagen_url && !imageError ? (
                             <Image
                                 src={producto.imagen_url}
@@ -136,69 +130,99 @@ export default function ProductoDetalleModal({
                                 fill
                                 className="object-cover"
                                 onError={() => setImageError(true)}
+                                priority
                             />
                         ) : (
-                            <div className="flex items-center justify-center h-full text-gray-400">
-                                <Image
-                                    src="/assets/logo-kavvo-solo.png"
-                                    alt="Logo Kavvo"
-                                    width={80}
-                                    height={80}
-                                    className="object-contain opacity-60"
-                                />
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-orange-50 to-white">
+                                <Utensils className="h-20 w-20 text-orange-200" />
+                                <p className="text-[10px] font-black text-orange-300 uppercase tracking-[0.3em] mt-4">Delicia Kavvo</p>
                             </div>
                         )}
 
-                        {/* Botón flecha DENTRO DE LA IMAGEN - Solo móvil */}
-                        <div className="lg:hidden absolute top-4 left-4">
-                            <button
+                        {/* Floating Navigation Controls */}
+                        <div className="absolute top-6 left-6 right-6 flex items-center justify-between">
+                            <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
                                 onClick={onClose}
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors backdrop-blur-sm"
+                                className="h-12 w-12 rounded-2xl bg-white/90 backdrop-blur-xl flex items-center justify-center text-gray-900 shadow-xl border border-white/50"
                             >
-                                <FaArrowLeft className="text-lg" />
-                            </button>
+                                <FaArrowLeft className="h-4 w-4" />
+                            </motion.button>
+
+                            <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={onClose}
+                                className="hidden lg:flex h-12 w-12 rounded-2xl bg-white/90 backdrop-blur-xl items-center justify-center text-gray-900 shadow-xl border border-white/50"
+                            >
+                                <X className="h-5 w-5" />
+                            </motion.button>
                         </div>
 
-                        {/* Botón X DENTRO DE LA IMAGEN - Solo desktop */}
-                        <div className="hidden lg:block absolute top-4 right-4">
-                            <button
-                                onClick={onClose}
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors backdrop-blur-sm"
-                            >
-                                <FaTimes className="text-lg" />
-                            </button>
+                        {/* Status Badge */}
+                        <div className="absolute bottom-6 left-6">
+                            <div className="bg-slate-900/90 backdrop-blur-xl text-white px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-white/10">
+                                <Sparkles className="h-4 w-4 text-orange-500 fill-orange-500" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Más Vendido</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Contenido informativo */}
-                    <div className="p-6 space-y-6">
-                        {/* Información básica */}
-                        <div className="space-y-2">
-                            <p className="text-lg font-bold text-gray-900">
-                                ${producto.precio.toLocaleString("es-CO")}
-                            </p>
-
-                            <h3 className="text-lg font-semibold text-gray-900">{producto.nombre}</h3>
-
-                            {producto.descripcion && (
-                                <p className="text-sm text-gray-600 leading-relaxed">{producto.descripcion}</p>
-                            )}
+                    {/* Content Section */}
+                    <div className="px-8 pt-10 space-y-10">
+                        {/* Summary Block */}
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                            <div className="flex-1 space-y-3">
+                                <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase leading-tight">
+                                    {producto.nombre}
+                                </h1>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center text-orange-500">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} className="h-3 w-3 fill-current" />
+                                        ))}
+                                        <span className="ml-2 text-xs font-black text-gray-400">4.9 (120+)</span>
+                                    </div>
+                                    <div className="h-1.5 w-1.5 rounded-full bg-gray-200" />
+                                    <span className="text-xs font-black text-orange-600 uppercase tracking-widest leading-none">Popular hoy</span>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Precio Total</span>
+                                <span className="text-3xl font-black text-gray-900 tracking-tighter">
+                                    <span className="text-orange-500 text-xl mr-0.5">$</span>
+                                    {producto.precio.toLocaleString("es-CO")}
+                                </span>
+                            </div>
                         </div>
 
-                        {/* Acordeón: Personalizar ingredientes */}
+                        {/* Description */}
+                        {producto.descripcion && (
+                            <div className="bg-orange-50/50 rounded-[2rem] p-6 border border-orange-100/50">
+                                <p className="text-sm font-bold text-gray-600 leading-relaxed italic">
+                                    &quot;{producto.descripcion}&quot;
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Customization Accordion */}
                         {ingredientesPersonalizables.length > 0 && (
-                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="space-y-4">
                                 <button
                                     onClick={() => setPersonalizarAbierto(!personalizarAbierto)}
-                                    className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                                    className="w-full flex items-center justify-between p-6 bg-white border-2 border-slate-50 rounded-[2rem] shadow-xl shadow-slate-100/50 hover:border-orange-200 transition-all"
                                 >
-                                    <span className="font-semibold text-gray-900">
-                                        Personalizar ingredientes
-                                    </span>
-                                    <IoIosArrowDown
-                                        className={`text-xl text-gray-600 transition-transform duration-300 ${personalizarAbierto ? 'rotate-180' : ''
-                                            }`}
-                                    />
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-200">
+                                            <Sparkles className="h-6 w-6" />
+                                        </div>
+                                        <div className="text-left">
+                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-tighter">Personaliza tu orden</h4>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Ajusta los ingredientes</p>
+                                        </div>
+                                    </div>
+                                    <IoIosArrowDown className={`text-xl text-gray-400 transition-transform duration-300 ${personalizarAbierto ? 'rotate-180' : ''}`} />
                                 </button>
 
                                 <AnimatePresence>
@@ -207,16 +231,15 @@ export default function ProductoDetalleModal({
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: "auto", opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.3 }}
-                                            className="overflow-hidden"
+                                            className="overflow-hidden bg-slate-50/50 rounded-[2.5rem] border border-slate-100"
                                         >
-                                            <div className="p-4 space-y-3 bg-white">
+                                            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 {ingredientesPersonalizables.map((ing) => (
                                                     <div
                                                         key={ing.ingrediente_id}
-                                                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                                                        className="flex items-center justify-between p-4 bg-white rounded-2xl border border-transparent hover:border-orange-200 transition-all shadow-sm"
                                                     >
-                                                        <span className="font-medium text-gray-900">{ing.nombre}</span>
+                                                        <span className="text-xs font-black text-gray-700 uppercase tracking-tighter">{ing.nombre}</span>
                                                         <SwitchCustom
                                                             checked={ing.incluido}
                                                             onChange={() => toggleIngrediente(ing.ingrediente_id)}
@@ -230,63 +253,58 @@ export default function ProductoDetalleModal({
                             </div>
                         )}
 
-                        {/* Notas especiales */}
-                        <div className="space-y-3">
-                            <label className="block text-base font-semibold text-gray-900">
-                                Notas especiales
-                            </label>
+                        {/* Special Notes Block */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 ml-2">
+                                <MessageSquare className="h-4 w-4 text-orange-500" />
+                                <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Notas Especiales</h4>
+                            </div>
                             <textarea
                                 value={notas}
                                 onChange={(e) => setNotas(e.target.value)}
-                                placeholder="Ej: sin cebolla, extra salsa, bien cocido..."
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 resize-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-colors"
+                                placeholder="¿Algo que debamos saber? (Ej: sin cebolla, bien cocido...)"
+                                className="w-full bg-gray-50 border-2 border-transparent focus:border-orange-500/10 py-5 px-6 rounded-[2rem] outline-none transition-all font-bold text-gray-900 text-sm resize-none shadow-inner"
                                 rows={3}
                             />
                         </div>
 
-                        {/* Productos sugeridos */}
+                        {/* Suggested Products Grid */}
                         {productosSugeridos.length > 0 && (
-                            <div className="space-y-4 pt-4 border-t border-gray-200">
-                                <h4 className="font-semibold text-gray-900">
-                                    También te podría gustar
-                                </h4>
-                                <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-6 pt-6 border-t-2 border-gray-50">
+                                <div className="flex items-center justify-between ml-2">
+                                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Completa tu combo</h4>
+                                    <button className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Ver todo</button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
                                     {productosSugeridos.slice(0, 4).map((sugerido) => (
-                                        <div
+                                        <motion.div
                                             key={sugerido.id}
-                                            className="border border-gray-200 rounded-xl overflow-hidden hover:border-orange-300 hover:shadow-md transition-all cursor-pointer group"
+                                            whileHover={{ y: -5 }}
                                             onClick={() => handleSugeridoClick(sugerido)}
+                                            className="group bg-white rounded-[2rem] p-3 border border-slate-100 shadow-lg shadow-slate-100/50 hover:border-orange-200 cursor-pointer overflow-hidden transition-all"
                                         >
-                                            <div className="relative h-24 w-full bg-gray-100">
+                                            <div className="relative h-28 w-full rounded-[1.5rem] overflow-hidden mb-3 bg-gray-50">
                                                 {sugerido.imagen_url && !imageErrorsSugeridos[sugerido.id] ? (
                                                     <Image
                                                         src={sugerido.imagen_url}
                                                         alt={sugerido.nombre}
                                                         fill
-                                                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
                                                         onError={() => handleSetImageErrorSugerido(sugerido.id.toString())}
                                                     />
                                                 ) : (
-                                                    <div className="flex items-center justify-center h-full">
-                                                        <Image
-                                                            src="/assets/logo-kavvo-solo.png"
-                                                            alt="Logo"
-                                                            width={40}
-                                                            height={40}
-                                                            className="object-contain opacity-60"
-                                                        />
-                                                    </div>
+                                                    <div className="h-full flex items-center justify-center grayscale opacity-30">🍔</div>
                                                 )}
                                             </div>
-                                            <div className="p-2">
-                                                <p className="text-xs font-semibold text-gray-900 line-clamp-1 mb-1">
+                                            <div className="px-1">
+                                                <p className="text-[10px] font-black text-gray-900 line-clamp-1 uppercase tracking-tighter mb-1">
                                                     {sugerido.nombre}
                                                 </p>
-                                                <p className="text-sm font-bold text-orange-600">
+                                                <p className="text-sm font-black text-orange-500 tracking-tighter">
                                                     ${sugerido.precio.toLocaleString("es-CO")}
                                                 </p>
                                             </div>
-                                        </div>
+                                        </motion.div>
                                     ))}
                                 </div>
                             </div>
@@ -294,39 +312,47 @@ export default function ProductoDetalleModal({
                     </div>
                 </div>
 
-                {/* Footer fijo */}
-                <div className="flex-shrink-0 border-t border-gray-200 bg-white lg:rounded-b-3xl">
-                    <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        {/* Selector de cantidad */}
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm font-medium text-gray-700">Cantidad:</span>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setCantidad((c) => Math.max(1, c - 1))}
-                                    disabled={cantidad <= 1}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <FaMinus size={14} className="text-gray-700" />
-                                </button>
-                                <span className="text-lg font-semibold w-8 text-center">{cantidad}</span>
-                                <button
-                                    onClick={() => setCantidad((c) => c + 1)}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-                                >
-                                    <FaPlus size={14} className="text-gray-700" />
-                                </button>
-                            </div>
+                {/* Footer Action Block - STICKY */}
+                <div className="absolute bottom-0 left-0 right-0 p-8 pt-4 bg-white/80 backdrop-blur-2xl border-t border-gray-100 lg:rounded-b-[3.5rem]">
+                    <div className="max-w-2xl mx-auto flex items-center gap-6">
+                        {/* Premium Quantity Selector */}
+                        <div className="flex items-center bg-gray-100 rounded-[2rem] p-1.5 shadow-inner">
+                            <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setCantidad((c) => Math.max(1, c - 1))}
+                                disabled={cantidad <= 1}
+                                className="h-12 w-12 flex items-center justify-center rounded-[1.5rem] bg-white text-gray-900 shadow-sm disabled:opacity-30 disabled:shadow-none hover:text-orange-500 transition-colors"
+                            >
+                                <FaMinus className="text-sm" />
+                            </motion.button>
+                            <span className="text-lg font-black w-14 text-center text-gray-900">{cantidad}</span>
+                            <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setCantidad((c) => c + 1)}
+                                className="h-12 w-12 flex items-center justify-center rounded-[1.5rem] bg-slate-900 text-white shadow-xl hover:bg-orange-500 transition-all"
+                            >
+                                <FaPlus className="text-sm" />
+                            </motion.button>
                         </div>
 
-                        {/* Botón agregar al carrito */}
-                        <button
+                        {/* Add to Cart Button */}
+                        <motion.button
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={handleAgregarAlCarrito}
-                            className="flex-1 sm:flex-none bg-orange-600 hover:bg-orange-700 text-white px-8 py-4 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all duration-200 hover:scale-105 min-w-[200px]"
+                            className="flex-1 bg-gray-900 hover:bg-orange-500 text-white h-16 rounded-[2rem] font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl hover:shadow-orange-200"
                         >
-                            <FaShoppingCart className="text-lg" />
-                            <span>Agregar ${subtotal.toLocaleString("es-CO")}</span>
-                        </button>
+                            <div className="h-8 w-8 bg-white/10 rounded-xl flex items-center justify-center">
+                                <ShoppingBag className="h-4 w-4" />
+                            </div>
+                            <span className="uppercase tracking-widest text-xs">Agregar</span>
+                            <div className="h-1 w-1 rounded-full bg-white/30" />
+                            <span className="text-lg tracking-tighter">${subtotal.toLocaleString("es-CO")}</span>
+                        </motion.button>
                     </div>
+                    <p className="text-center text-[9px] text-gray-400 font-black uppercase tracking-[0.3em] mt-4">
+                        Calidad Premium Garantizada by Kavvo ©
+                    </p>
                 </div>
             </motion.div>
         </AnimatePresence>

@@ -1,15 +1,17 @@
-// src/modules/dueno/configuraciones/components/LocationPicker.tsx
-'use client';
+"use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-    FaMapMarkerAlt,
-    FaSpinner,
-    FaSave,
-    FaCrosshairs,
-    FaInfoCircle
-} from 'react-icons/fa';
-import { FiSettings } from 'react-icons/fi';
+    MapPin,
+    Navigation,
+    RotateCcw,
+    CheckCircle2,
+    AlertCircle,
+    Info,
+    Compass,
+    Sparkles
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/src/shared/services/toast.service';
 
 interface ConfigLeafletMap {
@@ -20,10 +22,7 @@ interface ConfigLeafletMap {
 }
 
 interface ConfigLeafletEvent {
-    latlng: {
-        lat: number;
-        lng: number;
-    };
+    latlng: { lat: number; lng: number; };
 }
 
 interface ConfigLeafletLayer {
@@ -35,9 +34,7 @@ interface ConfigLeafletLayer {
 }
 
 interface ConfigLeafletMarkerEvent {
-    target: {
-        getLatLng: () => { lat: number; lng: number };
-    };
+    target: { getLatLng: () => { lat: number; lng: number }; };
 }
 
 interface ConfigLeafletIcon {
@@ -77,7 +74,6 @@ export default function LocationPicker({
     const markerRef = useRef<ConfigLeafletLayer | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
-    // Cargar Leaflet dinámicamente
     useEffect(() => {
         const cargarLeaflet = async () => {
             if ((window as { L?: ConfigLeafletL }).L) {
@@ -86,27 +82,24 @@ export default function LocationPicker({
             }
 
             try {
-                // Cargar CSS de Leaflet
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
                 link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
                 document.head.appendChild(link);
 
-                // Cargar JS de Leaflet
                 const script = document.createElement('script');
                 script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
                 script.onload = () => setMapLoaded(true);
                 document.head.appendChild(script);
             } catch (error) {
                 console.error('Error cargando Leaflet:', error);
-                toast.error('Error', { description: 'No se pudo cargar el mapa' });
+                toast.error('Mapa No Disponible', { description: 'No se pudo cargar el servicio de mapas.' });
             }
         };
 
         cargarLeaflet();
 
         return () => {
-            // Limpiar recursos al desmontar
             if (mapRef.current) {
                 try {
                     mapRef.current.remove();
@@ -121,25 +114,30 @@ export default function LocationPicker({
 
     const initializeMap = useCallback(() => {
         const L = (window as { L?: ConfigLeafletL }).L;
-        if (!L || mapRef.current || !mapContainerRef.current) {
-            return;
-        }
+        if (!L || mapRef.current || !mapContainerRef.current) return;
 
         try {
-            const map = L.map(mapContainerRef.current).setView([selectedLocation.lat, selectedLocation.lng], 15);
+            const map = L.map(mapContainerRef.current as HTMLElement, {
+                zoomControl: false
+            }).setView([selectedLocation.lat, selectedLocation.lng], 15);
 
-            // Capa de tiles de OpenStreetMap
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Crear marcador personalizado
             const restaurantIcon = L.divIcon({
-                html: '<div style="background: #f97316; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📍</div>',
+                html: `
+                    <div class="relative flex items-center justify-center">
+                        <div class="absolute w-12 h-12 bg-orange-500/20 rounded-full animate-ping"></div>
+                        <div class="relative h-10 w-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-2xl border-2 border-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-orange-500"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        </div>
+                    </div>
+                `,
                 className: 'custom-div-icon',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
             });
 
             const marker = L.marker([selectedLocation.lat, selectedLocation.lng], {
@@ -147,14 +145,12 @@ export default function LocationPicker({
                 draggable: true
             }).addTo(map);
 
-            // Evento de click en el mapa
             map.on('click', (e: ConfigLeafletEvent) => {
                 const { lat, lng } = e.latlng;
                 marker.setLatLng([lat, lng]);
                 setSelectedLocation({ lat, lng });
             });
 
-            // Evento de drag del marcador
             marker.on('dragend', (e: ConfigLeafletMarkerEvent) => {
                 const { lat, lng } = e.target.getLatLng();
                 setSelectedLocation({ lat, lng });
@@ -164,21 +160,19 @@ export default function LocationPicker({
             markerRef.current = marker;
         } catch (error) {
             console.error('Error inicializando mapa:', error);
-            toast.error('Error', { description: 'No se pudo inicializar el mapa' });
+            toast.error('Error de Inicialización', { description: 'Hubo un problema al renderizar el mapa.' });
         }
     }, [selectedLocation.lat, selectedLocation.lng]);
 
-    // Inicializar mapa cuando Leaflet esté cargado
     useEffect(() => {
         if (mapLoaded && mapContainerRef.current && !mapRef.current) {
             initializeMap();
         }
     }, [mapLoaded, initializeMap]);
 
-
     const handleGetCurrentLocation = () => {
         if (!navigator.geolocation) {
-            toast.error('Error', { description: 'La geolocalización no está soportada en este navegador' });
+            toast.error('No Soportado', { description: 'Tu navegador no permite geolocalización.' });
             return;
         }
 
@@ -187,194 +181,166 @@ export default function LocationPicker({
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-
                 setSelectedLocation({ lat, lng });
 
                 if (mapRef.current && markerRef.current) {
-                    mapRef.current.setView([lat, lng], 15);
+                    mapRef.current.setView([lat, lng], 17);
                     markerRef.current.setLatLng([lat, lng]);
                 }
-
                 setLoading(false);
-
-                toast.success('Ubicación obtenida', {
-                    description: `Tu ubicación actual: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-                    duration: 3000
-                });
+                toast.success('Ubicación Detectada', { description: 'Hemos encontrado tu posición actual.' });
             },
             (error) => {
                 console.error('Error obteniendo ubicación:', error);
-                let errorMessage = 'No se pudo obtener la ubicación actual';
-
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMessage = 'Permiso denegado. Por favor permite el acceso a la ubicación';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMessage = 'Ubicación no disponible';
-                        break;
-                    case error.TIMEOUT:
-                        errorMessage = 'Tiempo de espera agotado';
-                        break;
-                }
-
-                toast.error('Error de ubicación', { description: errorMessage });
+                toast.error('Error GPS', { description: 'No pudimos acceder a tu ubicación exacta.' });
                 setLoading(false);
             },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 300000
-            }
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
         );
     };
 
     const handleResetToBogota = () => {
         const bogotaLat = 4.7110;
         const bogotaLng = -74.0721;
-
         setSelectedLocation({ lat: bogotaLat, lng: bogotaLng });
 
         if (mapRef.current && markerRef.current) {
-            mapRef.current.setView([bogotaLat, bogotaLng], 13);
+            mapRef.current.setView([bogotaLat, bogotaLng], 14);
             markerRef.current.setLatLng([bogotaLat, bogotaLng]);
         }
-
-        toast.info('Ubicación restablecida', {
-            description: 'Ubicación configurada a Bogotá centro',
-            duration: 2000
-        });
+        toast.info('Restablecido', { description: 'Mapa centrado en Bogotá.' });
     };
 
     const handleConfirmLocation = () => {
         onLocationChange(selectedLocation.lat, selectedLocation.lng);
-
-        toast.success('Ubicación actualizada', {
-            description: 'La ubicación del restaurante ha sido actualizada correctamente',
-            duration: 2500
-        });
+        toast.success('Configuración Guardada', { description: 'Las coordenadas GPS han sido actualizadas.' });
     };
-
 
     const hasLocationChanged = Math.abs(selectedLocation.lat - currentLat) > 0.0001 ||
         Math.abs(selectedLocation.lng - currentLng) > 0.0001;
 
     return (
-        <div className="space-y-4">
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
-                    <FaMapMarkerAlt className="text-orange-500" />
-                    Ubicación GPS del Restaurante
-                </h3>
-
-                {/* Información actual */}
-                <div className="bg-white rounded-lg p-4 mb-4 border border-gray-300">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                        <div>
-                            <p className="text-sm font-medium text-gray-700">Ubicación guardada:</p>
-                            <p className="text-lg text-gray-900 font-mono">
-                                {currentLat.toFixed(6)}, {currentLng.toFixed(6)}
-                            </p>
+        <div className="space-y-8">
+            {/* Coordinates Display Card */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-[2rem] p-8 border-2 border-slate-50 shadow-xl shadow-slate-100/50 space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-200">
+                            <Navigation className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-gray-700">Ubicación seleccionada:</p>
-                            <p className="text-lg text-orange-600 font-medium font-mono">
-                                {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coordenadas Actuales</h4>
+                            <p className="text-xl font-black text-slate-900 tracking-tighter">Lat: {selectedLocation.lat.toFixed(6)}</p>
+                        </div>
+                    </div>
+                    <div className="h-px bg-slate-50 w-full" />
+                    <p className="text-xl font-black text-slate-900 tracking-tighter pl-13">Long: {selectedLocation.lng.toFixed(6)}</p>
+                </div>
+
+                <div className="bg-slate-900 rounded-[2rem] p-8 text-white space-y-4 shadow-2xl shadow-slate-200">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center">
+                            <MapPin className="h-5 w-5 text-orange-500" />
+                        </div>
+                        <div>
+                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Dirección de Referencia</h4>
+                            <p className="text-sm font-bold text-white leading-tight mt-1 line-clamp-2 italic">
+                                &quot;{address || 'Sin dirección asignada'}&quot;
                             </p>
                         </div>
                     </div>
-
-                    {address && (
-                        <div className="flex items-start mt-3 pt-3 border-t border-gray-200">
-                            <FaMapMarkerAlt className="text-orange-500 text-sm mt-1 mr-2 flex-shrink-0" />
-                            <p className="text-sm text-gray-600">{address}</p>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full w-fit">
+                        <Sparkles className="h-3 w-3 text-orange-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Ubicación Maestra</span>
+                    </div>
                 </div>
+            </div>
 
-                {/* Controles principales */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                    <button
-                        type="button"
-                        onClick={handleGetCurrentLocation}
-                        disabled={loading}
-                        className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 justify-center"
-                    >
-                        {loading ? <FaSpinner className="animate-spin" /> : <FaCrosshairs />}
-                        Mi ubicación
-                    </button>
+            {/* Map Container */}
+            <div className="relative group">
+                <div
+                    ref={mapContainerRef}
+                    className="w-full h-[500px] rounded-[3rem] border-4 border-white shadow-2xl overflow-hidden bg-slate-100 z-10"
+                />
 
-                    <button
-                        type="button"
-                        onClick={handleResetToBogota}
-                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 justify-center"
-                    >
-                        <FiSettings />
-                        Bogotá centro
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={handleConfirmLocation}
-                        disabled={!hasLocationChanged}
-                        className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 justify-center"
-                    >
-                        <FaSave />
-                        Confirmar ubicación
-                    </button>
-                </div>
-
-                {/* Mapa */}
-                <div className="relative mb-4">
-                    <div
-                        ref={mapContainerRef}
-                        className="w-full h-96 rounded-lg border border-gray-300 bg-gray-100"
-                        style={{ minHeight: '400px' }}
-                    />
-
+                <AnimatePresence>
                     {!mapLoaded && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
-                            <div className="text-center">
-                                <FaSpinner className="text-4xl text-orange-500 animate-spin mx-auto mb-2" />
-                                <p className="text-gray-600">Cargando mapa...</p>
+                        <motion.div
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50 rounded-[3rem]"
+                        >
+                            <div className="text-center space-y-4">
+                                <div className="h-16 w-16 bg-slate-900 rounded-3xl flex items-center justify-center mx-auto animate-pulse">
+                                    <Compass className="h-8 w-8 text-orange-500" />
+                                </div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Iniciando Cartografía...</p>
                             </div>
-                        </div>
+                        </motion.div>
                     )}
+                </AnimatePresence>
+
+                {/* Glassmorphism Controls Over Map */}
+                <div className="absolute top-6 left-6 z-20 flex flex-col gap-3">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleGetCurrentLocation}
+                        className="h-14 w-14 bg-white/80 backdrop-blur-xl rounded-2xl flex items-center justify-center text-slate-900 shadow-xl border border-white/50 hover:bg-orange-500 hover:text-white transition-all"
+                    >
+                        {loading ? <RotateCcw className="h-6 w-6 animate-spin" /> : <Navigation className="h-6 w-6" />}
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleResetToBogota}
+                        className="h-14 w-14 bg-white/80 backdrop-blur-xl rounded-2xl flex items-center justify-center text-slate-900 shadow-xl border border-white/50 hover:text-orange-500 transition-all"
+                    >
+                        <RotateCcw className="h-6 w-6" />
+                    </motion.button>
                 </div>
 
-                {/* Advertencia si hay cambios pendientes */}
-                {hasLocationChanged && (
-                    <div className="bg-yellow-50 rounded-lg p-4 mb-4 border border-yellow-200">
-                        <div className="flex items-start gap-3">
-                            <FaInfoCircle className="text-yellow-600 text-lg mt-0.5" />
-                            <div>
-                                <p className="text-yellow-800 text-sm font-medium">
-                                    Has seleccionado una nueva ubicación.
-                                </p>
-                                <p className="text-yellow-700 text-sm mt-1">
-                                    Haz clic en Confirmar ubicación para guardar los cambios.
-                                </p>
+                <div className="absolute top-6 right-6 z-20">
+                    <div className="bg-slate-900/90 backdrop-blur-xl p-4 rounded-3xl border border-white/10 shadow-2xl max-w-[200px]">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Info className="h-4 w-4 text-orange-500" />
+                            <h5 className="text-[9px] font-black text-white uppercase tracking-widest">Guía de Uso</h5>
+                        </div>
+                        <p className="text-[8px] font-bold text-white/50 leading-relaxed uppercase tracking-tighter">
+                            Arrastra el pin naranja o toca cualquier punto del mapa para ajustar la precisión.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Change Notification Overlay */}
+                <AnimatePresence>
+                    {hasLocationChanged && (
+                        <motion.div
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 50, opacity: 0 }}
+                            className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 w-[90%] md:w-auto"
+                        >
+                            <div className="bg-orange-500 text-white rounded-[2rem] p-6 shadow-2xl shadow-orange-200 flex flex-col md:flex-row items-center gap-6 border-4 border-white">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                                        <AlertCircle className="h-6 w-6" />
+                                    </div>
+                                    <div className="text-center md:text-left">
+                                        <h4 className="text-sm font-black uppercase tracking-tighter">¡Cambios Detectados!</h4>
+                                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-0.5">La nueva posición no ha sido guardada.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleConfirmLocation}
+                                    className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-orange-500 transition-all shadow-xl active:scale-95 flex items-center gap-3"
+                                >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Confirmar Ahora
+                                </button>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Instrucciones */}
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    <div className="flex items-start gap-3">
-                        <FaInfoCircle className="text-blue-600 text-lg mt-0.5" />
-                        <div>
-                            <h4 className="font-medium text-blue-900 mb-2">Cómo usar el mapa:</h4>
-                            <ul className="text-sm text-blue-700 space-y-1">
-                                <li>• <strong>Haz clic</strong> en cualquier punto del mapa para seleccionar la ubicación</li>
-                                <li>• <strong>Arrastra</strong> el marcador naranja para ajustar la posición exacta</li>
-                                <li>• Usa <strong>Mi ubicación</strong> para obtener tu posición GPS actual</li>
-                                <li>• Usa <strong>Bogotá centro</strong> para restaurar la ubicación por defecto</li>
-                                <li>• <strong>Confirma</strong> la ubicación para aplicar los cambios</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

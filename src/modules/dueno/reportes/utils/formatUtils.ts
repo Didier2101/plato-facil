@@ -13,14 +13,14 @@ export const formatNumber = (num: number): string => {
 
 export const getEstadoColor = (estado: string): string => {
     const colores: Record<string, string> = {
-        entregada: "bg-green-100 text-green-800 border-green-200",
-        cancelada: "bg-red-100 text-red-800 border-red-200",
-        lista: "bg-blue-100 text-blue-800 border-blue-200",
-        orden_tomada: "bg-yellow-100 text-yellow-800 border-yellow-200",
-        en_camino: "bg-orange-100 text-orange-800 border-orange-200",
-        llegue_a_destino: "bg-purple-100 text-purple-800 border-purple-200",
+        entregada: "text-green-500 bg-green-500/10 border-green-500/20",
+        cancelada: "text-red-500 bg-red-500/10 border-red-500/20",
+        lista: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+        orden_tomada: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
+        en_camino: "text-orange-500 bg-orange-500/10 border-orange-500/20",
+        llegue_a_destino: "text-purple-500 bg-purple-500/10 border-purple-500/20",
     };
-    return colores[estado] || "bg-gray-100 text-gray-800 border-gray-200";
+    return colores[estado] || "text-slate-500 bg-slate-500/10 border-slate-500/20";
 };
 
 export const formatDate = (fecha: string): string => {

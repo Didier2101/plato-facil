@@ -1,8 +1,8 @@
-// src/shared/components/PageHeader.tsx
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
+import React, { ReactNode, isValidElement } from 'react';
 import { IconType } from 'react-icons';
+import { motion } from 'framer-motion';
 
 interface PageHeaderProps {
     title: string;
@@ -22,8 +22,8 @@ export default function PageHeader({
     title,
     description,
     icon,
-    iconColor = "text-white",
-    iconBgColor,
+    iconColor = "text-orange-500",
+    iconBgColor = "bg-slate-900",
     breadcrumbs,
     actions,
     className = "",
@@ -37,32 +37,26 @@ export default function PageHeader({
         default: {
             icon: null,
             defaultDescription: '',
-            defaultIconBgColor: 'bg-orange-500'
         },
         reportes: {
             icon: '📊',
             defaultDescription: 'Análisis del rendimiento de tu restaurante',
-            defaultIconBgColor: 'bg-orange-500'
         },
         ventas: {
             icon: '💰',
             defaultDescription: 'Gestión de transacciones y facturación',
-            defaultIconBgColor: 'bg-green-500'
         },
         usuarios: {
             icon: '👥',
             defaultDescription: 'Administración de usuarios y permisos',
-            defaultIconBgColor: 'bg-blue-500'
         },
         productos: {
             icon: '🍽️',
             defaultDescription: 'Gestión del menú y productos',
-            defaultIconBgColor: 'bg-purple-500'
         },
         configuraciones: {
             icon: '⚙️',
             defaultDescription: 'Configuración del sistema',
-            defaultIconBgColor: 'bg-gray-600'
         }
     };
 
@@ -70,46 +64,52 @@ export default function PageHeader({
 
     // Determinar qué ícono usar
     let finalIcon = icon;
-    const finalIconBgColor = iconBgColor || config.defaultIconBgColor;
 
     if (!icon && config.icon) {
         finalIcon = <span className="text-2xl">{config.icon}</span>;
     }
 
-    const IconComponent = typeof finalIcon === 'function' ? finalIcon : null;
+    const isComponent = finalIcon && !isValidElement(finalIcon) &&
+        (typeof finalIcon === 'function' ||
+            (typeof finalIcon === 'object' && finalIcon !== null && ('render' in finalIcon || (finalIcon as unknown as Record<string, unknown>)?.$$typeof === Symbol.for('react.forward_ref'))));
+    const IconComponent = isComponent ? (finalIcon as React.ElementType) : null;
 
     // Determinar descripción
     const finalDescription = description || config.defaultDescription;
 
     return (
-        <div className={`bg-white ${showBorder ? 'border-b border-gray-200' : ''} px-6 py-8 ${className}`}>
-            <div>
+        <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`sticky top-0 z-40 w-full bg-white/80 backdrop-blur-xl ${showBorder ? 'border-b border-slate-100' : ''} px-6 py-8 ${className}`}
+        >
+            <div className="max-w-[1600px] mx-auto">
                 {breadcrumbs && (
-                    <div className="mb-4">
+                    <div className="mb-6">
                         {breadcrumbs}
                     </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start sm:items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
                         {finalIcon && (
-                            <div className={`${finalIconBgColor} p-4 rounded-xl shrink-0`}>
+                            <div className={`${iconBgColor} h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 shadow-2xl shadow-slate-200 border border-white/10`}>
                                 {IconComponent ? (
-                                    // Es un componente de React Icon
                                     <IconComponent className={`text-2xl ${iconColor}`} />
                                 ) : (
-                                    // Es un elemento React o string
                                     <div className={`text-2xl ${iconColor}`}>{finalIcon as ReactNode}</div>
                                 )}
                             </div>
                         )}
 
-                        <div className="flex-1">
-                            <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-tight truncate">
                                 {title}
                             </h1>
                             {finalDescription && (
-                                <p className="text-gray-600 mt-1">{finalDescription}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 line-clamp-1">
+                                    {finalDescription}
+                                </p>
                             )}
                         </div>
                     </div>
@@ -123,6 +123,6 @@ export default function PageHeader({
 
                 {children}
             </div>
-        </div>
+        </motion.div>
     );
 }

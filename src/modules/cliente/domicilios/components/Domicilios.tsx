@@ -3,20 +3,27 @@
 import React from "react";
 import { useCarritoStore } from "@/src/modules/admin/tienda/store/carritoStore";
 import Carrito from "@/src/modules/admin/tienda/components/Carrito";
-import { FaShoppingCart, FaClock, FaBan } from "react-icons/fa";
 import ProductoCard from "@/src/modules/admin/tienda/components/ProductoCard";
 import { useDomicilios } from "../hooks/useDomicilios";
-
+import {
+    ShoppingBag,
+    Clock,
+    Moon,
+    ChefHat,
+    ArrowRight,
+    Search,
+    UtensilsCrossed,
+    Sparkles,
+    Filter
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Domicilios() {
     const {
-        productos,
         configuracion,
         categoriaActiva,
         mostrarCarrito,
         setMostrarCarrito,
-        transitionDirection,
-        prevCategoria,
         categorias,
         productosFiltrados,
         productosAgrupados,
@@ -27,201 +34,175 @@ export default function Domicilios() {
 
     const { productos: productosCarrito } = useCarritoStore();
 
-
-    // Mostrar mensaje si el servicio no está disponible
+    // Mensaje de servicio no disponible
     if (!servicioDisponible || !horarioInfo.abierto) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-4">
-                <div className="max-w-md w-full rounded-2xl  p-8 text-center">
-                    <div className="mb-6">
-                        <div className="mx-auto w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center">
+            <div className="min-h-[70vh] flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="max-w-md w-full bg-white rounded-[3rem] p-10 text-center shadow-2xl shadow-gray-200 border border-gray-100"
+                >
+                    <div className="mb-8 relative flex justify-center">
+                        <div className="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center ring-8 ring-orange-50/50">
                             {!servicioDisponible ? (
-                                <FaBan className="w-10 h-10 text-orange-500" />
+                                <Moon className="w-10 h-10 text-orange-500" />
                             ) : (
-                                <FaClock className="w-10 h-10 text-orange-500" />
+                                <Clock className="w-10 h-10 text-orange-500" />
                             )}
                         </div>
                     </div>
 
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                        {!servicioDisponible ? "Domicilios pausados hoy" : "Estamos cerrados"}
+                    <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter uppercase">
+                        {!servicioDisponible ? "Pausamos Momentáneamente" : "Estamos Descansando"}
                     </h2>
 
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-400 font-bold mb-8 leading-relaxed text-sm">
                         {!servicioDisponible
-                            ? "En este momento no contamos con servicio de domicilios, pero mañana estaremos de vuelta. ¡Te esperamos!"
-                            : `Lo sentimos, estamos cerrados en este momento.\n${horarioInfo.mensaje}`
+                            ? "Nuestro equipo está recargando energías. Pronto estaremos de vuelta para deleitarte."
+                            : `Volveremos pronto para servirte nuestro delicioso menú.\n${horarioInfo.mensaje}`
                         }
                     </p>
 
-                    {!servicioDisponible && (
-                        <div className="bg-orange-50 rounded-lg p-4 text-sm text-gray-700">
-                            <p className="font-medium text-orange-600">💡 Tip</p>
-                            <p className="mt-1">Puedes volver mañana o visitarnos directamente en nuestro establecimiento.</p>
-                        </div>
-                    )}
-
-                    {!horarioInfo.abierto && configuracion && (
-                        <div className="bg-orange-50 rounded-lg p-4 text-sm text-gray-700">
-                            <p className="font-medium">Nuestro horario:</p>
-                            <p className="mt-1 text-lg font-semibold text-orange-600">
-                                {configuracion.hora_apertura} - {configuracion.hora_cierre}
-                            </p>
-                        </div>
-                    )}
-                </div>
+                    <div className="bg-gray-900 rounded-3xl p-6 text-left shadow-xl shadow-gray-200">
+                        <p className="text-orange-500 font-black text-[10px] uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                            <Sparkles className="h-3 w-3" /> Recomendación
+                        </p>
+                        <p className="text-white text-xs font-bold leading-relaxed opacity-80">
+                            Preparamos los mejores platos de la ciudad. ¡No te pierdas nuestra apertura mañana!
+                        </p>
+                    </div>
+                </motion.div>
             </div>
         );
     }
 
-    // Clases CSS para las transiciones
-    const getTransitionClasses = () => {
-        if (!transitionDirection) return "opacity-100 transform translate-x-0";
-
-        if (transitionDirection === "left") {
-            return "opacity-0 transform translate-x-8";
-        } else {
-            return "opacity-0 transform -translate-x-8";
-        }
-    };
-
-    const getEnteringClasses = () => {
-        if (!transitionDirection) return "opacity-100 transform translate-x-0";
-
-        if (transitionDirection === "left") {
-            return "animate-slideInFromRight";
-        } else {
-            return "animate-slideInFromLeft";
-        }
-    };
-
     return (
-        <div className="min-h-screen">
-            {/* Header */}
-            <div className="sticky top-0 z-40 bg-white">
-                {/* Categorías */}
-                <div className="max-w-7xl mx-auto mt-0 px-0">
-                    <div className="pt-4">
-                        <nav className="flex space-x-6 overflow-x-auto px-4 md:px-6 scrollbar-hide">
-                            {categorias.map(cat => (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => cambiarCategoria(cat.id)}
-                                    className={`whitespace-nowrap py-2 text-sm font-medium transition-colors flex items-center gap-2 flex-shrink-0
-                                        ${categoriaActiva === cat.id
-                                            ? "text-orange-600"
-                                            : "text-gray-600 hover:text-gray-800"
-                                        }`}
-                                >
-                                    {/* Punto naranja para categoría activa */}
-                                    {categoriaActiva === cat.id && (
-                                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                    )}
-                                    <span className="capitalize">
-                                        {cat.nombre}
-                                    </span>
-                                </button>
-                            ))}
-                        </nav>
+        <div className="space-y-12">
+            {/* Header / Search Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+                <div>
+                    <div className="inline-flex items-center space-x-2 bg-orange-100/50 px-4 py-2 rounded-2xl mb-4">
+                        <ChefHat className="h-4 w-4 text-orange-600" />
+                        <span className="text-xs font-black text-orange-600 uppercase tracking-widest leading-none">Menú Premium</span>
                     </div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter">
+                        ¿Qué te <span className="text-orange-500 underline decoration-orange-200 underline-offset-8">antojas</span> hoy?
+                    </h2>
+                </div>
+
+                <div className="relative group min-w-[300px]">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Busca tu sabor favorito..."
+                        className="w-full bg-white border-2 border-transparent focus:border-orange-500/10 py-5 pl-14 pr-6 rounded-[2rem] shadow-xl shadow-gray-200/50 outline-none transition-all font-bold text-gray-900"
+                    />
                 </div>
             </div>
 
-            {/* Contenido principal con transición */}
-            <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 relative overflow-hidden">
-                {/* Contenido saliente */}
-                {transitionDirection && (
-                    <div
-                        className={`absolute inset-0 px-4 md:px-6 py-8 transition-all duration-300 ease-in-out ${getTransitionClasses()}`}
-                        key={`outgoing-${prevCategoria}`}
-                    >
-                        {renderContent(prevCategoria)}
-                    </div>
-                )}
-
-                {/* Contenido entrante */}
-                <div
-                    className={`transition-all duration-300 ease-in-out ${transitionDirection ? getEnteringClasses() : ''}`}
-                    key={`incoming-${categoriaActiva}`}
-                >
-                    {renderContent(categoriaActiva)}
-                </div>
-            </div>
-
-            {/* Botón flotante del carrito */}
-            {productosCarrito.length > 0 && (
-                <div className="fixed bottom-6 right-6 z-50">
+            {/* Categories Navigation */}
+            <div className="flex items-center gap-3 overflow-x-auto pb-6 -mx-4 px-4 no-scrollbar">
+                {categorias.map(cat => (
                     <button
-                        onClick={() => setMostrarCarrito(true)}
-                        className="relative bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all"
+                        key={cat.id}
+                        onClick={() => cambiarCategoria(cat.id)}
+                        className={`whitespace-nowrap px-8 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-lg
+                            ${categoriaActiva === cat.id
+                                ? "bg-orange-500 text-white shadow-orange-200 ring-4 ring-orange-50 scale-105"
+                                : "bg-white text-gray-500 hover:bg-orange-50 hover:text-orange-600 shadow-gray-100"
+                            }`}
                     >
-                        <FaShoppingCart className="w-6 h-6" />
-                        <span className="absolute border-orange-700 border -top-2 -left-2 bg-white text-orange-600 text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shadow">
-                            {productosCarrito.reduce((sum, p) => sum + p.cantidad, 0)}
-                        </span>
+                        {cat.nombre}
                     </button>
-                </div>
-            )}
+                ))}
+            </div>
 
-            {/* Modal del carrito */}
-            {mostrarCarrito && (
-                <Carrito
-                    tipo="domicilio"
-                    onClose={() => setMostrarCarrito(false)}
-                />
-            )}
+            {/* Main Content Area */}
+            <main>
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={categoriaActiva}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.4 }}
+                    >
+                        {renderContent(categoriaActiva)}
+                    </motion.div>
+                </AnimatePresence>
+            </main>
+
+            {/* Floating Order Summary Tab (Floating Button Style) */}
+            <AnimatePresence>
+                {productosCarrito.length > 0 && (
+                    <motion.div
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-24 lg:bottom-10 right-6 z-50"
+                    >
+                        <button
+                            onClick={() => setMostrarCarrito(true)}
+                            className="bg-gray-900 hover:bg-orange-500 text-white p-6 rounded-[2.5rem] shadow-2xl flex items-center gap-4 transition-all hover:scale-105 group"
+                        >
+                            <div className="relative">
+                                <ShoppingBag className="h-7 w-7" />
+                                <span className="absolute -top-3 -right-3 h-6 w-6 bg-orange-500 border-4 border-gray-900 rounded-full text-[10px] font-black flex items-center justify-center">
+                                    {productosCarrito.reduce((sum, p) => sum + p.cantidad, 0)}
+                                </span>
+                            </div>
+                            <div className="text-left hidden sm:block">
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">Tu Pedido</p>
+                                <p className="text-xl font-black tracking-tighter leading-none">
+                                    ${productosCarrito.reduce((sum, p) => sum + (p.precio * p.cantidad), 0).toLocaleString("es-CO")}
+                                </p>
+                            </div>
+                            <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Shopping Cart Modal */}
+            <AnimatePresence>
+                {mostrarCarrito && (
+                    <Carrito
+                        tipo="domicilio"
+                        onClose={() => setMostrarCarrito(false)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 
-    // Función para renderizar el contenido basado en la categoría
     function renderContent(categoria: string) {
         if (categoria === "todas") {
             return productosAgrupados.length === 0 ? (
-                <div className="text-center py-16">
-                    <h3 className="text-lg font-medium text-gray-900">No hay productos disponibles</h3>
-                </div>
+                <EmptyState />
             ) : (
-                <div className="space-y-8">
+                <div className="space-y-16">
                     {productosAgrupados.map(grupo => (
-                        <div key={grupo.categoria} className="space-y-2">
-                            {/* Título de la categoría con botón "Ver más" */}
-                            <div className="flex items-center justify-between md:px-0">
-                                <h2 className="text-lg md:text-xl font-bold text-gray-900">{grupo.categoria}</h2>
+                        <div key={grupo.categoria} className="space-y-8">
+                            <div className="flex items-center justify-between border-b-2 border-gray-100 pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-1.5 h-6 bg-orange-500 rounded-full" />
+                                    <h2 className="text-2xl font-black text-gray-900 tracking-tighter uppercase">{grupo.categoria}</h2>
+                                </div>
                                 <button
                                     onClick={() => cambiarCategoria((grupo.categoria || "General").toLowerCase().replace(/\s+/g, "-"))}
-                                    className="text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors flex items-center gap-1"
-
+                                    className="text-[10px] font-black text-gray-400 hover:text-orange-500 transition-colors uppercase tracking-[0.2em]"
                                 >
-                                    Ver más
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
+                                    Explorar Todo
                                 </button>
                             </div>
 
-                            {/* Slider horizontal - Móvil y Tablet (hasta lg) */}
-                            <div className="lg:hidden">
-                                <div className="overflow-x-auto scrollbar-hide pb-1">
-                                    <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
-                                        {grupo.productos.map(producto => (
-                                            <div key={producto.id} className="flex-shrink-0 w-40">
-                                                <ProductoCard
-                                                    producto={producto}
-                                                    todosLosProductos={productos}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Grid - Solo en desktop (lg en adelante) */}
-                            <div className="hidden lg:grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                                 {grupo.productos.map(producto => (
                                     <ProductoCard
                                         key={producto.id}
                                         producto={producto}
-                                        todosLosProductos={productos}
+                                        todosLosProductos={productosFiltrados}
                                     />
                                 ))}
                             </div>
@@ -231,66 +212,38 @@ export default function Domicilios() {
             );
         } else {
             return productosFiltrados.length === 0 ? (
-                <div className="text-center py-16">
-                    <div className="mx-auto w-28 h-28 bg-gradient-to-br from-orange-100 to-white rounded-full flex items-center justify-center mb-4">
-                        <svg className="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5" />
-                        </svg>
-                    </div>
-                    <h3 className="mt-2 text-lg font-medium text-gray-900">No hay productos disponibles</h3>
-                    <p className="mt-1 text-sm text-gray-500">No se encontraron productos en esta categoría.</p>
-                </div>
+                <EmptyState />
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                     {productosFiltrados.map(producto => (
                         <ProductoCard
                             key={producto.id}
                             producto={producto}
-                            todosLosProductos={productos}
+                            todosLosProductos={productosFiltrados}
                         />
                     ))}
                 </div>
             );
         }
     }
-}
 
-// Agregar los estilos de animación al CSS global
-const styles = `
-@keyframes slideInFromLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-30px);
+    function EmptyState() {
+        return (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="h-24 w-24 bg-gray-100 rounded-[2rem] flex items-center justify-center mb-6">
+                    <UtensilsCrossed className="h-10 w-10 text-gray-300" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Próximamente</h3>
+                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-2 max-w-xs mx-auto">
+                    Estamos actualizando nuestro menú con nuevas delicias para ti.
+                </p>
+                <button
+                    onClick={() => cambiarCategoria("todas")}
+                    className="mt-8 px-8 py-4 bg-gray-900 text-white font-black rounded-2xl hover:bg-orange-500 transition-colors uppercase tracking-widest text-xs"
+                >
+                    Volver al Menú
+                </button>
+            </div>
+        );
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes slideInFromRight {
-    from {
-        opacity: 0;
-        transform: translateX(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.animate-slideInFromLeft {
-    animation: slideInFromLeft 0.3s ease-in-out forwards;
-}
-
-.animate-slideInFromRight {
-    animation: slideInFromRight 0.3s ease-in-out forwards;
-}
-`;
-
-// Inyectar los estilos
-if (typeof document !== 'undefined') {
-    const styleSheet = document.createElement("style");
-    styleSheet.innerText = styles;
-    document.head.appendChild(styleSheet);
 }

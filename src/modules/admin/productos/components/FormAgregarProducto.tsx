@@ -1,10 +1,8 @@
-// src/modules/admin/productos/components/FormAgregarProducto.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-
 import {
-    Image as FileText,
+    Type,
     Tag,
     DollarSign,
     Plus,
@@ -13,6 +11,13 @@ import {
     AlertCircle,
     CheckCircle,
     Info,
+    LayoutGrid,
+    Truck,
+    Settings,
+    ChevronRight,
+    Sparkles,
+    Trash2,
+    PlusCircle
 } from 'lucide-react';
 import Loading from '@/src/shared/components/ui/Loading';
 import { PageHeader } from '@/src/shared/components';
@@ -21,6 +26,7 @@ import { type CrearProductoData } from '../schemas/productoSchema';
 import type { IngredienteFrontend as Ingrediente } from '../types/producto';
 import ProductImageUploader from './ProductImageUploader';
 import { toast } from '@/src/shared/services/toast.service';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Tipos locales
 interface IngredienteSeleccionado {
@@ -45,14 +51,13 @@ export default function FormAgregarProducto() {
         cargarIngredientes
     } = useIngredientes();
 
-    // Hook para crear producto con optimización de imágenes
+    // Hook para crear producto
     const {
         form,
         crearProducto,
         submitting,
         error: productoError,
         setPreviewImage,
-        optimizationStats,
         clearError: clearProductoError
     } = useCrearProducto();
 
@@ -71,13 +76,8 @@ export default function FormAgregarProducto() {
     // Handlers
     const handleCrearCategoria = async () => {
         if (!nuevaCategoria.trim()) return;
-
-        const result = await crearCategoria({
-            nombre: nuevaCategoria,
-            activo: true,
-        });
+        const result = await crearCategoria({ nombre: nuevaCategoria, activo: true });
         if (result.success && result.categoria) {
-            // Establecer la nueva categoría como seleccionada
             form.setValue('categoria_id', result.categoria.id);
             setNuevaCategoria('');
             setShowNewCategory(false);
@@ -86,13 +86,8 @@ export default function FormAgregarProducto() {
 
     const handleCrearIngrediente = async () => {
         if (!nuevoIngrediente.trim()) return;
-
-        const result = await crearIngrediente({
-            nombre: nuevoIngrediente,
-            activo: true,
-        });
+        const result = await crearIngrediente({ nombre: nuevoIngrediente, activo: true });
         if (result.success && result.ingrediente) {
-            // Agregar ingrediente a la lista de seleccionados
             setIngredientesSeleccionados(prev => [...prev, {
                 id: result.ingrediente!.id.toString(),
                 nombre: result.ingrediente!.nombre,
@@ -126,17 +121,11 @@ export default function FormAgregarProducto() {
 
     const handleImageUpload = useCallback((file: File | null) => {
         if (file) {
-            // Crear un FileList artificial para el formulario
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
-            const fileList = dataTransfer.files;
-
-            form.setValue('imagen', fileList);
+            form.setValue('imagen', dataTransfer.files);
             form.clearErrors('imagen');
-
-            // Crear URL para preview
-            const objectUrl = URL.createObjectURL(file);
-            setPreviewImage(objectUrl);
+            setPreviewImage(URL.createObjectURL(file));
         } else {
             form.setValue('imagen', undefined);
             setPreviewImage(null);
@@ -144,575 +133,379 @@ export default function FormAgregarProducto() {
     }, [form, setPreviewImage]);
 
     const handleSubmitForm = useCallback(async (data: CrearProductoData) => {
-        // Verificar si hay ingredientes seleccionados
         if (ingredientesSeleccionados.length === 0) {
             const confirmed = await new Promise((resolve) => {
                 toast.warning('Producto sin personalización', {
-                    description: 'Este producto no tendrá ingredientes personalizables. ¿Deseas continuar?',
-                    duration: 5000,
-                    action: {
-                        label: 'Continuar',
-                        onClick: () => resolve(true),
-                    },
-                    cancel: {
-                        label: 'Cancelar',
-                        onClick: () => resolve(false),
-                    },
+                    description: '¿Deseas continuar sin ingredientes?',
+                    action: { label: 'Continuar', onClick: () => resolve(true) },
+                    cancel: { label: 'Cancelar', onClick: () => resolve(false) },
                 });
             });
-
             if (!confirmed) return;
         }
 
-        // Verificar ingredientes obligatorios si hay ingredientes
-        if (ingredientesSeleccionados.length > 0) {
-            const obligatorios = ingredientesSeleccionados.filter(ing => ing.obligatorio);
-            if (obligatorios.length === 0) {
-                const confirmed = await new Promise((resolve) => {
-                    toast.warning('Sin ingredientes obligatorios', {
-                        description: 'Todos los ingredientes son opcionales. ¿Estás seguro?',
-                        duration: 5000,
-                        action: {
-                            label: 'Sí, continuar',
-                            onClick: () => resolve(true),
-                        },
-                        cancel: {
-                            label: 'Revisar',
-                            onClick: () => resolve(false),
-                        },
-                    });
-                });
-
-                if (!confirmed) return;
-            }
-        }
-
-        // Agregar ingredientes seleccionados a los datos
-        const dataConIngredientes = {
-            ...data,
-            ingredientes: ingredientesSeleccionados
-        };
-
-        const result = await crearProducto(dataConIngredientes);
-
-        // Resetear solo si fue exitoso
+        const result = await crearProducto({ ...data, ingredientes: ingredientesSeleccionados });
         if (result.success) {
-            // Limpiar estados locales
             setIngredientesSeleccionados([]);
             setShowNewCategory(false);
             setNuevaCategoria('');
             setNuevoIngrediente('');
-
-            // Mostrar opción para crear otro producto
-            toast.success('¡Producto creado!', {
-                description: '¿Deseas crear otro producto?',
-                duration: 5000,
-                action: {
-                    label: 'Sí, crear otro',
-                    onClick: () => {
-                        // Solo resetear el formulario, no los otros estados
-                        form.reset();
-                        setPreviewImage(null);
-                    },
-                },
+            toast.success('¡Éxito Gastronómico!', {
+                description: 'Producto desplegado en el menú elite.',
+                action: { label: 'Crear Otro', onClick: () => { form.reset(); setPreviewImage(null); } },
             });
         }
     }, [crearProducto, form, ingredientesSeleccionados, setPreviewImage]);
 
-    const ingredientesObligatorios = ingredientesSeleccionados.filter(ing => ing.obligatorio);
-    const ingredientesOpcionales = ingredientesSeleccionados.filter(ing => !ing.obligatorio);
-
-    // Si está cargando, mostrar spinner
     if (loadingCategorias || loadingIngredientes) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <Loading
-                    texto="Cargando formulario..."
-                    tamaño="grande"
-                    color="orange-500"
-                />
-            </div>
-        );
+        return <Loading texto="Sincronizando Menú Elite..." tamaño="mediano" color="orange-500" />;
     }
 
+    const containerVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6, staggerChildren: 0.1 } }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, x: -10 },
+        visible: { opacity: 1, x: 0 }
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
+        <div className="min-h-screen bg-slate-50/50 pb-20">
             <PageHeader
-                title="Agregar Nuevo Producto"
-                description="Crea un producto personalizable para tu menú"
-                icon={<Package />}
+                title="Nuevo Producto Elite"
+                description="Diseña una experiencia culinaria premium"
+                icon={<Package className="h-8 w-8 text-orange-500" />}
                 variant="productos"
                 showBorder={true}
             />
 
-            <div className=" px-6 py-8">
-                <form
-                    onSubmit={form.handleSubmit(handleSubmitForm)}
-                    className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
-                >
-                    {/* Header del formulario */}
-                    <div className="bg-gradient-to-r from-orange-500 to-orange-500 text-white p-4 sm:p-6">
-                        <div className="flex items-center gap-3">
-                            <Package size={28} />
-                            <div>
-                                <h2 className="text-xl sm:text-2xl font-bold">Crear Producto</h2>
-                                <p className="text-gray-300 text-sm">Completa la información del producto</p>
+            <div className="max-w-[1600px] mx-auto px-6 lg:px-10 py-12">
+                <form onSubmit={form.handleSubmit(handleSubmitForm)} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
+                    {/* Left Column: Media & Primary Info */}
+                    <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="lg:col-span-4 space-y-10"
+                    >
+                        {/* Section: Identity */}
+                        <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white shadow-2xl shadow-slate-200/50">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="h-12 w-12 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-600">
+                                    <Sparkles size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter">Identidad Visual</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Impacto de marca</p>
+                                </div>
+                            </div>
+
+                            <ProductImageUploader
+                                onImageUpload={handleImageUpload}
+                                label="Fotografía de Producto"
+                                maxSizeMB={10}
+                            />
+
+                            {form.formState.errors.imagen && (
+                                <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mt-4 flex items-center gap-2">
+                                    <AlertCircle size={14} /> {form.formState.errors.imagen.message}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Section: Quick Config */}
+                        <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-900/20 text-white relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-6 opacity-5">
+                                <Settings size={120} />
+                            </div>
+                            <div className="relative z-10 space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center text-orange-500 border border-white/10">
+                                        <Truck size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-black uppercase tracking-tighter">Logística Vital</h3>
+                                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Parámetros operativos</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3 block">Inversión del Cliente</label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                                <DollarSign className="text-orange-500" size={20} />
+                                            </div>
+                                            <input
+                                                type="number"
+                                                {...form.register('precio', { valueAsNumber: true })}
+                                                className="w-full pl-14 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-xl font-black focus:bg-white/10 focus:border-orange-500 outline-none transition-all placeholder:text-white/20"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        {form.formState.errors.precio && (
+                                            <p className="text-red-400 text-[10px] font-black uppercase tracking-widest mt-2">{form.formState.errors.precio.message}</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
-                        {/* Información básica */}
-                        <section className="space-y-4 sm:space-y-6">
-                            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                                Información básica
-                            </h3>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                                {/* Imagen */}
-                                <div className="lg:col-span-2">
-                                    <ProductImageUploader
-                                        onImageUpload={handleImageUpload}
-                                        label="Imagen del producto"
-                                        maxSizeMB={5}
-                                    />
-                                    {form.formState.errors.imagen && (
-                                        <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                                            <AlertCircle size={14} />
-                                            {form.formState.errors.imagen.message}
-                                        </p>
-                                    )}
-
-                                    {/* Estadísticas de optimización del hook */}
-                                    {optimizationStats.reductionPercentage && (
-                                        <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 text-green-700 text-sm">
-                                                <CheckCircle size={16} />
-                                                <span className="font-medium">Imagen optimizada:</span>
-                                                <span>{optimizationStats.reductionPercentage}% de reducción</span>
-                                            </div>
-                                            <p className="text-xs text-green-600 mt-1">
-                                                Formato final: {optimizationStats.format?.toUpperCase()}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Nombre */}
-                                <div>
-                                    <label className="block mb-2 font-medium text-gray-700">
-                                        Nombre del producto *
-                                    </label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <FileText className="text-gray-400" size={20} />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            {...form.register('nombre')}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${form.formState.errors.nombre
-                                                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                                                : 'border-gray-300'
-                                                }`}
-                                            placeholder="Ej. Hamburguesa Especial"
-                                        />
+                    {/* Right Column: Details & Customization */}
+                    <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="lg:col-span-8 space-y-10"
+                    >
+                        {/* Section: Technical specs */}
+                        <div className="bg-white/70 backdrop-blur-xl rounded-[3rem] p-10 border border-white shadow-2xl shadow-slate-200/50">
+                            <div className="flex items-center justify-between mb-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-14 w-14 bg-slate-900 rounded-[1.5rem] flex items-center justify-center text-white">
+                                        <LayoutGrid size={28} />
                                     </div>
-                                    {form.formState.errors.nombre && (
-                                        <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                                            <AlertCircle size={14} />
-                                            {form.formState.errors.nombre.message}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Precio */}
-                                <div>
-                                    <label className="block mb-2 font-medium text-gray-700">
-                                        Precio *
-                                    </label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <DollarSign className="text-gray-400" size={20} />
-                                        </div>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0.01"
-                                            {...form.register('precio', { valueAsNumber: true })}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${form.formState.errors.precio
-                                                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                                                : 'border-gray-300'
-                                                }`}
-                                            placeholder="15000"
-                                        />
-                                    </div>
-                                    {form.formState.errors.precio && (
-                                        <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                                            <AlertCircle size={14} />
-                                            {form.formState.errors.precio.message}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Categoría */}
-                                <div className="lg:col-span-2">
-                                    <label className="block mb-2 font-medium text-gray-700">
-                                        Categoría *
-                                    </label>
-                                    <div className="space-y-3">
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <Tag className="text-gray-400" size={20} />
-                                            </div>
-                                            <select
-                                                {...form.register('categoria_id')}
-                                                className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${form.formState.errors.categoria_id
-                                                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                                                    : 'border-gray-300'
-                                                    }`}
-                                            >
-                                                <option value="">Selecciona una categoría</option>
-                                                {categorias.map((cat) => (
-                                                    <option key={cat.id} value={cat.id}>
-                                                        {cat.nombre}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        {!showNewCategory ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowNewCategory(true)}
-                                                className="flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium transition-colors text-sm"
-                                            >
-                                                <Plus size={16} />
-                                                Crear nueva categoría
-                                            </button>
-                                        ) : (
-                                            <div className="flex flex-col sm:flex-row items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-300">
-                                                <input
-                                                    type="text"
-                                                    value={nuevaCategoria}
-                                                    onChange={(e) => setNuevaCategoria(e.target.value)}
-                                                    placeholder="Nombre de la nueva categoría"
-                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none w-full"
-                                                    onKeyPress={(e) => {
-                                                        if (e.key === 'Enter' && nuevaCategoria.trim()) {
-                                                            e.preventDefault();
-                                                            handleCrearCategoria();
-                                                        }
-                                                    }}
-                                                />
-                                                <div className="flex gap-2 w-full sm:w-auto">
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleCrearCategoria}
-                                                        disabled={!nuevaCategoria.trim()}
-                                                        className="flex-1 sm:flex-none px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                                                    >
-                                                        Crear
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setShowNewCategory(false);
-                                                            setNuevaCategoria('');
-                                                        }}
-                                                        className="px-3 py-2 text-gray-400 hover:text-gray-600 transition-colors border border-gray-300 rounded-lg"
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {form.formState.errors.categoria_id && (
-                                            <p className="text-red-500 text-sm flex items-center gap-1">
-                                                <AlertCircle size={14} />
-                                                {form.formState.errors.categoria_id.message}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Descripción */}
-                                <div className="lg:col-span-2">
-                                    <label className="block mb-2 font-medium text-gray-700">
-                                        Descripción
-                                    </label>
-                                    <textarea
-                                        {...form.register('descripcion')}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all resize-none"
-                                        rows={3}
-                                        placeholder="Describe los ingredientes principales y características especiales del producto..."
-                                    />
-                                    {form.formState.errors.descripcion && (
-                                        <p className="text-red-500 text-sm mt-1">
-                                            {form.formState.errors.descripcion.message}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Ingredientes */}
-                        <section className="space-y-6">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                <div>
-                                    <h3 className="text-lg sm:text-xl font-semibold text-gray-800">
-                                        Ingredientes (Opcional)
-                                    </h3>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Agrega ingredientes solo si deseas que el producto sea personalizable
-                                    </p>
-                                </div>
-                                <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                                    {ingredientesSeleccionados.length} ingrediente{ingredientesSeleccionados.length !== 1 ? 's' : ''} seleccionado{ingredientesSeleccionados.length !== 1 ? 's' : ''}
-                                </div>
-                            </div>
-
-                            {loadingIngredientes ? (
-                                <div className="text-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
-                                    <p className="text-gray-500">Cargando ingredientes...</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {/* Ingredientes disponibles */}
                                     <div>
-                                        <h4 className="text-md sm:text-lg font-medium text-gray-700 mb-3">
-                                            Ingredientes disponibles
-                                        </h4>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 max-h-100 overflow-y-auto pb-2 rounded-lg">
-                                            {ingredientes
-                                                .filter(ing => !ingredientesSeleccionados.find(sel => sel.id === ing.id.toString()))
-                                                .sort((a, b) => a.nombre.localeCompare(b.nombre))
-                                                .map((ing) => (
-                                                    <button
-                                                        key={ing.id}
-                                                        type="button"
-                                                        onClick={() => handleSelectIngrediente(ing)}
-                                                        className="px-2 py-2 bg-gray-100 hover:bg-orange-50 text-gray-700 hover:text-orange-700 rounded-lg text-xs sm:text-sm font-medium transition-all hover:border-orange-300 shadow-sm"
-                                                    >
-                                                        + {ing.nombre}
-                                                    </button>
-                                                ))}
-                                            {ingredientes.filter(ing => !ingredientesSeleccionados.find(sel => sel.id === ing.id.toString())).length === 0 && (
-                                                <div className="col-span-full text-center text-gray-500 py-4 text-sm">
-                                                    Todos los ingredientes han sido seleccionados
-                                                </div>
-                                            )}
-                                        </div>
+                                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Ficha Técnica</h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Estructura del producto</p>
                                     </div>
+                                </div>
+                            </div>
 
-                                    {/* Ingredientes seleccionados */}
-                                    {ingredientesSeleccionados.length > 0 && (
-                                        <div className="space-y-4">
-                                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                                <h4 className="text-md sm:text-lg font-medium text-gray-700">
-                                                    Ingredientes del producto
-                                                </h4>
-                                                <div className="flex gap-2 flex-wrap">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setIngredientesSeleccionados(prev =>
-                                                                prev.map(ing => ({ ...ing, obligatorio: true }))
-                                                            );
-                                                        }}
-                                                        className="text-xs px-3 py-1 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors"
-                                                    >
-                                                        Todos obligatorios
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setIngredientesSeleccionados(prev =>
-                                                                prev.map(ing => ({ ...ing, obligatorio: false }))
-                                                            );
-                                                        }}
-                                                        className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                                                    >
-                                                        Todos opcionales
-                                                    </button>
-                                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">Nombre del Producto</label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                                <Type className="text-slate-400 group-focus-within:text-orange-500 transition-colors" size={20} />
                                             </div>
-
-                                            {/* Obligatorios */}
-                                            {ingredientesObligatorios.length > 0 && (
-                                                <div>
-                                                    <h5 className="text-sm font-medium text-orange-700 mb-3 flex items-center">
-                                                        <CheckCircle size={16} className="mr-2" />
-                                                        Ingredientes principales ({ingredientesObligatorios.length})
-                                                    </h5>
-                                                    <div className="space-y-2">
-                                                        {ingredientesObligatorios.map((ing) => (
-                                                            <div
-                                                                key={ing.id}
-                                                                className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-orange-50 px-4 py-3 rounded-lg border border-orange-200 gap-2"
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-medium text-orange-800">{ing.nombre}</span>
-                                                                    <span className="text-xs text-orange-600 bg-orange-200 px-2 py-1 rounded-full">
-                                                                        Obligatorio
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => toggleObligatorio(ing.id)}
-                                                                        className="text-xs px-3 py-1 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
-                                                                    >
-                                                                        Hacer opcional
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => removeIngrediente(ing.id)}
-                                                                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
-                                                                        title="Quitar ingrediente"
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Opcionales */}
-                                            {ingredientesOpcionales.length > 0 && (
-                                                <div>
-                                                    <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                                                        <Info size={16} className="mr-2" />
-                                                        Ingredientes personalizables ({ingredientesOpcionales.length})
-                                                    </h5>
-                                                    <div className="space-y-2">
-                                                        {ingredientesOpcionales.map((ing) => (
-                                                            <div
-                                                                key={ing.id}
-                                                                className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50 px-4 py-3 rounded-lg border border-gray-300 gap-2"
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-medium text-gray-800">{ing.nombre}</span>
-                                                                    <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded-full">
-                                                                        Opcional
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => toggleObligatorio(ing.id)}
-                                                                        className="text-xs px-3 py-1 bg-orange-100 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-200 transition-colors"
-                                                                    >
-                                                                        Hacer obligatorio
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => removeIngrediente(ing.id)}
-                                                                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
-                                                                        title="Quitar ingrediente"
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Crear nuevo ingrediente */}
-                                    <div className="pt-6">
-                                        <h5 className="text-md font-medium text-gray-700 mb-3">
-                                            ¿No encuentras un ingrediente?
-                                        </h5>
-                                        <div className="flex flex-col sm:flex-row items-center gap-3">
                                             <input
                                                 type="text"
-                                                value={nuevoIngrediente}
-                                                onChange={(e) => setNuevoIngrediente(e.target.value)}
-                                                placeholder="Nombre del nuevo ingrediente"
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none w-full"
-                                                onKeyPress={(e) => {
-                                                    if (e.key === 'Enter' && nuevoIngrediente.trim()) {
-                                                        e.preventDefault();
-                                                        handleCrearIngrediente();
-                                                    }
-                                                }}
+                                                {...form.register('nombre')}
+                                                className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:border-orange-500 outline-none transition-all"
+                                                placeholder="Ej. Smash Burger Trufada"
                                             />
-                                            <button
-                                                type="button"
-                                                onClick={handleCrearIngrediente}
-                                                disabled={!nuevoIngrediente.trim()}
-                                                className="w-full sm:w-auto px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Plus size={16} />
-                                                    Crear ingrediente
-                                                </div>
-                                            </button>
                                         </div>
-                                        <p className="text-xs text-gray-500 mt-2">
-                                            El nuevo ingrediente se agregará automáticamente como opcional
-                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">Categoría de Destino</label>
+                                        <div className="space-y-4">
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                                    <Tag className="text-slate-400 group-focus-within:text-orange-500 transition-colors" size={20} />
+                                                </div>
+                                                <select
+                                                    {...form.register('categoria_id')}
+                                                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:border-orange-500 outline-none transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="">Selección de Categoría</option>
+                                                    {categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
+                                                </select>
+                                                <div className="absolute inset-y-0 right-0 pr-6 flex items-center pointer-events-none text-slate-400">
+                                                    <ChevronRight size={18} className="rotate-90" />
+                                                </div>
+                                            </div>
+
+                                            <AnimatePresence>
+                                                {showNewCategory ? (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        className="p-6 bg-orange-500/5 border border-orange-500/20 rounded-2xl flex gap-3"
+                                                    >
+                                                        <input
+                                                            value={nuevaCategoria}
+                                                            onChange={e => setNuevaCategoria(e.target.value)}
+                                                            className="flex-1 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold font-medium"
+                                                            placeholder="Nueva categoría..."
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleCrearCategoria}
+                                                            className="bg-orange-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-600"
+                                                        >
+                                                            Crear
+                                                        </button>
+                                                        <button type="button" onClick={() => setShowNewCategory(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                                                    </motion.div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowNewCategory(true)}
+                                                        className="flex items-center gap-2 text-[10px] font-black text-orange-500 uppercase tracking-widest hover:translate-x-1 transition-transform"
+                                                    >
+                                                        <PlusCircle size={14} /> Nueva Categoría
+                                                    </button>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-                        </section>
 
-                        {/* Error del producto */}
-                        {productoError && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="text-red-500 mt-0.5 flex-shrink-0" size={20} />
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">Relato Gastronómico (Descripción)</label>
+                                    <textarea
+                                        {...form.register('descripcion')}
+                                        className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[2rem] text-sm font-medium text-slate-900 focus:bg-white focus:border-orange-500 outline-none transition-all resize-none h-[188px]"
+                                        placeholder="Describe la experiencia, ingredientes y sensaciones..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section: Customization Gallery */}
+                        <div className="bg-white/70 backdrop-blur-xl rounded-[3rem] p-10 border border-white shadow-2xl shadow-slate-200/50">
+                            <div className="flex items-center justify-between mb-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-14 w-14 bg-orange-500 rounded-[1.5rem] flex items-center justify-center text-white">
+                                        <PlusCircle size={28} />
+                                    </div>
                                     <div>
-                                        <h4 className="font-medium text-red-800">Error al crear producto</h4>
-                                        <p className="text-sm text-red-700 mt-1">{productoError}</p>
-                                        <button
-                                            type="button"
-                                            onClick={clearProductoError}
-                                            className="text-xs text-red-600 hover:text-red-800 mt-2"
-                                        >
-                                            Cerrar
-                                        </button>
+                                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Galería de Personalización</h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Ingredientes y extras</p>
                                     </div>
                                 </div>
                             </div>
-                        )}
 
-                        {/* Botón de envío */}
-                        <div className="border-t border-gray-200 pt-6 sm:pt-8">
+                            <div className="space-y-10">
+                                {/* Ingredientes Disponibles */}
+                                <div>
+                                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-3">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Selección de Inventario
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        <AnimatePresence>
+                                            {ingredientes
+                                                .filter(ing => !ingredientesSeleccionados.find(sel => sel.id === ing.id.toString()))
+                                                .map(ing => (
+                                                    <motion.button
+                                                        key={ing.id}
+                                                        variants={itemVariants}
+                                                        type="button"
+                                                        onClick={() => handleSelectIngrediente(ing)}
+                                                        className="px-5 py-2.5 bg-slate-100 hover:bg-orange-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300"
+                                                    >
+                                                        + {ing.nombre}
+                                                    </motion.button>
+                                                ))}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+
+                                {/* Ingredientes Activos */}
+                                {ingredientesSeleccionados.length > 0 && (
+                                    <div className="space-y-6 pt-6 border-t border-slate-100">
+                                        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-3">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-green-500" /> Personalización Activa
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {ingredientesSeleccionados.map(ing => (
+                                                <motion.div
+                                                    key={ing.id}
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${ing.obligatorio ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 border-slate-100'}`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${ing.obligatorio ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                                                            {ing.obligatorio ? <CheckCircle size={16} /> : <Info size={16} />}
+                                                        </div>
+                                                        <span className={`text-xs font-black uppercase tracking-tight ${ing.obligatorio ? 'text-orange-900' : 'text-slate-600'}`}>{ing.nombre}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleObligatorio(ing.id)}
+                                                            className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-colors ${ing.obligatorio ? 'text-orange-600 hover:bg-orange-100' : 'text-slate-400 hover:bg-slate-200'}`}
+                                                        >
+                                                            {ing.obligatorio ? 'REQUERIDO' : 'OPCIONAL'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeIngrediente(ing.id)}
+                                                            className="p-1.5 text-slate-300 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Crear Nuevo Ingrediente Fast */}
+                                <div className="pt-8 flex flex-col sm:flex-row items-center gap-4">
+                                    <div className="relative flex-1 group w-full">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Plus size={16} className="text-slate-400" />
+                                        </div>
+                                        <input
+                                            value={nuevoIngrediente}
+                                            onChange={e => setNuevoIngrediente(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 bg-slate-100 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-orange-500 outline-none"
+                                            placeholder="Registrar nuevo ingrediente..."
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleCrearIngrediente}
+                                        disabled={!nuevoIngrediente.trim()}
+                                        className="w-full sm:w-auto bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-orange-500 transition-all disabled:opacity-30 shadow-xl shadow-slate-900/10"
+                                    >
+                                        Agregar al Inventario
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Error Context */}
+                        <AnimatePresence>
+                            {productoError && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="p-6 bg-red-500 text-white rounded-[2rem] flex items-center gap-6 shadow-2xl shadow-red-500/30"
+                                >
+                                    <div className="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
+                                        <AlertCircle size={28} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-sm font-black uppercase tracking-tighter">Interrupción en Despliegue</h4>
+                                        <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mt-1">{productoError}</p>
+                                    </div>
+                                    <button onClick={clearProductoError} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X size={24} /></button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Action Bar */}
+                        <div className="flex flex-col sm:flex-row items-center justify-end gap-6 pt-4">
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl py-3 sm:py-4 text-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                                className="w-full lg:w-[400px] h-20 bg-orange-500 text-white rounded-[2rem] relative overflow-hidden group shadow-2xl shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                             >
-                                {submitting ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-white"></div>
-                                        Creando producto...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Plus size={20} className="sm:w-6 sm:h-6" />
-                                        Agregar producto al menú
-                                    </>
-                                )}
+                                <div className="absolute inset-0 bg-slate-900 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                                <div className="relative z-10 flex items-center justify-center gap-4">
+                                    {submitting ? (
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white" />
+                                    ) : (
+                                        <Plus size={24} />
+                                    )}
+                                    <span className="text-sm font-black uppercase tracking-[0.2em]">
+                                        {submitting ? 'Desplegando...' : 'Publicar Producto Elite'}
+                                    </span>
+                                </div>
                             </button>
-
-                            <p className="text-center text-xs text-gray-500 mt-3">
-                                {ingredientesSeleccionados.length === 0
-                                    ? "✨ Los ingredientes son opcionales - puedes crear el producto sin ellos"
-                                    : `✅ Producto con ${ingredientesSeleccionados.length} ingrediente${ingredientesSeleccionados.length !== 1 ? 's' : ''}`
-                                }
-                            </p>
                         </div>
-                    </div>
+                    </motion.div>
                 </form>
             </div>
         </div>

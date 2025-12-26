@@ -6,17 +6,33 @@ import MenuSection from "./MenuSection";
 import LocationSection from "./LocationSection";
 import InfoSection from "./InfoSection";
 import Footer from "./Footer";
+import { obtenerConfiguracionRestaurante } from "../../../modules/dueno/configuraciones/actions/configuracionRestauranteActions";
+import { obtenerProductosAction } from "../../admin/productos/actions/obtenerProductosAction";
+import { obtenerCategoriasAction } from "../../admin/productos/actions/obtenerCategoriasAction";
 
 
-export default function RestaurantLandingPage() {
+export default async function RestaurantLandingPage() {
+    const [
+        { configuracion },
+        { productos },
+        { categorias }
+    ] = await Promise.all([
+        obtenerConfiguracionRestaurante(),
+        obtenerProductosAction(),
+        obtenerCategoriasAction({ soloActivas: true })
+    ]);
+
     return (
         <div className="min-h-screen bg-white">
-            <Header />
-            <HeroSection />
-            <MenuSection />
-            <LocationSection />
-            <InfoSection />
-            <Footer />
+            <Header config={configuracion} />
+            <HeroSection config={configuracion} />
+            <MenuSection
+                initialProducts={productos || []}
+                initialCategories={categorias || []}
+            />
+            <LocationSection config={configuracion} />
+            <InfoSection config={configuracion} />
+            <Footer config={configuracion} />
         </div>
     );
 }

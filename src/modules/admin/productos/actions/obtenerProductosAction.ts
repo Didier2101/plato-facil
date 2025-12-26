@@ -1,7 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/src/lib/supabaseAdmin';
-import { ProductoFrontend, ProductoDB } from '../types/producto';
+import type { ProductoFrontend, ProductoDB } from '../types/producto';
 
 // Definimos el tipo de respuesta de la base de datos incluyendo la relación
 interface ProductoResponse extends ProductoDB {

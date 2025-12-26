@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
+import { Phone, Mail, MapPin, Store, Info } from 'lucide-react';
 import type { ConfiguracionRestaurante } from '../actions/configuracionRestauranteActions';
 import ImageUploader from './ImageUploader';
 
@@ -30,26 +30,36 @@ export default function InformacionBasica({ configuracion, onConfigChange }: Inf
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                Información Básica
-            </h2>
+        <div className="premium-card p-10 space-y-12">
+            <div className="flex items-center justify-between border-b border-slate-50 pb-8">
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 shadow-inner">
+                        <Store className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase">Identidad Visual</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Branding y Datos de Contacto</p>
+                    </div>
+                </div>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                        Nombre del Restaurante *
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">
+                        Nombre del Restaurante
                     </label>
-                    <input
-                        type="text"
-                        name="nombre_restaurante"
-                        value={formData.nombre_restaurante}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
-                        placeholder="Ej: Mi Restaurante"
-                        required
-                    />
+                    <div className="relative group">
+                        <Info className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
+                        <input
+                            type="text"
+                            name="nombre_restaurante"
+                            value={formData.nombre_restaurante}
+                            onChange={handleInputChange}
+                            className="premium-input w-full pl-14"
+                            placeholder="Ej: KAVVO GOURMET"
+                            required
+                        />
+                    </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -59,50 +69,56 @@ export default function InformacionBasica({ configuracion, onConfigChange }: Inf
                     />
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaPhone className="text-orange-500" />
-                        Teléfono
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">
+                        Línea Telefónica
                     </label>
-                    <input
-                        type="tel"
-                        name="telefono"
-                        value={formData.telefono || ''}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
-                        placeholder="+57 123 456 7890"
-                    />
+                    <div className="relative group">
+                        <Phone className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
+                        <input
+                            type="tel"
+                            name="telefono"
+                            value={formData.telefono || ''}
+                            onChange={handleInputChange}
+                            className="premium-input w-full pl-14"
+                            placeholder="+57 300 000 0000"
+                        />
+                    </div>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaEnvelope className="text-orange-500" />
-                        Email
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">
+                        Correo Electrónico
                     </label>
-                    <input
-                        type="email"
-                        name="email"
-                        value={formData.email || ''}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
-                        placeholder="contacto@mirestaurante.com"
-                    />
+                    <div className="relative group">
+                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email || ''}
+                            onChange={handleInputChange}
+                            className="premium-input w-full pl-14"
+                            placeholder="hola@kavvo.com"
+                        />
+                    </div>
                 </div>
 
-                <div className="md:col-span-2 space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaMapMarkerAlt className="text-orange-500" />
-                        Dirección Completa *
+                <div className="md:col-span-2 space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">
+                        Dirección Física Principal
                     </label>
-                    <input
-                        type="text"
-                        name="direccion_completa"
-                        value={formData.direccion_completa}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
-                        placeholder="Calle 123 #45-67, Ciudad"
-                        required
-                    />
+                    <div className="relative group">
+                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
+                        <input
+                            type="text"
+                            name="direccion_completa"
+                            value={formData.direccion_completa}
+                            onChange={handleInputChange}
+                            className="premium-input w-full pl-14"
+                            placeholder="Calle 123 #45-67, Ciudad"
+                            required
+                        />
+                    </div>
                 </div>
             </div>
         </div>

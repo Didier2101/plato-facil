@@ -2,9 +2,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { PRIVATE_ROUTES, PUBLIC_ROUTES } from "@/src/shared/constants/app-routes";
+import { APP_ROUTES, PUBLIC_ROUTES } from "@/src/shared/constants/app-routes";
 import { ROLES } from "@/src/shared/constants/rol";
 import type { Rol } from "@/src/shared/types/rol";
+
+const { puedeAccederRuta } = APP_ROUTES;
 
 export async function middleware(req: NextRequest) {
     const res = NextResponse.next();
@@ -70,49 +72,18 @@ export async function middleware(req: NextRequest) {
     const userRole = usuario.rol as Rol;
 
     // ✅ REGLAS DE ACCESO POR ROL
-
-    // DUEÑO tiene acceso a TODO - verificar primero
-    if (userRole === ROLES.DUENO) {
-        return res; // ✅ Acceso total
-    }
-
-    // Rutas exclusivas de DUEÑO
-    if (
-        pathname.startsWith(PRIVATE_ROUTES.DUENO.REPORTES) ||
-        pathname.startsWith(PRIVATE_ROUTES.DUENO.CONFIGURACIONES) ||
-        pathname.startsWith(PRIVATE_ROUTES.DUENO.USUARIOS)
-    ) {
-        return NextResponse.redirect(
-            new URL(`${PUBLIC_ROUTES.LOGIN}?error=acceso_denegado`, req.url)
-        );
-    }
-
-    // Rutas de ADMIN (caja, ordenes, productos, tienda)
-    if (
-        pathname.startsWith(PRIVATE_ROUTES.ADMIN.CAJA) ||
-        pathname.startsWith(PRIVATE_ROUTES.ADMIN.ORDENES) ||
-        pathname.startsWith(PRIVATE_ROUTES.ADMIN.PRODUCTOS) ||
-        pathname.startsWith(PRIVATE_ROUTES.ADMIN.TIENDA)
-    ) {
-        if (userRole === ROLES.ADMIN) {
-            return res; // ✅ Admin puede acceder
+    if (pathname.startsWith("/administrativo")) {
+        // DUEÑO tiene acceso a TODO
+        if (userRole === ROLES.DUENO) {
+            return res;
         }
-        return NextResponse.redirect(
-            new URL(`${PUBLIC_ROUTES.LOGIN}?error=acceso_denegado`, req.url)
-        );
-    }
 
-    // Rutas de REPARTIDOR
-    if (
-        pathname.startsWith(PRIVATE_ROUTES.REPARTIDOR.ORDENES_LISTAS) ||
-        pathname.startsWith(PRIVATE_ROUTES.REPARTIDOR.MIS_ENTREGAS)
-    ) {
-        if (userRole === ROLES.REPARTIDOR) {
-            return res; // ✅ Repartidor puede acceder
+        // Verificar si el rol tiene permiso para la ruta específica
+        if (!puedeAccederRuta(userRole, pathname)) {
+            return NextResponse.redirect(
+                new URL(`${PUBLIC_ROUTES.LOGIN}?error=acceso_denegado`, req.url)
+            );
         }
-        return NextResponse.redirect(
-            new URL(`${PUBLIC_ROUTES.LOGIN}?error=acceso_denegado`, req.url)
-        );
     }
 
     return res;

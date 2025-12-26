@@ -14,7 +14,14 @@ import {
     AlertTriangle,
     ChevronRight,
     User,
+    ArrowRight,
+    Loader2,
+    Truck,
+    Box,
+    Sparkles,
+    Smartphone
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Tipos para el seguimiento
 interface OrdenEstado {
@@ -35,49 +42,55 @@ interface OrdenEstado {
     puede_cancelar: boolean;
 }
 
-// Configuración de estados
+// Configuración de estados premium
 const estadosConfig = {
     orden_tomada: {
-        label: "En preparación",
+        label: "Preparando",
+        desc: "Tu pedido está en cocina siendo preparado con amor.",
         icon: Clock,
-        color: "text-orange-600 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-500",
-        progressColor: "bg-orange-500",
+        color: "text-orange-500",
+        bgColor: "bg-orange-50",
+        progress: 25,
     },
     lista: {
-        label: "Esperando repartidor",
-        icon: CheckCircle,
-        color: "text-orange-600 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-500",
-        progressColor: "bg-orange-500",
+        label: "¡Listo!",
+        desc: "Tu pedido está listo y esperando ser despachado.",
+        icon: Box,
+        color: "text-blue-500",
+        bgColor: "bg-blue-50",
+        progress: 50,
     },
     en_camino: {
-        label: "El repartidor va en camino",
-        icon: Package,
-        color: "text-orange-600 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-500",
-        progressColor: "bg-orange-500",
+        label: "En Camino",
+        desc: "Un repartidor lleva tu pedido a toda velocidad.",
+        icon: Truck,
+        color: "text-purple-500",
+        bgColor: "bg-purple-50",
+        progress: 75,
     },
     llegue_a_destino: {
-        label: "El repartidor llegó a tu dirección",
+        label: "¡Llegamos!",
+        desc: "El repartidor está en la puerta de tu dirección.",
         icon: MapPin,
-        color: "text-orange-600 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-500",
-        progressColor: "bg-orange-500",
+        color: "text-pink-500",
+        bgColor: "bg-pink-50",
+        progress: 90,
     },
     entregada: {
-        label: "Entregada",
+        label: "Entregado",
+        desc: "¡Buen provecho! Esperamos que lo disfrutes.",
         icon: CheckCircle,
-        color: "text-orange-600 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-500",
-        progressColor: "bg-orange-500",
+        color: "text-green-500",
+        bgColor: "bg-green-50",
+        progress: 100,
     },
     cancelada: {
-        label: "Cancelada",
+        label: "Cancelado",
+        desc: "Este pedido ha sido cancelado.",
         icon: XCircle,
-        color: "text-orange-600 bg-orange-50 border-orange-200",
-        iconColor: "text-orange-500",
-        progressColor: "bg-orange-500",
+        color: "text-gray-400",
+        bgColor: "bg-gray-100",
+        progress: 0,
     },
 };
 
@@ -93,10 +106,6 @@ export default function MisOrdenes() {
     const isComponentMounted = useRef(true);
     const cargaInicialRealizada = useRef(false);
 
-    const mostrarNotificacion = (mensaje: string, color: string) => {
-        console.log(`Notificación ${color}: ${mensaje}`);
-    };
-
     const detenerActualizacionesEnTiempoReal = useCallback(() => {
         if (pollingInterval.current) {
             clearInterval(pollingInterval.current);
@@ -105,12 +114,11 @@ export default function MisOrdenes() {
         setActualizandoEnTiempoReal(false);
     }, []);
 
-    // Usar useCallback para memoizar la función y evitar dependencias cíclicas
     const buscarOrden = useCallback(async (silencioso = false) => {
         const telefonoABuscar = telefono.trim() || cliente?.telefono;
 
         if (!telefonoABuscar) {
-            setError("Ingresa tu número de teléfono");
+            setError("Por favor ingresa tu número de teléfono");
             return;
         }
 
@@ -126,10 +134,7 @@ export default function MisOrdenes() {
 
             if (result.success && result.orden) {
                 if (isComponentMounted.current) {
-                    const estadoCambio = orden && orden.estado !== result.orden.estado;
                     setOrden(result.orden);
-
-                    // Actualizar store con información completa
                     if (cliente) {
                         setCliente({
                             ...cliente,
@@ -138,26 +143,16 @@ export default function MisOrdenes() {
                             direccion: result.orden.cliente_direccion,
                         });
                     }
-
-                    if (estadoCambio && !silencioso) {
-                        mostrarNotificacion(
-                            `¡Estado actualizado: ${estadosConfig[
-                                result.orden.estado as keyof typeof estadosConfig
-                            ].label}!`,
-                            "orange"
-                        );
-                    }
                 }
             } else {
                 if (isComponentMounted.current) {
-                    setError(result.error || "No se encontró ninguna orden con ese teléfono");
+                    setError(result.error || "No encontramos órdenes activas con este número.");
                     setOrden(null);
                 }
             }
         } catch (err) {
-            console.error("Error buscando orden:", err);
             if (isComponentMounted.current) {
-                setError("Error al buscar la orden. Intenta de nuevo.");
+                setError("Error al buscar tu pedido. Intenta de nuevo.");
                 setOrden(null);
             }
         } finally {
@@ -165,49 +160,37 @@ export default function MisOrdenes() {
                 setLoading(false);
             }
         }
-    }, [telefono, cliente, orden, setCliente]);
+    }, [telefono, cliente, setCliente]);
 
     const iniciarActualizacionesEnTiempoReal = useCallback(() => {
         if (pollingInterval.current) {
             clearInterval(pollingInterval.current);
         }
-
         setActualizandoEnTiempoReal(true);
-
         pollingInterval.current = setInterval(() => {
             buscarOrden(true);
         }, 10000);
     }, [buscarOrden]);
 
-    // Efecto para iniciar polling cuando se encuentra una orden activa
     useEffect(() => {
-        if (orden && orden.estado !== "entregada" && orden.estado !== "cancelada" && !actualizandoEnTiempoReal) {
+        if (orden && !["entregada", "cancelada"].includes(orden.estado) && !actualizandoEnTiempoReal) {
             iniciarActualizacionesEnTiempoReal();
         }
     }, [orden, actualizandoEnTiempoReal, iniciarActualizacionesEnTiempoReal]);
 
-    // Efecto para detener polling cuando la orden está completa
     useEffect(() => {
-        if (orden && (orden.estado === "entregada" || orden.estado === "cancelada" || orden.estado === "llegue_a_destino")) {
+        if (orden && ["entregada", "cancelada"].includes(orden.estado)) {
             detenerActualizacionesEnTiempoReal();
         }
     }, [orden, detenerActualizacionesEnTiempoReal]);
 
-    // Carga inicial automática
     useEffect(() => {
         isComponentMounted.current = true;
-
-        // Si hay un cliente con teléfono y no se ha realizado carga inicial
         if (cliente?.telefono && !cargaInicialRealizada.current) {
             setTelefono(cliente.telefono);
             cargaInicialRealizada.current = true;
-
-            // Buscar orden automáticamente
-            setTimeout(() => {
-                buscarOrden(false);
-            }, 500);
+            setTimeout(() => buscarOrden(false), 500);
         }
-
         return () => {
             isComponentMounted.current = false;
             detenerActualizacionesEnTiempoReal();
@@ -226,293 +209,236 @@ export default function MisOrdenes() {
     const formatearFecha = (fecha: string) => {
         return new Date(fecha).toLocaleString("es-CO", {
             day: "2-digit",
-            month: "2-digit",
+            month: "short",
             hour: "2-digit",
             minute: "2-digit",
         });
     };
 
-    const obtenerTiempoEstimado = (estado: string, tipo: string) => {
-        if (estado === "entregada" || estado === "cancelada") return null;
-
-        const tiempos = {
-            orden_tomada: tipo === "domicilio" ? "25-35 min" : "15-20 min",
-            lista: tipo === "domicilio" ? "Esperando repartidor" : "Lista para recoger",
-            en_camino: "El repartidor está en camino",
-            llegue_a_destino: "El repartidor ha llegado",
-        };
-
-        return tiempos[estado as keyof typeof tiempos] || null;
-    };
-
-    const formatearTelefono = (telefono: string) => {
-        return telefono.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3");
-    };
-
-    const getProgressBarColor = () => {
-        return "bg-orange-500";
-    };
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white pb-32">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-6 sticky top-0 z-40">
-                <div className="max-w-4xl mx-auto flex items-center gap-4">
-                    <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-3 rounded-xl">
-                        <Package className="text-2xl text-white" />
+        <div className="max-w-3xl mx-auto space-y-10 pb-24">
+            {/* Header Moderno */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <div className="inline-flex items-center space-x-2 bg-orange-100/50 px-4 py-2 rounded-2xl mb-4 text-orange-600">
+                        <Smartphone className="h-4 w-4" />
+                        <span className="text-xs font-black uppercase tracking-widest leading-none">Rastreo VIP</span>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Seguimiento de Pedido
-                        </h1>
-                        <p className="text-sm text-gray-600 mt-1">
-                            {cliente?.nombre ? `¡Hola ${cliente.nombre}!` : "Rastrea tu orden en tiempo real"}
-                        </p>
-                    </div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter">
+                        Mis <span className="text-orange-500">Órdenes</span>
+                    </h2>
+                    <p className="text-gray-400 font-bold text-sm mt-2 uppercase tracking-widest">
+                        {cliente?.nombre ? `¡Hola ${cliente.nombre.split(' ')[0]}! Aquí está tu pedido` : "Ingresa tu número para rastrear"}
+                    </p>
                 </div>
-            </div>
 
-            {/* Contenido */}
-            <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
-                {/* Card búsqueda */}
-                <div className="bg-white rounded-2xl p-6 shadow-md">
-                    <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                            <Phone size={16} className="inline mr-2 text-orange-500" />
-                            Tu número de teléfono
-                        </label>
-                        {cliente?.telefono && (
-                            <button
-                                onClick={limpiarTelefono}
-                                className="text-xs text-orange-600 hover:text-orange-800 underline"
-                            >
-                                Cambiar teléfono
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="relative mb-3">
-                        <input
-                            type="tel"
-                            value={telefono}
-                            onChange={(e) => setTelefono(e.target.value)}
-                            placeholder="Ej: 300 123 4567"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-base bg-gray-50"
-                            disabled={actualizandoEnTiempoReal}
-                            onKeyPress={(e) => e.key === "Enter" && buscarOrden()}
-                        />
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <Search size={20} className="text-gray-400" />
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-3">
-                            <p className="text-orange-700 text-sm flex items-center gap-2">
-                                <AlertTriangle size={16} />
-                                {error}
-                            </p>
-                        </div>
-                    )}
-
+                <div className="relative group min-w-[300px]">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+                    <input
+                        type="tel"
+                        value={telefono}
+                        onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ""))}
+                        placeholder="Tu número (ej: 310...)"
+                        className="w-full bg-white border-2 border-transparent focus:border-orange-500/10 py-5 pl-14 pr-6 rounded-[2rem] shadow-xl shadow-gray-200/50 outline-none transition-all font-bold text-gray-900"
+                        onKeyPress={(e) => e.key === "Enter" && buscarOrden()}
+                    />
                     <button
                         onClick={() => buscarOrden()}
-                        disabled={loading || !telefono.trim()}
-                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-400 disabled:to-gray-400 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-md"
+                        disabled={loading || telefono.length < 7}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-gray-900 hover:bg-orange-500 text-white p-3 rounded-2xl transition-all disabled:opacity-30"
                     >
-                        {loading ? (
-                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                        ) : (
-                            <Search size={20} />
-                        )}
-                        {loading ? "Buscando..." : "Buscar mi pedido"}
+                        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
                     </button>
-
-                    <div className="mt-4 p-3 bg-orange-50 rounded-xl border border-orange-200">
-                        <p className="text-orange-800 text-sm font-medium mb-1">
-                            {cliente?.telefono ? "✅ Teléfono recordado" : "💡 ¿Primera vez?"}
-                        </p>
-                        <p className="text-orange-700 text-xs">
-                            {cliente?.telefono
-                                ? `Usaremos ${formatearTelefono(cliente.telefono)} para buscar tus pedidos`
-                                : "Usa el mismo teléfono que registraste al hacer tu pedido"
-                            }
-                        </p>
-                    </div>
+                    {cliente?.telefono && (
+                        <button
+                            onClick={limpiarTelefono}
+                            className="absolute -bottom-6 right-4 text-[10px] font-black text-gray-400 hover:text-orange-500 uppercase tracking-widest transition-colors"
+                        >
+                            Cambiar Número
+                        </button>
+                    )}
                 </div>
+            </div>
 
-                {/* Estado de la orden */}
-                {orden && (
-                    <>
-                        {/* Card resumen */}
-                        <div className="bg-white rounded-2xl p-6 shadow-md ">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500">Orden #</span>
-                                    <h2 className="text-lg font-bold text-gray-600">
-                                        {orden.id.slice(-6)}
-                                    </h2>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-2xl font-bold text-orange-600">
-                                        ${orden.total.toLocaleString("es-CO")}
-                                    </div>
-                                    <div className="text-xs text-gray-500 capitalize">
-                                        {orden.tipo_orden === "domicilio" ? "🚚 Domicilio" : "🏪 Para recoger"}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                <User size={16} className="text-gray-600" />
-                                <div>
-                                    <p className="text-sm font-medium text-gray-800">
-                                        {cliente?.nombre || orden.cliente_nombre}
-                                    </p>
-                                    {(cliente?.telefono || orden.cliente_telefono) && (
-                                        <p className="text-xs text-gray-600">
-                                            {formatearTelefono(cliente?.telefono || orden.cliente_telefono || "")}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+            {error && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-orange-50 border-2 border-orange-100 rounded-[2rem] p-6 text-center"
+                >
+                    <AlertTriangle className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                    <p className="text-orange-800 font-black tracking-tight">{error}</p>
+                </motion.div>
+            )}
 
-                        {/* Card estado con progreso visual */}
-                        <div className="bg-white rounded-2xl p-6 shadow-md">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className={`p-3 rounded-full ${estadosConfig[orden.estado].color}`}>
+            {/* Visualización de la Orden */}
+            <AnimatePresence mode="wait">
+                {orden ? (
+                    <motion.div
+                        key={orden.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="space-y-8"
+                    >
+                        {/* Card Principal - Estado */}
+                        <div className="bg-white rounded-[3rem] p-8 md:p-10 shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
+                            {actualizandoEnTiempoReal && (
+                                <div className="absolute top-6 right-8 flex items-center space-x-2">
+                                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">En Vivo</span>
+                                </div>
+                            )}
+
+                            <div className="flex flex-col md:flex-row md:items-center gap-8 mb-10">
+                                <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center shrink-0 ${estadosConfig[orden.estado].bgColor} shadow-inner`}>
                                     {(() => {
                                         const Icon = estadosConfig[orden.estado].icon;
-                                        return <Icon size={24} className={estadosConfig[orden.estado].iconColor} />;
+                                        return <Icon className={`h-12 w-12 ${estadosConfig[orden.estado].color}`} />;
                                     })()}
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-bold text-gray-800">
-                                        {estadosConfig[orden.estado].label}
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">
-                                        {obtenerTiempoEstimado(orden.estado, orden.tipo_orden) || "Proceso completado"}
-                                    </p>
+                                <div>
+                                    <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${estadosConfig[orden.estado].color}`}>Pedido {estadosConfig[orden.estado].label}</span>
+                                    <h3 className="text-3xl font-black text-gray-900 tracking-tighter mt-1">{estadosConfig[orden.estado].desc}</h3>
+                                    <p className="text-sm font-bold text-gray-400 mt-2 uppercase tracking-widest">Orden #{orden.id.slice(-6)} • {formatearFecha(orden.created_at)}</p>
                                 </div>
-                                {actualizandoEnTiempoReal && (
-                                    <div className="animate-pulse w-3 h-3 bg-orange-500 rounded-full"></div>
-                                )}
                             </div>
 
-                            {/* Barra de progreso */}
-                            {(orden.estado === "lista" || orden.estado === "en_camino" || orden.estado === "llegue_a_destino" || orden.estado === "entregada") && (
-                                <div className="mb-4">
-                                    <div className="flex justify-between text-xs text-gray-500 mb-2">
-                                        <span>Inicio</span>
-                                        <span>Entrega</span>
+                            {/* Barra de Progreso Premium */}
+                            {orden.estado !== "cancelada" && (
+                                <div className="space-y-4">
+                                    <div className="h-4 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-1">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${estadosConfig[orden.estado].progress}%` }}
+                                            className={`h-full rounded-full ${estadosConfig[orden.estado].progress === 100 ? 'bg-green-500 shadow-green-200' : 'bg-orange-500 shadow-orange-200'} shadow-lg`}
+                                        />
                                     </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
-                                        <div
-                                            className={`h-2 rounded-full transition-all duration-500 ${orden.estado === "lista" ? "w-1/4" :
-                                                orden.estado === "en_camino" ? "w-1/2" :
-                                                    orden.estado === "llegue_a_destino" ? "w-3/4" :
-                                                        "w-full"
-                                                } ${getProgressBarColor()}`}
-                                        ></div>
+                                    <div className="flex justify-between px-2">
+                                        <div className="text-center">
+                                            <div className={`w-2 h-2 rounded-full mx-auto mb-2 ${estadosConfig[orden.estado].progress >= 25 ? 'bg-orange-500' : 'bg-gray-200'}`} />
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cocina</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className={`w-2 h-2 rounded-full mx-auto mb-2 ${estadosConfig[orden.estado].progress >= 50 ? 'bg-orange-500' : 'bg-gray-200'}`} />
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Listo</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className={`w-2 h-2 rounded-full mx-auto mb-2 ${estadosConfig[orden.estado].progress >= 75 ? 'bg-orange-500' : 'bg-gray-200'}`} />
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Envío</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className={`w-2 h-2 rounded-full mx-auto mb-2 ${estadosConfig[orden.estado].progress >= 100 ? 'bg-green-500' : 'bg-gray-200'}`} />
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fin</span>
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Card dirección */}
-                        {orden.tipo_orden === "domicilio" && (
-                            <div className="bg-white rounded-2xl p-6 shadow-md">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <MapPin size={20} className="text-orange-500" />
-                                    <h4 className="font-bold text-gray-800">Dirección de entrega</h4>
+                        {/* Info del Pedido Side-by-Side */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Productos */}
+                            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-100">
+                                <h4 className="text-lg font-black text-gray-900 tracking-tighter mb-6 flex items-center gap-3">
+                                    <Package className="h-5 w-5 text-orange-500" /> Tu Selección
+                                </h4>
+                                <div className="space-y-4">
+                                    {orden.productos.map((prod, i) => (
+                                        <div key={i} className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl group hover:bg-orange-50 transition-colors">
+                                            <div className="w-10 h-10 bg-white border border-gray-100 rounded-xl flex items-center justify-center font-black text-orange-600 shadow-sm group-hover:scale-110 transition-transform">
+                                                {prod.cantidad}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-black text-gray-900 text-sm leading-tight">{prod.nombre}</p>
+                                                {prod.personalizaciones && prod.personalizaciones.length > 0 && (
+                                                    <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mt-1">
+                                                        {prod.personalizaciones.join(", ")}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <p className="text-gray-700">{cliente?.direccion || orden.cliente_direccion}</p>
-                                <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
-                                    <Phone size={14} />
-                                    <span>
-                                        {formatearTelefono(cliente?.telefono || orden.cliente_telefono || "Sin teléfono")}
-                                    </span>
+                                <div className="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center">
+                                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Inversión Total</span>
+                                    <span className="text-2xl font-black text-orange-600 tracking-tighter">${orden.total.toLocaleString()}</span>
                                 </div>
+                            </div>
+
+                            {/* Entrega Info */}
+                            <div className="bg-gray-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-500/10 rounded-full -ml-16 -mb-16 blur-3xl" />
+                                <h4 className="text-lg font-black text-white tracking-tighter mb-6 flex items-center gap-3 relative z-10">
+                                    <MapPin className="h-5 w-5 text-orange-500" /> Detalles de Entrega
+                                </h4>
+                                <div className="space-y-6 relative z-10">
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Destino</p>
+                                        <p className="font-bold text-gray-300 text-sm leading-relaxed">{orden.cliente_direccion}</p>
+                                    </div>
+                                    <div className="flex items-center gap-8">
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Tipo</p>
+                                            <p className="font-black text-orange-500 uppercase text-[10px] tracking-widest bg-orange-500/10 px-3 py-1 rounded-lg">
+                                                {orden.tipo_orden}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Contacto</p>
+                                            <p className="font-bold text-gray-300 text-sm">{orden.cliente_telefono}</p>
+                                        </div>
+                                    </div>
+                                    <div className="pt-6 border-t border-white/5">
+                                        <div className="bg-white/5 rounded-2xl p-4 flex items-center gap-3">
+                                            <Truck className="h-5 w-5 text-orange-500" />
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Entrega Express Garantizada</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Banner Trust */}
+                        <div className="bg-white rounded-[3rem] p-8 border-2 border-dashed border-gray-100 text-center">
+                            <Sparkles className="h-10 w-10 text-orange-200 mx-auto mb-4" />
+                            <h4 className="text-lg font-black text-gray-900 tracking-tighter">¡Casi en tus manos!</h4>
+                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1">Nuestros chefs y repartidores están dando lo mejor de sí</p>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="empty"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="py-20 text-center"
+                    >
+                        <div className="w-24 h-24 bg-gray-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <Box className="h-10 w-10 text-gray-300" />
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900 tracking-tighter">¿Hambriento?</h3>
+                        <p className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-2 max-w-[200px] mx-auto leading-relaxed">
+                            {telefono ? "Parece que no hay órdenes activas con este número." : "Ingresa tu número arriba para ver el estado de tu pedido."}
+                        </p>
+                        {!telefono && (
+                            <div className="mt-10 inline-flex items-center space-x-2 text-orange-500 font-black uppercase text-[10px] tracking-widest">
+                                <span>Seguridad Kavvo</span>
+                                <div className="w-1 h-1 bg-orange-500 rounded-full" />
+                                <ShieldCheck className="h-4 w-4" />
                             </div>
                         )}
-
-                        {/* Card productos */}
-                        <div className="bg-white rounded-2xl p-6 shadow-md">
-                            <div className="flex items-center gap-3 mb-4">
-                                <Package size={20} className="text-orange-500" />
-                                <h4 className="font-bold text-gray-800">Tu Pedido</h4>
-                            </div>
-                            <div className="space-y-3">
-                                {orden.productos.map((producto, index) => (
-                                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                            <span className="text-orange-600 font-bold text-sm">
-                                                {producto.cantidad}
-                                            </span>
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-medium text-gray-800">{producto.nombre}</p>
-                                            {producto.personalizaciones && producto.personalizaciones.length > 0 && (
-                                                <p className="text-xs text-orange-600 mt-1">
-                                                    {producto.personalizaciones.join(", ")}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <ChevronRight size={16} className="text-gray-400" />
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="mt-4 pt-4 border-t border-gray-200">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-bold text-gray-800">Total</span>
-                                    <span className="text-xl font-bold text-orange-600">
-                                        ${orden.total.toLocaleString("es-CO")}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Tiempo y actualización */}
-                        <div className="bg-gray-50 rounded-2xl p-6">
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <p className="text-gray-500">Pedido realizado</p>
-                                    <p className="font-medium text-gray-800">{formatearFecha(orden.created_at)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-500">Última actualización</p>
-                                    <p className="font-medium text-gray-800">{formatearFecha(orden.updated_at)}</p>
-                                </div>
-                            </div>
-
-                            {actualizandoEnTiempoReal && (
-                                <div className="mt-3 p-2 bg-orange-50 rounded-lg border border-orange-200">
-                                    <p className="text-orange-700 text-xs text-center">🔄 Actualizando en tiempo real</p>
-                                </div>
-                            )}
-                        </div>
-                    </>
+                    </motion.div>
                 )}
-
-                {/* Estado vacío - Sin orden */}
-                {!orden && !loading && (
-                    <div className="text-center py-12">
-                        <div className="w-20 h-20 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
-                            <Package size={32} className="text-orange-500" />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">
-                            {cliente?.telefono ? "Busca tu pedido" : "Ingresa tu teléfono"}
-                        </h3>
-                        <p className="text-gray-600 text-sm">
-                            {cliente?.telefono
-                                ? `Usaremos tu teléfono guardado (${formatearTelefono(cliente.telefono)})`
-                                : "Ingresa tu número de teléfono para ver el estado de tu pedido"
-                            }
-                        </p>
-                    </div>
-                )}
-            </div>
+            </AnimatePresence>
         </div>
+    );
+}
+
+function ShieldCheck({ className }: { className?: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+            <path d="m9 12 2 2 4-4" />
+        </svg>
     );
 }

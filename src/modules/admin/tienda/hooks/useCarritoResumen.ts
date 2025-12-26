@@ -25,7 +25,7 @@ interface DatosDomicilio {
  */
 export function useCarritoResumen(tipo: TipoOrden, onClose: () => void) {
     const { productos, total, actualizarCantidad, removerProducto, limpiarCarrito } = useCarritoStore();
-    const { cliente } = useClienteStore();
+    const { cliente, setMostrarModal } = useClienteStore();
 
     const [procesando, setProcesando] = useState(false);
     const [notasCliente, setNotasCliente] = useState("");
@@ -34,7 +34,6 @@ export function useCarritoResumen(tipo: TipoOrden, onClose: () => void) {
     const [datosDomicilio, setDatosDomicilio] = useState<DatosDomicilio | null>(null);
     const [calculandoDomicilio, setCalculandoDomicilio] = useState(false);
     const [errorDomicilio, setErrorDomicilio] = useState("");
-    const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
     const [datosEditados, setDatosEditados] = useState({
         nombre: cliente?.nombre || "",
         telefono: cliente?.telefono || "",
@@ -150,13 +149,13 @@ export function useCarritoResumen(tipo: TipoOrden, onClose: () => void) {
                 toast.warning("Datos incompletos", {
                     description: `Faltan: ${faltantes.join(", ")}`
                 });
-                setMostrarModalCliente(true);
+                setMostrarModal(true);
                 return false;
             }
             return true;
         }
         return true;
-    }, [tipo, datosEditados.nombre, cliente]);
+    }, [tipo, datosEditados.nombre, cliente, setMostrarModal]);
 
     /**
      * Limpia todo el carrito con confirmación vía toast
@@ -259,8 +258,6 @@ export function useCarritoResumen(tipo: TipoOrden, onClose: () => void) {
         datosDomicilio,
         calculandoDomicilio,
         errorDomicilio,
-        mostrarModalCliente,
-        setMostrarModalCliente,
         datosEditados,
         setDatosEditados,
         totalFinal,

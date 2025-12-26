@@ -6,10 +6,22 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiLogIn, FiGlobe } from 'react-icons/fi';
-import { FaSpinner, FaExclamationTriangle, FaCheck } from 'react-icons/fa';
+import {
+    Mail,
+    Lock,
+    Eye,
+    EyeOff,
+    LogIn,
+    Globe,
+    RotateCw,
+    AlertCircle,
+    CheckCircle2,
+    ChefHat,
+    Shield
+} from 'lucide-react';
 import { loginSchema, type LoginFormData } from '../schemas/auth';
 import { useLogin } from '../hooks/useLogin';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LoginComponent() {
     const { login, loading, error, resetError } = useLogin();
@@ -47,168 +59,153 @@ export default function LoginComponent() {
         login(data);
     };
 
-    if (!isMounted) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 animate-pulse">
-                    <div className="h-40 bg-gray-200 rounded-xl mb-8"></div>
-                    <div className="space-y-4">
-                        <div className="h-12 bg-gray-200 rounded-lg"></div>
-                        <div className="h-12 bg-gray-200 rounded-lg"></div>
-                        <div className="h-12 bg-gray-200 rounded-lg"></div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    if (!isMounted) return null;
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 relative overflow-hidden">
+            {/* Background elements for depth */}
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-200/20 blur-[120px] rounded-full" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-slate-200/40 blur-[120px] rounded-full" />
 
-                {/* Header */}
-                <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-6 text-center border-b border-orange-200">
-                    <div className="relative w-64 h-24 mx-auto">
-                        <Image
-                            src="/assets/logo-kavvo.png"
-                            alt="Logo Kavvo Delivery"
-                            fill
-                            className="object-contain"
-                            priority
-                            sizes="(max-width: 768px) 256px, 320px"
-                        />
-                    </div>
-                    <p className="text-gray-700 font-medium mt-4 text-sm">
-                        Sistema de gestión para restaurantes
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="w-full max-w-lg bg-white rounded-[3.5rem] shadow-2xl shadow-slate-200 border-2 border-white relative z-10 overflow-hidden"
+            >
+                {/* Header Decoration */}
+                <div className="bg-slate-900 p-12 text-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-transparent" />
+
+                    <motion.div
+                        initial={{ rotate: -10, scale: 0.8 }}
+                        animate={{ rotate: 0, scale: 1 }}
+                        transition={{ type: "spring", delay: 0.2 }}
+                        className="relative z-10 mx-auto w-32 h-32 bg-white/10 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center border border-white/10 shadow-2xl mb-8"
+                    >
+                        <ChefHat className="h-16 w-16 text-orange-500" />
+                    </motion.div>
+
+                    <h1 className="relative z-10 text-3xl font-black text-white tracking-tighter uppercase mb-2">
+                        Kavvo <span className="text-orange-500">Dashboard</span>
+                    </h1>
+                    <p className="relative z-10 text-white/40 font-black text-[10px] uppercase tracking-[0.4em]">
+                        Gestión Inteligente de Restaurantes
                     </p>
                 </div>
 
-                {/* Formulario */}
-                <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-6">
-                    {error && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
-                            <FaExclamationTriangle className="text-red-500 mt-0.5 flex-shrink-0" />
-                            <p className="text-red-700 text-sm font-medium">{error}</p>
-                        </div>
-                    )}
+                {/* Form Section */}
+                <div className="p-12 pt-10">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+                        <AnimatePresence>
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="bg-red-50 border-2 border-red-100 rounded-3xl p-6 flex items-start gap-4 text-red-600 shadow-sm"
+                                >
+                                    <AlertCircle className="h-6 w-6 shrink-0" />
+                                    <p className="text-xs font-black uppercase tracking-wider leading-relaxed">{error}</p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
-                    {/* Email */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                            <FiMail className="text-orange-500" />
-                            Correo electrónico
-                        </label>
-                        <div className={`relative rounded-lg border transition-all duration-200 ${errors.email
-                                ? 'border-red-300 focus-within:ring-2 focus-within:ring-red-100'
-                                : 'border-gray-300 focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100'
-                            }`}>
-                            <input
-                                type="email"
-                                {...register('email')}
-                                className="w-full px-4 py-3 bg-transparent outline-none text-gray-900 placeholder-gray-500"
-                                placeholder="ejemplo@correo.com"
-                                autoComplete="email"
-                                disabled={loading}
-                            />
-                            {!errors.email && emailValue && (
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <FaCheck className="text-green-500" />
-                                </div>
+                        {/* Email Field */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 px-2">
+                                <Mail className="h-4 w-4 text-orange-500" />
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Correo Electrónico</label>
+                            </div>
+                            <div className="relative group">
+                                <input
+                                    type="email"
+                                    {...register('email')}
+                                    className="premium-input pl-6 pr-12 font-black text-slate-900 uppercase text-xs"
+                                    placeholder="USUARIO@RESTAURANTE.COM"
+                                    disabled={loading}
+                                />
+                                {!errors.email && emailValue && (
+                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-green-500">
+                                        <CheckCircle2 className="h-5 w-5" />
+                                    </div>
+                                )}
+                            </div>
+                            {errors.email && (
+                                <p className="px-2 text-[9px] font-black text-red-500 uppercase tracking-widest">{errors.email.message}</p>
                             )}
                         </div>
-                        {errors.email && (
-                            <p className="text-red-600 text-sm font-medium flex items-center gap-2">
-                                <FaExclamationTriangle className="text-sm" />
-                                {errors.email.message}
-                            </p>
-                        )}
-                    </div>
 
-                    {/* Contraseña */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                            <FiLock className="text-orange-500" />
-                            Contraseña
-                        </label>
-                        <div className={`relative rounded-lg border transition-all duration-200 ${errors.password
-                                ? 'border-red-300 focus-within:ring-2 focus-within:ring-red-100'
-                                : 'border-gray-300 focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100'
-                            }`}>
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                {...register('password')}
-                                className="w-full px-4 py-3 bg-transparent outline-none text-gray-900 placeholder-gray-500 pr-12"
-                                placeholder="••••••••"
-                                autoComplete="current-password"
-                                disabled={loading}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors"
-                                disabled={loading}
-                            >
-                                {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                            </button>
+                        {/* Password Field */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 px-2">
+                                <Lock className="h-4 w-4 text-orange-500" />
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Contraseña Secreta</label>
+                            </div>
+                            <div className="relative group">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    {...register('password')}
+                                    className="premium-input pl-6 pr-16 font-black text-slate-900 text-xs"
+                                    placeholder="••••••••••••"
+                                    disabled={loading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-500 transition-colors"
+                                    disabled={loading}
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
+                            {errors.password && (
+                                <p className="px-2 text-[9px] font-black text-red-500 uppercase tracking-widest">{errors.password.message}</p>
+                            )}
                         </div>
-                        {errors.password && (
-                            <p className="text-red-600 text-sm font-medium flex items-center gap-2">
-                                <FaExclamationTriangle className="text-sm" />
-                                {errors.password.message}
-                            </p>
-                        )}
-                    </div>
 
-                    {/* Botón de envío */}
-                    <button
-                        type="submit"
-                        disabled={loading || !isValid}
-                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg py-3.5 font-semibold text-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
-                    >
-                        {loading ? (
-                            <>
-                                <FaSpinner className="animate-spin" />
-                                Iniciando sesión...
-                            </>
-                        ) : (
-                            <>
-                                <FiLogIn />
-                                Iniciar sesión
-                            </>
-                        )}
-                    </button>
-
-                    {/* Soporte */}
-                    <div className="text-center pt-4 border-t border-gray-200">
-                        <p className="text-gray-600 text-sm mb-4">
-                            ¿Problemas para acceder?
-                        </p>
-                        <Link
-                            href="https://www.ibug.space/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors hover:underline"
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={loading || !isValid}
+                            className="w-full bg-slate-900 hover:bg-orange-500 disabled:opacity-30 text-white p-6 rounded-3xl font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 hover:shadow-orange-200 transition-all active:scale-95 flex items-center justify-center gap-4 group"
                         >
-                            <FiGlobe />
-                            Contactar a Aurora Luminis S.A.S
-                        </Link>
-                    </div>
-                </form>
+                            {loading ? (
+                                <>
+                                    <RotateCw className="h-6 w-6 animate-spin" />
+                                    Verificando...
+                                </>
+                            ) : (
+                                <>
+                                    <LogIn className="h-6 w-6 group-hover:scale-110 transition-transform" />
+                                    Entrar al Sistema
+                                </>
+                            )}
+                        </button>
 
-                {/* Footer */}
-                <div className="bg-gray-50 border-t border-gray-200 p-6 text-center">
-                    <p className="text-gray-600 text-sm">
-                        <span className="font-semibold text-gray-800">KAVVO</span>
-                        <span className="mx-2">•</span>
-                        Producto de
-                        <span className="mx-2">•</span>
-                        <span className="font-semibold text-gray-800">Aurora Luminis S.A.S</span>
-                    </p>
-                    <p className="text-gray-500 text-xs mt-2">
-                        © {new Date().getFullYear()} • Todos los derechos reservados
+                        <div className="pt-8 border-t border-slate-50 flex flex-col items-center gap-6">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <Shield className="h-3 w-3" /> Acceso Protegido por Kavvo Cloud
+                            </p>
+
+                            <Link
+                                href="https://www.ibug.space/"
+                                target="_blank"
+                                className="flex items-center gap-3 px-6 py-3 bg-slate-50 hover:bg-orange-50 rounded-2xl transition-all group"
+                            >
+                                <Globe className="h-4 w-4 text-slate-300 group-hover:text-orange-500" />
+                                <span className="text-[9px] font-black text-slate-400 group-hover:text-slate-900 uppercase tracking-widest">Soporte Aurora Luminis S.A.S</span>
+                            </Link>
+                        </div>
+                    </form>
+                </div>
+
+                {/* Footer Credits */}
+                <div className="bg-slate-50 p-8 text-center border-t border-slate-100">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em]">
+                        © {new Date().getFullYear()} KAVVO ECOSYSTEM
                     </p>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 }

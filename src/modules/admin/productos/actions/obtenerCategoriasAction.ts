@@ -2,7 +2,6 @@
 
 import { supabaseAdmin } from '@/src/lib/supabaseAdmin';
 import type { CategoriaFrontend } from '../types/producto';
-export type { CategoriaFrontend };
 
 
 

@@ -1,13 +1,24 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { CreditCard, Package, Truck, FileText, Printer, CheckSquare, Square } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import {
+    CreditCard,
+    Package,
+    Truck,
+    FileText,
+    Printer,
+    ChevronRight,
+    Banknote,
+    Building2,
+    Sparkles,
+    CheckCircle2
+} from "lucide-react";
+import { motion } from "framer-motion";
 import type { OrdenCompleta } from "@/src/modules/admin/ordenes/types/orden";
 import { toast } from "@/src/shared/services/toast.service";
 import GeneradorRecibo from "./GeneradorRecibo";
 import { obtenerConfiguracionRestaurante, type ConfiguracionRestaurante } from "@/src/modules/dueno/configuraciones/actions/configuracionRestauranteActions";
-import { useEffect } from "react";
-
+import { formatearPrecioCOP } from "@/src/shared/utils/precio";
 
 type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
 
@@ -22,7 +33,6 @@ type Props = {
     setPropinaPorcentaje: (porcentaje: number | null) => void;
     onSuccess: () => void;
     onRecargarOrdenes: () => void;
-    onClose?: () => void;
 };
 
 export default function PanelCobro({
@@ -53,17 +63,10 @@ export default function PanelCobro({
         cargarConfigs();
     }, []);
 
-
-
-
     const subtotalProductos = Number(ordenSeleccionada.subtotal_productos || 0);
     const costoDomicilio = Number(ordenSeleccionada.costo_domicilio || 0);
     const totalOrden = subtotalProductos + costoDomicilio;
     const totalConPropina = totalOrden + propina;
-
-    const formatearPrecioCOP = (valor: number) => {
-        return `$${valor.toLocaleString("es-CO")}`;
-    };
 
     const aplicarPropina = useCallback(
         (opcion: number) => {
@@ -109,29 +112,17 @@ export default function PanelCobro({
         setPropinaInput("");
     }, [propinaInput, setPropina, setPropinaPorcentaje]);
 
-
     const confirmarCobro = useCallback(async () => {
         if (!usuarioId || !metodoPago) {
             toast.warning("Datos faltantes", { description: "Selecciona un método de pago" });
             return;
         }
 
-
         setProcesando(true);
 
         try {
-            console.log("=== INICIANDO PROCESO DE COBRO ===");
-            console.log("Orden ID:", ordenSeleccionada.id);
-            console.log("Usuario ID:", usuarioId);
-            console.log("Método de pago:", metodoPago);
-            console.log("Propina:", propina);
-            console.log("Generar recibo PDF:", generarRecibo);
-
-            // Importar el action
             const { cobrarOrdenAction } = await import("@/src/modules/admin/caja/actions/cobrarOrdenAction");
 
-            // Llamar al action con los datos reales
-            console.log("📞 Llamando a cobrarOrdenAction...");
             const resultado = await cobrarOrdenAction(
                 ordenSeleccionada.id,
                 usuarioId,
@@ -140,20 +131,13 @@ export default function PanelCobro({
                 generarRecibo ? "recibo" : "ninguno"
             );
 
-            console.log("📥 Respuesta de cobrarOrdenAction:", resultado);
-
             if (!resultado.success) {
-                console.error("❌ ERROR EN COBRO:", resultado.error);
                 toast.error("Error al cobrar", { description: resultado.error || "Inténtalo de nuevo" });
                 return;
             }
 
-
-            console.log("✅ Cobro exitoso, procesando comprobante...");
-
             if (generarRecibo) {
                 toast.success("Orden cobrada. Generando recibo...");
-                // Pequeño delay para asegurar que el componente esté renderizado
                 setTimeout(() => {
                     window.print();
                 }, 500);
@@ -161,15 +145,10 @@ export default function PanelCobro({
                 toast.success("Orden cobrada exitosamente");
             }
 
-
-            console.log("=== PROCESO DE COBRO COMPLETADO ===");
-
-            // Limpiar estados y recargar
             onSuccess();
             onRecargarOrdenes();
 
         } catch (error) {
-            console.error("💥 ERROR CRÍTICO:", error);
             const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
             toast.error("Error crítico", { description: errorMsg });
         } finally {
@@ -186,195 +165,210 @@ export default function PanelCobro({
     ]);
 
     return (
-        <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-xl">
-                <h3 className="text-xl font-bold text-gray-800">
-                    Cobrar Orden #{ordenSeleccionada.id.slice(-6)}
-                </h3>
-                <p className="text-sm text-gray-600 capitalize">
-                    Tipo: {ordenSeleccionada.tipo_orden}
-                </p>
-            </div>
-
-            {/* Info Cliente */}
-            <div className="p-4 bg-orange-50 rounded-xl">
-                <p className="font-semibold text-gray-800">{ordenSeleccionada.cliente_nombre}</p>
-                {ordenSeleccionada.cliente_telefono && (
-                    <p className="text-sm text-gray-600">{ordenSeleccionada.cliente_telefono}</p>
-                )}
-            </div>
-
-            {/* Totales */}
-            <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2">
-                        <Package size={16} className="text-blue-600" />
-                        <span className="font-medium text-blue-800">Productos</span>
-                    </div>
-                    <span className="font-bold text-blue-800">{formatearPrecioCOP(subtotalProductos)}</span>
-                </div>
-
-                {costoDomicilio > 0 && (
-                    <div className="flex justify-between items-center bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                        <div className="flex items-center gap-2">
-                            <Truck size={16} className="text-yellow-600" />
-                            <span className="font-medium text-yellow-800">Domicilio</span>
+        <div className="space-y-10 pb-10">
+            {/* Totales Section */}
+            <div className="space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Resumen de Cuenta</p>
+                <div className="bg-slate-50/50 rounded-[2.5rem] border border-slate-100 p-8 space-y-4">
+                    <div className="flex justify-between items-center px-2">
+                        <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                                <Package size={16} />
+                            </div>
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Productos</span>
                         </div>
-                        <span className="font-bold text-yellow-800">{formatearPrecioCOP(costoDomicilio)}</span>
+                        <span className="text-sm font-black text-slate-900 tracking-tighter">{formatearPrecioCOP(subtotalProductos)}</span>
                     </div>
-                )}
 
-                {propina > 0 && (
-                    <div className="flex justify-between items-center bg-green-50 p-3 rounded-lg border border-green-200">
-                        <div className="flex items-center gap-2">
-                            <CreditCard size={16} className="text-green-600" />
-                            <span className="font-medium text-green-800">Propina</span>
+                    {costoDomicilio > 0 && (
+                        <div className="flex justify-between items-center px-2">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600">
+                                    <Truck size={16} />
+                                </div>
+                                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Domicilio</span>
+                            </div>
+                            <span className="text-sm font-black text-slate-900 tracking-tighter">{formatearPrecioCOP(costoDomicilio)}</span>
                         </div>
-                        <span className="font-bold text-green-800">{formatearPrecioCOP(propina)}</span>
-                    </div>
-                )}
+                    )}
 
-                <div className="flex justify-between font-bold text-lg text-gray-800 bg-orange-100 p-3 rounded-lg border-2 border-orange-300">
-                    <span>TOTAL A COBRAR</span>
-                    <span>{formatearPrecioCOP(totalConPropina)}</span>
+                    {propina > 0 && (
+                        <div className="flex justify-between items-center px-2">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600">
+                                    <CreditCard size={16} />
+                                </div>
+                                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Propina</span>
+                            </div>
+                            <span className="text-sm font-black text-slate-900 tracking-tighter">{formatearPrecioCOP(propina)}</span>
+                        </div>
+                    )}
+
+                    <div className="pt-6 border-t border-slate-200">
+                        <div className="bg-slate-900 rounded-3xl p-6 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-2xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+                                    <Banknote size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total a Pagar</p>
+                                    <p className="text-white text-xs font-black uppercase tracking-[0.2em]">{metodoPago || 'PENDIENTE'}</p>
+                                </div>
+                            </div>
+                            <span className="text-3xl font-black text-white tracking-tighter">{formatearPrecioCOP(totalConPropina)}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* SECCIÓN: GENERAR RECIBO PDF */}
-            <div className="border-2 border-blue-100 bg-blue-50 rounded-xl p-4 space-y-3">
-                <button
-                    type="button"
-                    onClick={() => setGenerarRecibo(!generarRecibo)}
-                    className="flex items-center justify-between w-full group"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg transition-colors ${generarRecibo ? 'bg-blue-500 text-white' : 'bg-white text-gray-400 border border-gray-200'}`}>
-                            <FileText size={20} />
+            <div className="space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Comprobante</p>
+                <div className={`p-6 rounded-[2.5rem] border-2 transition-all duration-300 ${generarRecibo ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-100'}`}>
+                    <button
+                        type="button"
+                        onClick={() => setGenerarRecibo(!generarRecibo)}
+                        className="flex items-center justify-between w-full group"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`h-12 w-12 rounded-2xl transition-all duration-300 flex items-center justify-center ${generarRecibo ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' : 'bg-slate-100 text-slate-400'}`}>
+                                <FileText size={20} />
+                            </div>
+                            <div className="text-left">
+                                <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Recibo de Venta</h4>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Generar comprobante PDF</p>
+                            </div>
                         </div>
-                        <div className="text-left">
-                            <h4 className="font-bold text-gray-800">Recibo de pago</h4>
-                            <p className="text-xs text-gray-500">Generar PDF para el cliente</p>
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${generarRecibo ? 'bg-orange-500 text-white' : 'bg-slate-50 text-slate-200'}`}>
+                            {generarRecibo ? <CheckCircle2 size={18} /> : <div className="h-4 w-4 rounded-full border-2 border-slate-200" />}
                         </div>
-                    </div>
-                    <div>
-                        {generarRecibo ? (
-                            <CheckSquare className="text-blue-500" size={24} />
-                        ) : (
-                            <Square className="text-gray-300" size={24} />
-                        )}
-                    </div>
-                </button>
+                    </button>
 
-                {generarRecibo && (
-                    <div className="text-xs bg-white border border-blue-200 rounded-lg p-3 text-blue-700 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <div className="flex items-start gap-2">
-                            <Printer size={14} className="mt-0.5" />
-                            <p>Se abrirá el diálogo de impresión para guardar como PDF o imprimir.</p>
-                        </div>
-                    </div>
-                )}
+                    {generarRecibo && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            className="mt-4 pt-4 border-t border-orange-200/50"
+                        >
+                            <div className="flex items-start gap-2 bg-white/50 p-4 rounded-2xl text-[10px] font-black text-orange-600 uppercase tracking-widest leading-relaxed">
+                                <Printer size={14} className="shrink-0 mt-0.5" />
+                                <p>Se activará el diálogo de impresión para enviar a la termica o guardar PDF.</p>
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
             </div>
 
-            {/* Contenedor invisible para el recibo (solo se ve al imprimir) */}
             <GeneradorRecibo orden={ordenSeleccionada} config={config} />
 
-            {/* Propina */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Propina (opcional)
-                </label>
-
-                <div className="grid grid-cols-4 gap-2 mb-3">
+            {/* Tip Selection Section */}
+            <div className="space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Atención & Propina</p>
+                <div className="grid grid-cols-4 gap-3">
                     {[0, 10, 15, 20].map((p) => (
                         <button
                             key={p}
                             type="button"
-                            className={`px-2 py-2 rounded-lg text-xs font-medium transition border-2 ${propinaPorcentaje === p ||
-                                (p === 0 && propina === 0 && propinaPorcentaje === null)
-                                ? "bg-orange-500 text-white border-orange-500"
-                                : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                                }`}
                             onClick={() => handlePorcentajePropina(p)}
+                            className={`py-4 rounded-[1.5rem] text-[10px] font-black transition-all duration-300 border-2 uppercase tracking-widest ${propinaPorcentaje === p || (p === 0 && propina === 0 && propinaPorcentaje === null)
+                                ? "bg-slate-900 text-white border-slate-900 shadow-xl shadow-slate-200"
+                                : "bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:text-slate-600"
+                                }`}
                         >
                             {p === 0 ? "Sin" : `${p}%`}
                         </button>
                     ))}
                 </div>
 
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="Ej: 3000"
-                        className="flex-1 border-2 border-gray-300 rounded-xl py-2 px-3 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                        value={propinaInput}
-                        onChange={handlePropinaInputChange}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                aplicarPropinaDesdeInput();
-                            }
-                        }}
-                    />
-
+                <div className="flex gap-3 mt-4">
+                    <div className="relative flex-1">
+                        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 font-black text-xs">
+                            $
+                        </div>
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="Monto manual..."
+                            value={propinaInput}
+                            onChange={handlePropinaInputChange}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") aplicarPropinaDesdeInput();
+                            }}
+                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-10 pr-6 text-sm font-black text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
+                        />
+                    </div>
                     <button
                         type="button"
                         onClick={aplicarPropinaDesdeInput}
                         disabled={!propinaInput}
-                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${propinaInput
-                            ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm"
-                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        className={`px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${propinaInput
+                            ? "bg-slate-900 text-white shadow-lg hover:bg-slate-800"
+                            : "bg-slate-100 text-slate-300 cursor-not-allowed"
                             }`}
                     >
-                        Agregar
+                        Fijar
                     </button>
                 </div>
             </div>
 
-            {/* Métodos de pago */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Método de pago *</label>
-                <div className="grid grid-cols-3 gap-2">
+            {/* Payment Methods Section */}
+            <div className="space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Método de Liquidación</p>
+                <div className="grid grid-cols-3 gap-3">
                     {[
-                        { value: "efectivo", label: "Efectivo", icon: "💵" },
-                        { value: "tarjeta", label: "Tarjeta", icon: "💳" },
-                        { value: "transferencia", label: "Transferencia", icon: "🏦" },
+                        { value: "efectivo", label: "Efectivo", icon: Banknote },
+                        { value: "tarjeta", label: "Tarjeta", icon: CreditCard },
+                        { value: "transferencia", label: "Transfer", icon: Building2 },
                     ].map((metodo) => (
                         <button
                             key={metodo.value}
                             type="button"
                             onClick={() => setMetodoPago(metodo.value as MetodoPago)}
-                            className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition-all border-2 ${metodoPago === metodo.value
-                                ? "bg-orange-500 text-white border-orange-500 shadow-md"
-                                : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                            className={`flex flex-col items-center justify-center gap-3 py-6 px-4 rounded-[2rem] transition-all duration-300 border-2 overflow-hidden relative group ${metodoPago === metodo.value
+                                ? "bg-orange-500 border-orange-500 shadow-xl shadow-orange-200"
+                                : "bg-white border-slate-100 hover:border-slate-300"
                                 }`}
                         >
-                            <span>{metodo.icon}</span>
-                            <span>{metodo.label}</span>
+                            <metodo.icon className={`h-6 w-6 transition-colors duration-300 ${metodoPago === metodo.value ? "text-white" : "text-slate-400 group-hover:text-slate-900"}`} />
+                            <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-300 ${metodoPago === metodo.value ? "text-white" : "text-slate-500"}`}>
+                                {metodo.label}
+                            </span>
+                            {metodoPago === metodo.value && (
+                                <motion.div
+                                    layoutId="activeMetodo"
+                                    className="absolute inset-0 bg-white/10"
+                                />
+                            )}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Botón Confirmar */}
-            <button
-                type="button"
-                onClick={confirmarCobro}
-                disabled={!metodoPago || procesando}
-                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white py-4 px-6 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl disabled:shadow-none"
-            >
-                {procesando ? (
-                    <>
-                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
-                        <span>Procesando...</span>
-                    </>
-                ) : (
-                    <>
-                        <CreditCard size={24} />
-                        <span>CONFIRMAR COBRO - {formatearPrecioCOP(totalConPropina)}</span>
-                    </>
-                )}
-            </button>
+            {/* Bottom Action Section */}
+            <div className="pt-6">
+                <button
+                    type="button"
+                    onClick={confirmarCobro}
+                    disabled={!metodoPago || procesando}
+                    className="w-full relative group overflow-hidden"
+                >
+                    <div className={`absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-500 group-hover:scale-110 ${(!metodoPago || procesando) ? 'opacity-50' : 'opacity-100'}`} />
+                    <div className="relative flex items-center justify-center gap-4 py-6 px-8 rounded-3xl text-white shadow-2xl shadow-orange-200">
+                        {procesando ? (
+                            <>
+                                <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/30 border-t-white" />
+                                <span className="text-sm font-black uppercase tracking-[0.2em]">Liquidando...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles className="h-6 w-6" />
+                                <span className="text-sm font-black uppercase tracking-[0.2em]">CONFIRMAR LIQUIDACIÓN — {formatearPrecioCOP(totalConPropina)}</span>
+                                <ChevronRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
+                            </>
+                        )}
+                    </div>
+                </button>
+            </div>
         </div>
     );
 }

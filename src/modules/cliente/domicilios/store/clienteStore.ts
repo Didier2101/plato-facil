@@ -16,14 +16,18 @@ interface ClienteStore {
     cliente: ClienteDomicilio | null;
     setCliente: (cliente: ClienteDomicilio) => void;
     clearCliente: () => void;
+    mostrarModal: boolean;
+    setMostrarModal: (mostrar: boolean) => void;
 }
 
 export const useClienteStore = create<ClienteStore>()(
     persist(
         (set) => ({
             cliente: null,
+            mostrarModal: false,
             setCliente: (cliente) => set({ cliente }),
             clearCliente: () => set({ cliente: null }),
+            setMostrarModal: (mostrarModal) => set({ mostrarModal }),
         }),
         {
             name: 'cliente-storage', // Nombre en localStorage

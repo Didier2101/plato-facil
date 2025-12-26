@@ -2,6 +2,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
 interface MetricCardProps {
     titulo: string;
@@ -17,35 +18,53 @@ export default function MetricCard({
     valor,
     subtitulo,
     icon,
-    colorClass = "bg-orange-500",
     loading = false
 }: MetricCardProps) {
     if (loading) {
         return (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-                    <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="premium-card p-8 animate-pulse">
+                <div className="space-y-4">
+                    <div className="h-3 bg-slate-100 rounded-full w-24"></div>
+                    <div className="h-8 bg-slate-100 rounded-full w-32"></div>
+                    <div className="h-3 bg-slate-100 rounded-full w-40"></div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-                <div className="flex-1">
-                    <p className="text-gray-500 text-sm font-medium mb-1">{titulo}</p>
-                    <p className="text-2xl font-bold text-gray-900 mb-1">{valor}</p>
-                    {subtitulo && <p className="text-xs text-gray-500">{subtitulo}</p>}
+        <motion.div
+            whileHover={{ y: -8, scale: 1.02 }}
+            className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white shadow-2xl shadow-slate-200/50 group relative overflow-hidden transition-all duration-500"
+        >
+            {/* Background Decor */}
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <div className="h-24 w-24 -mr-8 -mt-8 text-slate-900 group-hover:text-orange-500 transition-colors">
+                    {icon}
                 </div>
-                <div className={`${colorClass} p-3 rounded-lg`}>
-                    <div className="text-white text-xl">
+            </div>
+
+            <div className="flex items-start justify-between relative z-10">
+                <div className="space-y-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{titulo}</p>
+                    <div className="space-y-1">
+                        <p className="text-4xl font-black text-slate-900 tracking-tighter">
+                            {valor}
+                        </p>
+                        {subtitulo && (
+                            <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest leading-loose">
+                                {subtitulo}
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="h-14 w-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white group-hover:bg-orange-500 group-hover:shadow-lg group-hover:shadow-orange-200 transition-all duration-500">
+                    <div className="h-6 w-6 text-orange-500 group-hover:text-white transition-colors">
                         {icon}
                     </div>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

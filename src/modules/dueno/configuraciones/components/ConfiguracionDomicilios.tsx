@@ -3,14 +3,15 @@
 
 import { useState } from 'react';
 import {
-    FaDollarSign,
-    FaRoute,
-    FaClock,
-    FaGlobe,
-    FaBusinessTime,
-    FaRulerHorizontal,
-    FaCalculator
-} from 'react-icons/fa';
+    DollarSign,
+    Clock,
+    Globe,
+    Calendar,
+    Ruler,
+    Calculator,
+    Truck,
+    ShieldAlert
+} from 'lucide-react';
 import type { ConfiguracionRestaurante } from '../actions/configuracionRestauranteActions';
 
 interface ConfiguracionDomiciliosProps {
@@ -33,7 +34,6 @@ export default function ConfiguracionDomicilios({
         onConfigChange(updated);
     };
 
-    // Calcular costo de ejemplo
     const calcularCostoEjemplo = (distancia: number) => {
         if (distancia <= formData.distancia_base_km) {
             return formData.costo_base_domicilio;
@@ -43,186 +43,149 @@ export default function ConfiguracionDomicilios({
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                Configuración de Domicilios
-            </h2>
+        <div className="premium-card p-10 space-y-12 h-full">
+            <div className="flex items-center justify-between border-b border-slate-50 pb-8">
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 shadow-inner">
+                        <Truck className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase">Reglas de Logística</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Parámetros de Entrega y Tiempos</p>
+                    </div>
+                </div>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaDollarSign className="text-orange-500" />
-                        Costo Base
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                        <DollarSign className="h-3 w-3 text-orange-500" /> Costo Base
                     </label>
-                    <div className="relative">
-                        <span className="absolute left-3 top-3 text-gray-500">$</span>
+                    <div className="relative group">
+                        <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-slate-300 group-focus-within:text-orange-500 transition-colors">$</span>
                         <input
                             type="number"
                             name="costo_base_domicilio"
                             value={formData.costo_base_domicilio}
                             onChange={handleInputChange}
-                            min="0"
+                            className="premium-input w-full pl-12"
                             step="500"
-                            className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
                         />
                     </div>
-                    <p className="text-xs text-gray-500">Costo mínimo del domicilio</p>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaRulerHorizontal className="text-orange-500" />
-                        Distancia Base
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                        <Ruler className="h-3 w-3 text-orange-500" /> Distancia Base
                     </label>
-                    <div className="relative">
+                    <div className="relative group">
                         <input
                             type="number"
                             name="distancia_base_km"
                             value={formData.distancia_base_km}
                             onChange={handleInputChange}
-                            min="0.1"
-                            max="5"
+                            className="premium-input w-full pr-16"
                             step="0.1"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
                         />
-                        <span className="absolute right-3 top-3 text-gray-500">KM</span>
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 uppercase tracking-widest">KM</span>
                     </div>
-                    <p className="text-xs text-gray-500">Distancia incluida en el costo base</p>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaRoute className="text-orange-500" />
-                        Costo por KM
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                        <DollarSign className="h-3 w-3 text-orange-500" /> Costo por KM Extra
                     </label>
-                    <div className="relative">
-                        <span className="absolute left-3 top-3 text-gray-500">$</span>
+                    <div className="relative group">
+                        <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-slate-300 group-focus-within:text-orange-500 transition-colors">$</span>
                         <input
                             type="number"
                             name="costo_por_km"
                             value={formData.costo_por_km}
                             onChange={handleInputChange}
-                            min="0"
+                            className="premium-input w-full pl-12"
                             step="100"
-                            className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
                         />
                     </div>
-                    <p className="text-xs text-gray-500">Costo por kilómetro extra</p>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaGlobe className="text-orange-500" />
-                        Distancia Máxima
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                        <Globe className="h-3 w-3 text-orange-500" /> Cobertura Máxima
                     </label>
-                    <div className="relative">
+                    <div className="relative group">
                         <input
                             type="number"
                             name="distancia_maxima_km"
                             value={formData.distancia_maxima_km}
                             onChange={handleInputChange}
-                            min="1"
-                            max="50"
+                            className="premium-input w-full pr-16"
                             step="0.5"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
                         />
-                        <span className="absolute right-3 top-3 text-gray-500">KM</span>
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 uppercase tracking-widest">KM</span>
                     </div>
-                    <p className="text-xs text-gray-500">Límite de entrega</p>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaClock className="text-orange-500" />
-                        Tiempo de Preparación
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                        <Clock className="h-3 w-3 text-orange-500" /> Prep. Estimado
                     </label>
-                    <div className="relative">
+                    <div className="relative group">
                         <input
                             type="number"
                             name="tiempo_preparacion_min"
                             value={formData.tiempo_preparacion_min}
                             onChange={handleInputChange}
-                            min="5"
-                            max="120"
+                            className="premium-input w-full pr-16"
                             step="5"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
                         />
-                        <span className="absolute right-3 top-3 text-gray-500">min</span>
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 uppercase tracking-widest">MIN</span>
                     </div>
-                    <p className="text-xs text-gray-500">Tiempo estimado de preparación</p>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaBusinessTime className="text-orange-500" />
-                        Hora de Apertura
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                        <Calendar className="h-3 w-3 text-orange-500" /> Horario Operativo
                     </label>
-                    <input
-                        type="time"
-                        name="hora_apertura"
-                        value={formData.hora_apertura || '08:00'}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaBusinessTime className="text-orange-500" />
-                        Hora de Cierre
-                    </label>
-                    <input
-                        type="time"
-                        name="hora_cierre"
-                        value={formData.hora_cierre || '22:00'}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
-                    />
+                    <div className="flex gap-4">
+                        <input
+                            type="time"
+                            name="hora_apertura"
+                            value={formData.hora_apertura || '08:00'}
+                            onChange={handleInputChange}
+                            className="premium-input w-full !px-4 text-center"
+                        />
+                        <input
+                            type="time"
+                            name="hora_cierre"
+                            value={formData.hora_cierre || '22:00'}
+                            onChange={handleInputChange}
+                            className="premium-input w-full !px-4 text-center"
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* Explicación del cálculo de costos */}
-            <div className="mt-8 bg-blue-50 rounded-lg p-6 border border-blue-200">
-                <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
-                    <FaCalculator className="text-blue-600" />
-                    Cálculo de Costo de Domicilio
-                </h3>
-                <p className="text-sm text-blue-800 mb-3">
-                    El costo del domicilio se calcula de la siguiente manera:
-                </p>
-                <ul className="text-sm text-blue-700 space-y-2 mb-4">
-                    <li className="flex items-start gap-2">
-                        <span className="font-bold">• Distancia ≤ {formData.distancia_base_km} km:</span>
-                        <span className="ml-2">Solo costo base (${formData.costo_base_domicilio.toLocaleString()})</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <span className="font-bold">• Distancia {'>'} {formData.distancia_base_km} km:</span>
-                        <span className="ml-2">
-                            Costo base + (distancia extra × ${formData.costo_por_km.toLocaleString()})
-                        </span>
-                    </li>
-                </ul>
+            {/* Simulación de Costos */}
+            <div className="bg-slate-50 rounded-[2rem] p-8 space-y-6 border border-slate-100">
+                <div className="flex items-center gap-3">
+                    <Calculator className="h-4 w-4 text-orange-500" />
+                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Configurador de Tarifas KAVVO</h4>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <div className="bg-white rounded-lg p-4 border border-blue-100">
-                        <p className="text-sm font-medium text-gray-700 mb-1">Ejemplo para 1 km:</p>
-                        <p className="text-lg font-bold text-blue-700">
-                            ${calcularCostoEjemplo(1).toLocaleString()}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border border-blue-100">
-                        <p className="text-sm font-medium text-gray-700 mb-1">Ejemplo para 3 km:</p>
-                        <p className="text-lg font-bold text-blue-700">
-                            ${calcularCostoEjemplo(3).toLocaleString()}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border border-blue-100">
-                        <p className="text-sm font-medium text-gray-700 mb-1">Ejemplo para 5 km:</p>
-                        <p className="text-lg font-bold text-blue-700">
-                            ${calcularCostoEjemplo(5).toLocaleString()}
-                        </p>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[1, 3, 5].map(km => (
+                        <div key={km} className="bg-white p-5 rounded-2xl border-2 border-slate-50 shadow-sm flex flex-col items-center gap-2">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{km} KM Recorrido</p>
+                            <p className="text-xl font-black text-slate-900">${calcularCostoEjemplo(km).toLocaleString()}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-orange-50/50 rounded-xl border border-orange-100">
+                    <ShieldAlert className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
+                    <p className="text-[9px] font-bold text-orange-700 uppercase leading-relaxed tracking-wider">
+                        El sistema calculará automáticamente el costo excedente basándose en la distancia GPS entre el establecimiento y el destino del cliente.
+                    </p>
                 </div>
             </div>
         </div>

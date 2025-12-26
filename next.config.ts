@@ -14,6 +14,12 @@ const nextConfig = {
         hostname: 'rmrelrctstkbuxhbilxv.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/restaurante-assets/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '**',
       }
     ],
   },

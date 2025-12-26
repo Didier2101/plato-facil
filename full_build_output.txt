@@ -1,0 +1,12 @@
+﻿
+> plato-facil@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.0 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬À serverActions
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 24.6s
+  Running TypeScript ...

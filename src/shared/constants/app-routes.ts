@@ -171,7 +171,7 @@ export const getDashboardByRole = (role: Rol | undefined): string => {
  */
 export const puedeAccederRuta = (rol: Rol, ruta: string): boolean => {
     return RUTAS_POR_ROL[rol]?.some(rutaPermitida =>
-        ruta.startsWith(rutaPermitida)
+        ruta === rutaPermitida || ruta.startsWith(`${rutaPermitida}/`)
     ) || false;
 };
 
