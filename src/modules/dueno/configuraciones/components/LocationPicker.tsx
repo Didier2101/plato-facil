@@ -45,7 +45,7 @@ interface ConfigLeafletIcon {
 }
 
 interface ConfigLeafletL {
-    map: (id: string | HTMLElement) => ConfigLeafletMap;
+    map: (id: string | HTMLElement, options?: { zoomControl?: boolean }) => ConfigLeafletMap;
     tileLayer: (url: string, options: { maxZoom: number; attribution: string }) => ConfigLeafletLayer;
     marker: (latlng: [number, number], options?: { icon?: ConfigLeafletIcon; draggable?: boolean }) => ConfigLeafletLayer;
     divIcon: (options: ConfigLeafletIcon) => ConfigLeafletIcon;

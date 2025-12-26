@@ -1,5 +1,7 @@
 "use client";
 
+import { MetodoPago } from '@/src/modules/admin/caja/types/cobro';
+
 import React, { useState } from 'react';
 import {
     MapPin,
@@ -37,7 +39,7 @@ export default function DomiciliarioPanel({ usuarioId }: DomiciliarioPanelProps)
     } = useEntregasActivas(usuarioId);
 
     const [ordenParaCobrar, setOrdenParaCobrar] = useState<EntregaRepartidor | null>(null);
-    const [metodoPago, setMetodoPago] = useState<string>('');
+    const [metodoPago, setMetodoPago] = useState<MetodoPago | ''>('');
     const [propina, setPropina] = useState(0);
     const [propinaPorcentaje, setPropinaPorcentaje] = useState<number | null>(null);
 
@@ -84,16 +86,16 @@ export default function DomiciliarioPanel({ usuarioId }: DomiciliarioPanelProps)
                             <div
                                 key={orden.id}
                                 className={`bg-white rounded-[3rem] shadow-xl border-2 transition-all duration-500 overflow-hidden group animate-in zoom-in-95 duration-700 ${orden.estado === 'llegue_a_destino'
-                                        ? 'border-orange-500 shadow-orange-100/50 scale-[1.02]'
-                                        : 'border-slate-50 hover:border-orange-200 shadow-slate-100'
+                                    ? 'border-orange-500 shadow-orange-100/50 scale-[1.02]'
+                                    : 'border-slate-50 hover:border-orange-200 shadow-slate-100'
                                     }`}
                             >
                                 <div className="p-10 space-y-8">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-5">
                                             <div className={`h-16 w-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-500 shadow-lg ${orden.estado === 'llegue_a_destino'
-                                                    ? 'bg-orange-500 text-white shadow-orange-200 rotate-12'
-                                                    : 'bg-slate-50 text-slate-400 group-hover:rotate-6'
+                                                ? 'bg-orange-500 text-white shadow-orange-200 rotate-12'
+                                                : 'bg-slate-50 text-slate-400 group-hover:rotate-6'
                                                 }`}>
                                                 <Navigation className="h-8 w-8" />
                                             </div>
@@ -138,7 +140,7 @@ export default function DomiciliarioPanel({ usuarioId }: DomiciliarioPanelProps)
                                                         <p className="text-[9px] font-black text-orange-600 uppercase tracking-widest mb-1 flex items-center gap-2">
                                                             <Box className="h-3 w-3" /> Instrucciones:
                                                         </p>
-                                                        <p className="text-[11px] font-bold text-slate-600 leading-relaxed italic">"{orden.cliente_notas}"</p>
+                                                        <p className="text-[11px] font-bold text-slate-600 leading-relaxed italic">&quot;{orden.cliente_notas}&quot;</p>
                                                     </div>
                                                 )}
                                             </div>

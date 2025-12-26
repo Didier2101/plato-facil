@@ -11,7 +11,8 @@ import {
     Banknote,
     Building2,
     Sparkles,
-    CheckCircle2
+    CheckCircle2,
+    X
 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { OrdenCompleta } from "@/src/modules/admin/ordenes/types/orden";
@@ -33,6 +34,7 @@ type Props = {
     setPropinaPorcentaje: (porcentaje: number | null) => void;
     onSuccess: () => void;
     onRecargarOrdenes: () => void;
+    onClose?: () => void;
 };
 
 export default function PanelCobro({
@@ -46,6 +48,7 @@ export default function PanelCobro({
     setPropinaPorcentaje,
     onSuccess,
     onRecargarOrdenes,
+    onClose,
 }: Props) {
     const [procesando, setProcesando] = useState(false);
     const [propinaInput, setPropinaInput] = useState<string>("");
@@ -166,6 +169,20 @@ export default function PanelCobro({
 
     return (
         <div className="space-y-10 pb-10">
+            {onClose && (
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Panel de Cobro</p>
+                        <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase">Finalizar Orden</h3>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 hover:rotate-90 transition-all duration-300"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+            )}
             {/* Totales Section */}
             <div className="space-y-4">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Resumen de Cuenta</p>
