@@ -99,6 +99,7 @@ export default function DomiciliosLayout({ children, config }: DomiciliosLayoutP
     const [isHydrated, setIsHydrated] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const { cliente, mostrarModal, setMostrarModal } = useClienteStore();
+    const mainRef = React.useRef<HTMLElement>(null);
 
     const links: LinkItem[] = [
         { href: APP_ROUTES.PUBLIC.DOMICILIO.PEDIDOS, label: "Menú", mobileLabel: "Menú", icon: ShoppingBag },
@@ -107,9 +108,22 @@ export default function DomiciliosLayout({ children, config }: DomiciliosLayoutP
 
     useEffect(() => {
         setIsHydrated(true);
-        const handleScroll = () => setScrolled(window.scrollY > 20);
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
+        const mainElement = mainRef.current;
+        const handleScroll = () => {
+            if (mainElement) {
+                setScrolled(mainElement.scrollTop > 20);
+            }
+        };
+
+        if (mainElement) {
+            mainElement.addEventListener("scroll", handleScroll);
+        }
+
+        return () => {
+            if (mainElement) {
+                mainElement.removeEventListener("scroll", handleScroll);
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -123,10 +137,10 @@ export default function DomiciliosLayout({ children, config }: DomiciliosLayoutP
     }
 
     return (
-        <div className="flex min-h-screen bg-gray-50/50">
+        <div className="flex h-screen overflow-hidden bg-gray-50/50">
             {/* Mobile Header - Glassmorphism */}
             <header
-                className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 lg:hidden px-4 py-3
+                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 lg:hidden px-4 py-3
                     ${scrolled
                         ? "bg-white/80 backdrop-blur-lg shadow-lg border-b border-orange-100"
                         : "bg-white border-b border-gray-100"}`}
@@ -243,7 +257,8 @@ export default function DomiciliosLayout({ children, config }: DomiciliosLayoutP
 
             {/* Main Content */}
             <main
-                className={`flex-1 transition-all duration-500 pb-24 lg:pb-0
+                ref={mainRef}
+                className={`flex-1 transition-all duration-500 pb-24 lg:pb-0 overflow-y-auto h-full scroll-smooth
                     ${sidebarCollapsed ? "lg:ml-24" : "lg:ml-80"}`}
             >
                 <div className="px-4 py-20 lg:p-12 max-w-7xl mx-auto">

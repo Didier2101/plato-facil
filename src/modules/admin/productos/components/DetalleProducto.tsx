@@ -6,12 +6,8 @@ import {
     X,
     Edit,
     Trash2,
-    Save,
     Image as ImageIcon,
-    Plus,
-    Minus,
     AlertCircle,
-    ChevronDown,
     CheckCircle,
     Utensils,
     DollarSign,
@@ -49,7 +45,6 @@ export default function DetalleProducto({
         ingredientesNoSeleccionados,
         cargandoIngredientes,
         categorias,
-        cargandoCategorias,
         confirmandoCambioEstado,
         setConfirmandoCambioEstado,
         handleAgregarIngrediente,
@@ -83,7 +78,7 @@ export default function DetalleProducto({
                             </h4>
                         </div>
 
-                        <div className="relative aspect-square lg:aspect-video rounded-[2.5rem] overflow-hidden bg-slate-100 border border-slate-200 group shadow-inner">
+                        <div className="relative h-64 w-full rounded-[2.5rem] overflow-hidden bg-slate-100 border border-slate-200 group shadow-inner">
                             {modoEdicion ? (
                                 <>
                                     {previewImagen ? (
@@ -312,8 +307,8 @@ export default function DetalleProducto({
                                                 <button
                                                     onClick={() => modoEdicion && handleToggleObligatorio(ing.ingrediente_id)}
                                                     className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${ing.obligatorio
-                                                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
-                                                            : 'bg-slate-100 text-slate-400'
+                                                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
+                                                        : 'bg-slate-100 text-slate-400'
                                                         } ${modoEdicion ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
                                                 >
                                                     {ing.obligatorio ? 'Obligatorio' : 'Opcional'}
@@ -339,7 +334,7 @@ export default function DetalleProducto({
     }, [
         producto, modoEdicion, loading, datosEdicion, previewImagen,
         ingredientesSeleccionados, ingredientesNoSeleccionados, cargandoIngredientes,
-        categorias, cargandoCategorias, setDatosEdicion, setModoEdicion,
+        categorias, setDatosEdicion,
         handleCambioPrecio, handleToggleObligatorio, handleQuitarIngrediente,
         handleAgregarIngrediente, handleCambioImagen, handleEliminarImagen
     ]);
@@ -407,8 +402,8 @@ export default function DetalleProducto({
                         <button
                             onClick={() => setConfirmandoCambioEstado(true)}
                             className={`h-16 px-10 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${producto.activo
-                                    ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white'
-                                    : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
+                                ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white'
+                                : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
                                 } ${isMobile ? 'w-full' : 'flex-1'}`}
                         >
                             {producto.activo ? "Sacar de Inventario" : "Reincorporar al Menú"}
@@ -434,7 +429,7 @@ export default function DetalleProducto({
                 initial={{ y: 50, scale: 0.95 }}
                 animate={{ y: 0, scale: 1 }}
                 exit={{ y: 50, scale: 0.95 }}
-                className="bg-white rounded-[3.5rem] shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] w-full max-w-7xl max-h-[92vh] overflow-hidden flex flex-col relative"
+                className="bg-white rounded-[3.5rem] shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col relative"
             >
                 {/* Close Button */}
                 <button

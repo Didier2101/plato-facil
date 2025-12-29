@@ -52,7 +52,7 @@ export default function CrearUsuarioModal({
                             bg-white 
                             rounded-t-[3.5rem] lg:rounded-[3.5rem] 
                             shadow-2xl
-                            lg:max-w-md lg:w-full
+                            lg:max-w-md lg:w-full max-h-[90vh]
                             flex flex-col overflow-hidden
                             border-t-8 border-orange-500 lg:border-t-0
                         "
@@ -60,7 +60,7 @@ export default function CrearUsuarioModal({
                         {/* Mobile Handle */}
                         <div className="lg:hidden w-16 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 opacity-50" />
 
-                        <div className="p-8 space-y-8">
+                        <div className="flex-1 overflow-y-auto p-8 space-y-8">
                             {/* Header */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">

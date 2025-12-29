@@ -35,6 +35,15 @@ export async function actualizarIngredienteAction(id: string, data: ActualizarIn
 
         if (error) {
             console.error('Error actualizando ingrediente:', error);
+
+            // Detectar error de nombre duplicado
+            if (error.code === '23505' || error.message.includes('duplicate key') || error.message.includes('ingredientes_nombre_')) {
+                return {
+                    success: false,
+                    error: `Ya existe otro ingrediente con el nombre "${validatedData.nombre}". Por favor, elige otro nombre.`,
+                };
+            }
+
             return {
                 success: false,
                 error: error.message || 'Error al actualizar ingrediente',

@@ -7,6 +7,8 @@ body {
   scrollbar-width: none; /* Firefox */
   background-color: #f8fafc; /* slate-50 */
   color: #0f172a; /* slate-900 */
+  overflow-x: hidden; /* Prevent horizontal scroll globally */
+  width: 100%;
 }
 
 html::-webkit-scrollbar,
@@ -77,4 +79,22 @@ body::-webkit-scrollbar {
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 300ms;
+}
+
+/* Custom utilities for strict mobile layout control */
+@media (max-width: 768px) {
+  .mobile-card-snap {
+    width: 40vw !important;
+    min-width: 40vw !important;
+    max-width: 40vw !important;
+    flex: 0 0 auto !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .desktop-280 {
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+  }
 }

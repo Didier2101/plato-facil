@@ -36,12 +36,11 @@ export default function ProductoCard({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ y: -8, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
                 onClick={abrirModal}
-                className="group relative flex flex-col h-full bg-white rounded-[2.5rem] p-4 border-2 border-slate-50 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-orange-100/50 hover:border-orange-100 transition-all duration-500 cursor-pointer overflow-hidden"
+                className="group relative flex flex-col h-full bg-white rounded-[2rem] md:rounded-[2.5rem] p-3 md:p-4 border-2 border-slate-50 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-orange-100/50 hover:border-orange-100 transition-all duration-500 cursor-pointer overflow-hidden touch-manipulation"
             >
                 {/* Image Section */}
-                <div className="relative h-44 w-full rounded-[2rem] overflow-hidden mb-5 bg-slate-50 ring-4 ring-slate-50">
+                <div className="relative h-24 md:h-32 w-full rounded-[1.5rem] md:rounded-[2rem] overflow-hidden mb-3 md:mb-4 bg-slate-50 ring-4 ring-slate-50">
                     {producto.imagen_url && !imageError ? (
                         <Image
                             src={producto.imagen_url}

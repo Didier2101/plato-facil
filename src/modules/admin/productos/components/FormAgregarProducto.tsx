@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     Type,
     Tag,
@@ -40,15 +40,13 @@ export default function FormAgregarProducto() {
     const {
         categorias,
         loading: loadingCategorias,
-        crearCategoria,
-        cargarCategorias
+        crearCategoria
     } = useCategorias();
 
     const {
         ingredientes,
         loading: loadingIngredientes,
-        crearIngrediente,
-        cargarIngredientes
+        crearIngrediente
     } = useIngredientes();
 
     // Hook para crear producto
@@ -66,12 +64,16 @@ export default function FormAgregarProducto() {
     const [nuevaCategoria, setNuevaCategoria] = useState('');
     const [ingredientesSeleccionados, setIngredientesSeleccionados] = useState<IngredienteSeleccionado[]>([]);
     const [nuevoIngrediente, setNuevoIngrediente] = useState('');
+    const [busquedaIngrediente, setBusquedaIngrediente] = useState('');
 
-    // Cargar datos iniciales
-    useEffect(() => {
-        cargarCategorias();
-        cargarIngredientes();
-    }, [cargarCategorias, cargarIngredientes]);
+    // handeleMemo
+    const ingredientesFiltrados = React.useMemo(() => {
+        return ingredientes
+            .filter(ing => !ingredientesSeleccionados.find(sel => sel.id === ing.id.toString()))
+            .filter(ing => ing.nombre.toLowerCase().includes(busquedaIngrediente.toLowerCase()));
+    }, [ingredientes, ingredientesSeleccionados, busquedaIngrediente]);
+
+
 
     // Handlers
     const handleCrearCategoria = async () => {
@@ -146,13 +148,18 @@ export default function FormAgregarProducto() {
 
         const result = await crearProducto({ ...data, ingredientes: ingredientesSeleccionados });
         if (result.success) {
+            // Limpiar todos los estados
+            form.reset();
+            setPreviewImage(null);
             setIngredientesSeleccionados([]);
             setShowNewCategory(false);
             setNuevaCategoria('');
             setNuevoIngrediente('');
+            setBusquedaIngrediente('');
+
             toast.success('¡Éxito Gastronómico!', {
                 description: 'Producto desplegado en el menú elite.',
-                action: { label: 'Crear Otro', onClick: () => { form.reset(); setPreviewImage(null); } },
+                duration: 3000,
             });
         }
     }, [crearProducto, form, ingredientesSeleccionados, setPreviewImage]);
@@ -166,10 +173,7 @@ export default function FormAgregarProducto() {
         visible: { opacity: 1, y: 0, transition: { duration: 0.6, staggerChildren: 0.1 } }
     };
 
-    const itemVariants = {
-        hidden: { opacity: 0, x: -10 },
-        visible: { opacity: 1, x: 0 }
-    };
+
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-20">
@@ -379,22 +383,67 @@ export default function FormAgregarProducto() {
                                     <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-3">
                                         <div className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Selección de Inventario
                                     </h4>
+
+                                    {/* Buscador de Ingredientes */}
+                                    <div className="relative mb-6 group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <svg className="h-4 w-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={busquedaIngrediente}
+                                            onChange={(e) => setBusquedaIngrediente(e.target.value)}
+                                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:border-orange-500 outline-none transition-all placeholder:text-slate-400"
+                                            placeholder="Buscar ingrediente..."
+                                        />
+                                        {busquedaIngrediente && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setBusquedaIngrediente('')}
+                                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+
                                     <div className="flex flex-wrap gap-2">
-                                        <AnimatePresence>
-                                            {ingredientes
-                                                .filter(ing => !ingredientesSeleccionados.find(sel => sel.id === ing.id.toString()))
-                                                .map(ing => (
-                                                    <motion.button
-                                                        key={ing.id}
-                                                        variants={itemVariants}
-                                                        type="button"
-                                                        onClick={() => handleSelectIngrediente(ing)}
-                                                        className="px-5 py-2.5 bg-slate-100 hover:bg-orange-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300"
-                                                    >
-                                                        + {ing.nombre}
-                                                    </motion.button>
-                                                ))}
+                                        <AnimatePresence mode="popLayout">
+                                            {ingredientesFiltrados.map(ing => (
+                                                <motion.button
+                                                    key={ing.id}
+                                                    layout
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.8 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    type="button"
+                                                    onClick={() => handleSelectIngrediente(ing)}
+                                                    className="px-5 py-2.5 bg-slate-100 hover:bg-orange-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300"
+                                                >
+                                                    + {ing.nombre}
+                                                </motion.button>
+                                            ))}
                                         </AnimatePresence>
+
+                                        {/* States handling */}
+                                        {ingredientes.length === 0 ? (
+                                            <div className="w-full text-center py-8">
+                                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                                    No hay ingredientes en el inventario
+                                                </p>
+                                            </div>
+                                        ) : ingredientesFiltrados.length === 0 && (
+                                            <div className="w-full text-center py-8">
+                                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                                    {busquedaIngrediente
+                                                        ? 'No se encontraron ingredientes'
+                                                        : 'Todos los ingredientes disponibles están seleccionados'}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

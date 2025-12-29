@@ -8,6 +8,14 @@ interface ProductoResponse extends ProductoDB {
     categorias: {
         nombre: string;
     } | null;
+    producto_ingredientes?: {
+        ingrediente_id: string;
+        obligatorio: boolean;
+        ingredientes: {
+            nombre: string;
+            activo: boolean;
+        };
+    }[];
 }
 
 export async function obtenerProductosAction() {
@@ -18,6 +26,14 @@ export async function obtenerProductosAction() {
         *,
         categorias (
           nombre
+        ),
+        producto_ingredientes (
+          ingrediente_id,
+          obligatorio,
+          ingredientes (
+            nombre,
+            activo
+          )
         )
       `)
             .order('created_at', { ascending: false });
@@ -41,6 +57,14 @@ export async function obtenerProductosAction() {
             activo: producto.activo,
             categoria: producto.categorias?.nombre || 'Sin categoría',
             categoria_id: producto.categoria_id || undefined,
+            ingredientes: producto.producto_ingredientes?.map(pi => ({
+                ingrediente_id: pi.ingrediente_id,
+                obligatorio: pi.obligatorio,
+                ingrediente: {
+                    nombre: pi.ingredientes.nombre,
+                    activo: pi.ingredientes.activo,
+                },
+            })) || [],
             created_at: producto.created_at,
             updated_at: producto.updated_at,
         }));

@@ -24,7 +24,7 @@ export interface UseCategoriasReturn {
 
 export function useCategorias(): UseCategoriasReturn {
     const [categorias, setCategorias] = useState<CategoriaFrontend[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 

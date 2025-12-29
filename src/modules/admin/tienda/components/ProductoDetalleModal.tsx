@@ -112,7 +112,7 @@ export default function ProductoDetalleModal({
                     bg-white 
                     rounded-t-[3.5rem] lg:rounded-[3.5rem] 
                     shadow-[0_-20px_50px_rgba(0,0,0,0.1)] lg:shadow-2xl
-                    lg:max-w-2xl lg:w-full lg:max-h-[92vh]
+                    lg:max-w-2xl lg:w-full max-h-[90vh]
                     flex flex-col overflow-hidden
                     border-t-8 border-orange-500 lg:border-t-0
                 "
@@ -120,7 +120,7 @@ export default function ProductoDetalleModal({
                 {/* Mobile Handle */}
                 <div className="lg:hidden w-16 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 opacity-50" />
 
-                <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+                <div className="flex-1 overflow-y-auto no-scrollbar pb-40">
                     {/* Visual Section: Image + Actions */}
                     <div className="relative w-full aspect-[4/3] lg:aspect-video bg-gray-50 overflow-hidden">
                         {producto.imagen_url && !imageError ? (

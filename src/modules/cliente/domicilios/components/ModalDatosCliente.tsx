@@ -51,7 +51,7 @@ export default function ModalDatosCliente({ onClose }: ModalDatosClienteProps) {
                     bg-white z-[100] 
                     rounded-t-[3rem] lg:rounded-[3rem] 
                     shadow-2xl shadow-gray-900/20
-                    lg:max-w-md lg:w-full lg:max-h-[90vh]
+                    lg:max-w-md lg:w-full max-h-[90vh]
                     flex flex-col overflow-hidden
                     border-t-8 border-orange-500 lg:border-t-0
                 "

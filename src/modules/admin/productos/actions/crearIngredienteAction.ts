@@ -38,6 +38,15 @@ export async function crearIngredienteAction(data: CrearIngredienteInput) {
 
         if (error) {
             console.error('Error creando ingrediente:', error);
+
+            // Detectar error de nombre duplicado
+            if (error.code === '23505' || error.message.includes('duplicate key') || error.message.includes('ingredientes_nombre_')) {
+                return {
+                    success: false,
+                    error: `Ya existe un ingrediente con el nombre "${validatedData.nombre}". Por favor, elige otro nombre.`,
+                };
+            }
+
             return {
                 success: false,
                 error: error.message || 'Error al crear ingrediente',
