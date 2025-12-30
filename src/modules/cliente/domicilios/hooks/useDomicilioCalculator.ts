@@ -15,6 +15,11 @@ interface RutaCalculada {
     duracion_minutos: number;
     costo_domicilio: number;
     fuera_de_cobertura: boolean;
+    // Campos adicionales para el desglose del costo
+    distancia_base_km?: number;
+    costo_base?: number;
+    distancia_exceso_km?: number;
+    costo_exceso?: number;
 }
 
 interface DireccionGeocoded {

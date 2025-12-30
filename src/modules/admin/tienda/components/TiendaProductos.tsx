@@ -26,11 +26,10 @@ export default function TiendaProductos({ isDomicilio = false }: { isDomicilio?:
 
     const { productos: productosCarrito } = useCarritoStore();
 
-    // Force "para_llevar" type if isDomicilio is active
-    // Force "para_llevar" type if isDomicilio is active
+    // Force "domicilio" type if isDomicilio is active
     useEffect(() => {
         if (isDomicilio) {
-            setTipoOrden("para_llevar");
+            setTipoOrden("domicilio");
         }
     }, [isDomicilio, setTipoOrden]);
 
@@ -53,8 +52,8 @@ export default function TiendaProductos({ isDomicilio = false }: { isDomicilio?:
                 <div className="max-w-7xl mx-auto flex flex-col gap-6 md:gap-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
                         <div className="flex items-center gap-4 md:gap-6">
-                            <div className="h-12 w-12 md:h-16 md:w-16 bg-slate-900 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-slate-200 relative overflow-hidden group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="h-12 w-12 md:h-16 md:w-16 bg-slate-900 rounded-3xl md:rounded-4xl flex items-center justify-center text-white shadow-2xl shadow-slate-200 relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-linear-to-br from-orange-500 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <ChefHat className="h-6 w-6 md:h-8 md:w-8 relative z-10 transition-transform duration-500 group-hover:scale-110" />
                             </div>
                             <div>
@@ -75,7 +74,7 @@ export default function TiendaProductos({ isDomicilio = false }: { isDomicilio?:
 
                         {/* Order Type Toggle - Hidden for Domicilio */}
                         {!isDomicilio && (
-                            <div className="bg-slate-100/80 backdrop-blur-md p-1 md:p-1.5 rounded-[1.5rem] md:rounded-[2rem] flex w-full md:w-fit border border-white">
+                            <div className="bg-slate-100/80 backdrop-blur-md p-1 md:p-1.5 rounded-3xl md:rounded-4xl flex w-full md:w-fit border border-white">
                                 <button
                                     onClick={() => setTipoOrden("mesa")}
                                     className={`flex-1 md:flex-none px-6 md:px-8 py-2.5 md:py-3.5 rounded-[1.3rem] md:rounded-[1.8rem] text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all duration-500 flex items-center justify-center gap-2 ${tipoOrden === "mesa"
@@ -115,7 +114,7 @@ export default function TiendaProductos({ isDomicilio = false }: { isDomicilio?:
                                 {categoriaActiva === cat.id && (
                                     <motion.div
                                         layoutId="activeTabGlow"
-                                        className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-transparent opacity-50"
+                                        className="absolute inset-0 bg-linear-to-r from-orange-500/20 to-transparent opacity-50"
                                     />
                                 )}
                                 <div className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full transition-all duration-500 ${categoriaActiva === cat.id ? "bg-orange-500 scale-150 animate-pulse" : "bg-slate-200 group-hover:bg-orange-300"}`} />
@@ -150,7 +149,7 @@ export default function TiendaProductos({ isDomicilio = false }: { isDomicilio?:
                                                 </div>
                                                 <button
                                                     onClick={() => setCategoriaActiva(grupo.categoria.toLowerCase().replace(/\s+/g, "-"))}
-                                                    className="px-4 md:px-6 py-2 md:py-3 rounded-xl bg-slate-100 text-[8px] md:text-[10px] font-black text-slate-500 hover:bg-slate-900 hover:text-white transition-all uppercase tracking-[0.2em] whitespace-nowrap flex-shrink-0"
+                                                    className="px-4 md:px-6 py-2 md:py-3 rounded-xl bg-slate-100 text-[8px] md:text-[10px] font-black text-slate-500 hover:bg-slate-900 hover:text-white transition-all uppercase tracking-[0.2em] whitespace-nowrap shrink-0"
                                                 >
                                                     Ver Todo
                                                 </button>
@@ -237,7 +236,7 @@ export default function TiendaProductos({ isDomicilio = false }: { isDomicilio?:
             <AnimatePresence>
                 {mostrarCarrito && (
                     <CarritoResumen
-                        tipo={tipoOrden}
+                        tipo={isDomicilio ? "domicilio" : tipoOrden}
                         onClose={() => setMostrarCarrito(false)}
                     />
                 )}
@@ -258,7 +257,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
             </div>
             <button
                 onClick={onReset}
-                className="bg-slate-900 text-white px-8 md:px-10 py-3 md:py-4 rounded-[1.2rem] md:rounded-[1.5rem] font-black text-[9px] md:text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-slate-200 active:scale-95 transition-all"
+                className="bg-slate-900 text-white px-8 md:px-10 py-3 md:py-4 rounded-[1.2rem] md:rounded-3xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-slate-200 active:scale-95 transition-all"
             >
                 Regresar al Menú
             </button>

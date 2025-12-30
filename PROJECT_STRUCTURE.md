@@ -1,6 +1,6 @@
 # Estructura del Proyecto
 
-Generado el: 20/12/2025, 1:23:30 p. m.
+Generado el: 30/12/2025, 9:45:39 a. m.
 
 ```
 Kavvo/
@@ -8,8 +8,6 @@ Kavvo/
 │   ├── 📁 (public)
 │   │   ├── 📁 a-domicilios
 │   │   │   ├── 📁 domicilios
-│   │   │   │   └── 📄 page.tsx
-│   │   │   ├── 📁 informacion
 │   │   │   │   └── 📄 page.tsx
 │   │   │   ├── 📁 mis-ordenes
 │   │   │   │   └── 📄 page.tsx
@@ -148,7 +146,7 @@ Kavvo/
 │   │   │       │   ├── 📄 ingredientesActions.ts
 │   │   │       │   └── 📄 obtenerIngredientesAction.ts
 │   │   │       ├── 📁 components
-│   │   │       │   ├── 📄 CarritoResumen.tsx
+│   │   │       │   ├── 📄 Carrito.tsx
 │   │   │       │   ├── 📄 ProductoCard.tsx
 │   │   │       │   ├── 📄 ProductoDetalleModal.tsx
 │   │   │       │   └── 📄 TiendaProductos.tsx
@@ -183,7 +181,6 @@ Kavvo/
 │   │   │   │   ├── 📁 components
 │   │   │   │   │   ├── 📄 CalculadorDomicilio.tsx
 │   │   │   │   │   ├── 📄 Domicilios.tsx
-│   │   │   │   │   ├── 📄 InformacionRestaurante.tsx
 │   │   │   │   │   ├── 📄 MapaUbicacion.tsx
 │   │   │   │   │   └── 📄 ModalDatosCliente.tsx
 │   │   │   │   ├── 📁 hooks
@@ -221,7 +218,6 @@ Kavvo/
 │   │   │   │   │   ├── 📄 MetricasResumen.tsx
 │   │   │   │   │   ├── 📄 ReporteFiltros.tsx
 │   │   │   │   │   ├── 📄 ReportesAvanzadosComponent.tsx
-│   │   │   │   │   ├── 📄 VistaEquipo.tsx
 │   │   │   │   │   ├── 📄 VistaResumen.tsx
 │   │   │   │   │   └── 📄 VistaVentas.tsx
 │   │   │   │   ├── 📁 hooks
@@ -267,20 +263,30 @@ Kavvo/
 │   │   └── 📁 repartidor
 │   │       ├── 📁 entregas
 │   │       │   ├── 📁 actions
+│   │       │   │   ├── 📄 marcarLlegadaAction.ts
 │   │       │   │   ├── 📄 obtenerEntregasRepartidorAction.ts
-│   │       │   │   └── 📄 obtenerMisDomiciliosAction.ts
-│   │       │   └── 📁 components
-│   │       │       ├── 📄 DomiciliarioPanel.tsx
-│   │       │       └── 📄 MisDomiciliosComponent.tsx
+│   │       │   │   ├── 📄 obtenerMisDomiciliosAction.ts
+│   │       │   │   └── 📄 tomarOrdenAction.ts
+│   │       │   ├── 📁 components
+│   │       │   │   ├── 📄 DomiciliarioPanel.tsx
+│   │       │   │   └── 📄 MisDomiciliosComponent.tsx
+│   │       │   ├── 📁 hooks
+│   │       │   │   ├── 📄 useEntregasActivas.ts
+│   │       │   │   └── 📄 useHistorialEntregas.ts
+│   │       │   └── 📁 types
+│   │       │       └── 📄 entrega.ts
 │   │       └── 📁 ordenes-listas
 │   │           └── 📁 actions
 │   │               └── 📄 obtenerOrdenesListasAction.ts
 │   └── 📁 shared
 │       ├── 📁 components
+│       │   ├── 📁 layout
+│       │   │   └── 📄 AppShell.tsx
 │       │   ├── 📁 ui
 │       │   │   ├── 📄 CookieBanner.tsx
 │       │   │   ├── 📄 Loading.tsx
-│       │   │   └── 📄 Logo.tsx
+│       │   │   ├── 📄 Logo.tsx
+│       │   │   └── 📄 NotificationAppDelivery.tsx
 │       │   ├── 📄 ErrorState.tsx
 │       │   ├── 📄 NotFound.tsx
 │       │   ├── 📄 PageHeader.tsx
@@ -303,7 +309,7 @@ Kavvo/
 │       │   ├── 📄 DuenoLayoutClient.tsx
 │       │   └── 📄 RepartidorLayoutClient.tsx
 │       ├── 📁 services
-│       │   └── 📄 toast.service.ts
+│       │   └── 📄 toast.service.tsx
 │       ├── 📁 store
 │       │   ├── 📄 cookieConsentStore.ts
 │       │   └── 📄 useUserStore.ts

@@ -536,7 +536,7 @@ export default function MapaUbicacion({ onUbicacionConfirmada, onLimpiar, ubicac
             {/* MODAL DEL MAPA - COMPLETAMENTE FIJO Y BLOQUEADO */}
             {mostrarMapa && (
                 <div
-                    className="fixed inset-0 bg-black/60 z-[99999] flex items-center justify-center p-4"
+                    className="fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4"
                     style={{ margin: 0, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
                     onTouchStart={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}

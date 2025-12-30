@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import {
     Minus,
     Plus,
@@ -15,11 +16,13 @@ import {
     CheckCircle2,
     AlertCircle,
     Banknote,
-    MessageSquare
+    MessageSquare,
+    Calculator
 } from "lucide-react";
 import { useClienteStore } from "@/src/modules/cliente/domicilios/store/clienteStore";
 import type { TipoOrden } from "@/src/shared/types/orden";
 import { useCarritoResumen } from "../hooks/useCarritoResumen";
+import CalculadorDomicilio from "@/src/modules/cliente/domicilios/components/CalculadorDomicilio";
 
 interface CarritoResumenProps {
     onClose: () => void;
@@ -27,6 +30,8 @@ interface CarritoResumenProps {
 }
 
 export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
+    const [mostrarCalculador, setMostrarCalculador] = useState(false);
+
     const {
         procesando,
         notasCliente,
@@ -45,6 +50,7 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
         handleLimpiarTodo,
         handleProcesarOrden,
         recalcularDomicilio,
+        actualizarDatosDomicilioDesdeCalculador,
         productos,
         removerProducto,
         actualizarCantidad,
@@ -56,10 +62,42 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
 
     const handleClose = () => onClose();
 
+    const handleDireccionCalculada = (resultado: {
+        direccion: {
+            direccion_formateada: string;
+            coordenadas: { lat: number; lng: number };
+        };
+        ruta: {
+            distancia_km: number;
+            duracion_minutos: number;
+            costo_domicilio: number;
+            fuera_de_cobertura: boolean;
+            distancia_base_km?: number;
+            costo_base?: number;
+            distancia_exceso_km?: number;
+            costo_exceso?: number;
+        };
+        costo_domicilio: number;
+    }) => {
+        actualizarDatosDomicilioDesdeCalculador(resultado);
+        setMostrarCalculador(false);
+    };
+
+    // Mostrar automáticamente el CalculadorDomicilio si es tipo domicilio y no hay datos
+    useEffect(() => {
+        if (tipo === "domicilio" && productos.length > 0 && !datosDomicilio && !calculandoDomicilio && !errorDomicilio && !mostrarCalculador) {
+            // Esperar un poco para que el carrito se renderice primero
+            const timer = setTimeout(() => {
+                setMostrarCalculador(true);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [tipo, productos.length, datosDomicilio, calculandoDomicilio, errorDomicilio, mostrarCalculador]);
+
     return (
         <>
             <AnimatePresence>
-                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -73,12 +111,12 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                        className="relative w-full max-w-2xl bg-white sm:rounded-[3.5rem] rounded-t-[3.5rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-t border-x border-white"
+                        className="relative z-50 w-full max-w-2xl bg-white sm:rounded-[3.5rem] rounded-t-[3.5rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-t border-x border-white"
                     >
                         {/* Header Section */}
                         <div className="p-10 pb-8 flex items-center justify-between bg-slate-50/50 backdrop-blur-md border-b border-slate-100">
                             <div className="flex items-center gap-6">
-                                <div className="h-16 w-16 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-slate-200 relative overflow-hidden group">
+                                <div className="h-16 w-16 bg-slate-900 rounded-4xl flex items-center justify-center text-white shadow-2xl shadow-slate-200 relative overflow-hidden group">
                                     <div className="absolute inset-0 bg-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                     <ShoppingBag className="h-8 w-8 relative z-10 transition-transform duration-500 group-hover:scale-110" />
                                 </div>
@@ -114,7 +152,7 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                     </div>
                                     <button
                                         onClick={handleClose}
-                                        className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 active:scale-95 transition-all"
+                                        className="bg-slate-900 text-white px-12 py-5 rounded-4xl font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 active:scale-95 transition-all"
                                     >
                                         Seguir Explorando
                                     </button>
@@ -179,14 +217,65 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                         </div>
                                     </section>
 
+                                    {/* Cliente Info - Mostrar siempre si hay datos en el store */}
+                                    {cliente && (
+                                        <section className="space-y-5">
+                                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] px-2">Datos del Cliente</h3>
+                                            <div className="bg-gradient-to-br from-slate-50 to-orange-50/30 rounded-[3rem] p-8 border-2 border-slate-100 shadow-sm space-y-6">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="h-12 w-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                                                        <User className="h-6 w-6" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre</p>
+                                                        <p className="text-base font-black text-slate-900 uppercase tracking-tight">{cliente.nombre}</p>
+                                                    </div>
+                                                </div>
+
+                                                {cliente.telefono && (
+                                                    <div className="flex items-center gap-6">
+                                                        <div className="h-12 w-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                                                            <Phone className="h-6 w-6" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Teléfono</p>
+                                                            <p className="text-base font-black text-slate-900 uppercase tracking-tight">{cliente.telefono}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {cliente.direccion && (
+                                                    <div className="flex items-start gap-6">
+                                                        <div className="h-12 w-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                                                            <MapPin className="h-6 w-6" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Dirección</p>
+                                                            <p className="text-base font-black text-slate-900 uppercase leading-snug tracking-tight">{cliente.direccion}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </section>
+                                    )}
+
                                     {/* Delivery Info */}
                                     {tipo === "domicilio" && (
                                         <section className="space-y-5">
-                                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] px-2">Logística de Envío</h3>
+                                            <div className="flex items-center justify-between px-2">
+                                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Logística de Envío</h3>
+                                                <button
+                                                    onClick={() => setMostrarCalculador(true)}
+                                                    className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
+                                                >
+                                                    <Calculator className="h-3.5 w-3.5" />
+                                                    Calcular Domicilio
+                                                </button>
+                                            </div>
 
                                             {calculandoDomicilio ? (
                                                 <div className="bg-orange-50/30 rounded-[3rem] p-12 border-2 border-orange-100/50 flex flex-col items-center gap-6 text-center">
-                                                    <div className="h-16 w-16 bg-orange-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-orange-200 animate-bounce">
+                                                    <div className="h-16 w-16 bg-orange-500 rounded-4xl flex items-center justify-center text-white shadow-2xl shadow-orange-200 animate-bounce">
                                                         <Truck className="h-8 w-8" />
                                                     </div>
                                                     <div className="space-y-2">
@@ -209,12 +298,21 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                                                 <p className="text-sm font-black uppercase tracking-widest">Disponible para entrega</p>
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            onClick={recalcularDomicilio}
-                                                            className="text-[10px] font-black text-slate-400 hover:text-orange-500 transition-colors uppercase tracking-widest"
-                                                        >
-                                                            Recalcular
-                                                        </button>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => setMostrarCalculador(true)}
+                                                                className="text-[10px] font-black text-slate-400 hover:text-orange-500 transition-colors uppercase tracking-widest"
+                                                            >
+                                                                Cambiar
+                                                            </button>
+                                                            <span className="text-slate-600">|</span>
+                                                            <button
+                                                                onClick={recalcularDomicilio}
+                                                                className="text-[10px] font-black text-slate-400 hover:text-orange-500 transition-colors uppercase tracking-widest"
+                                                            >
+                                                                Recalcular
+                                                            </button>
+                                                        </div>
                                                     </div>
 
                                                     <div className="grid grid-cols-3 gap-5 relative z-10">
@@ -238,9 +336,32 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                                         <AlertCircle className="h-8 w-8" />
                                                     </div>
                                                     <p className="text-xs font-black text-red-800 uppercase tracking-widest leading-loose max-w-sm">{errorDomicilio}</p>
-                                                    <button onClick={recalcularDomicilio} className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">Reintentar</button>
+                                                    <div className="flex gap-3">
+                                                        <button onClick={() => setMostrarCalculador(true)} className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                                                            Calcular Manualmente
+                                                        </button>
+                                                        <button onClick={recalcularDomicilio} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                                                            Reintentar
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            ) : null}
+                                            ) : (
+                                                <div className="bg-slate-50/50 rounded-[3rem] p-10 border-2 border-slate-100 flex flex-col items-center gap-6 text-center">
+                                                    <div className="h-16 w-16 bg-slate-200 rounded-4xl flex items-center justify-center text-slate-400">
+                                                        <MapPin className="h-8 w-8" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <p className="text-xs font-black text-slate-600 uppercase tracking-[0.2em]">Calcula el costo de envío</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Ingresa la dirección de entrega</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setMostrarCalculador(true)}
+                                                        className="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all hover:bg-orange-600"
+                                                    >
+                                                        Calcular Domicilio
+                                                    </button>
+                                                </div>
+                                            )}
                                         </section>
                                     )}
 
@@ -261,7 +382,7 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                                         value={datosEditados.nombre}
                                                         onChange={(e) => setDatosEditados(prev => ({ ...prev, nombre: e.target.value }))}
                                                         placeholder={tipo === "mesa" ? "Ej: Mesa 5 o tu Apellido" : "Nombre completo"}
-                                                        className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-50 rounded-[2rem] focus:outline-none focus:border-orange-500/50 focus:bg-white focus:ring-8 focus:ring-orange-50/30 transition-all font-black text-slate-900 uppercase text-xs tracking-widest"
+                                                        className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-50 rounded-4xl focus:outline-none focus:border-orange-500/50 focus:bg-white focus:ring-8 focus:ring-orange-50/30 transition-all font-black text-slate-900 uppercase text-xs tracking-widest"
                                                     />
                                                 </div>
                                             ) : (
@@ -271,7 +392,7 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                                             onClick={() => setMostrarModal(true)}
                                                             className="w-full py-16 border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center gap-5 hover:border-orange-500 hover:bg-orange-50/30 transition-all group"
                                                         >
-                                                            <div className="h-16 w-16 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
+                                                            <div className="h-16 w-16 bg-slate-50 rounded-4xl flex items-center justify-center text-slate-200 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
                                                                 <User className="h-8 w-8" />
                                                             </div>
                                                             <div className="text-center">
@@ -332,7 +453,7 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                                     onChange={(e) => setNotasCliente(e.target.value)}
                                                     placeholder="Ej: Término medio, sin cebolla, portería 5..."
                                                     rows={4}
-                                                    className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-50 rounded-[2rem] focus:outline-none focus:border-orange-500/30 focus:bg-white focus:ring-8 focus:ring-orange-50/30 transition-all font-bold text-slate-600 text-xs resize-none"
+                                                    className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-50 rounded-4xl focus:outline-none focus:border-orange-500/30 focus:bg-white focus:ring-8 focus:ring-orange-50/30 transition-all font-bold text-slate-600 text-xs resize-none"
                                                 />
                                             </div>
 
@@ -347,7 +468,7 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                                             <select
                                                                 value={metodoPago}
                                                                 onChange={(e) => setMetodoPago(e.target.value as "efectivo" | "tarjeta" | "transferencia" | "")}
-                                                                className="w-full px-8 py-6 bg-slate-900 text-white border-none rounded-[2rem] focus:outline-none focus:ring-8 focus:ring-orange-100 appearance-none font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-200 cursor-pointer pr-16"
+                                                                className="w-full px-8 py-6 bg-slate-900 text-white border-none rounded-4xl focus:outline-none focus:ring-8 focus:ring-orange-100 appearance-none font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-200 cursor-pointer pr-16"
                                                             >
                                                                 <option value="" className="text-white">Seleccionar Método</option>
                                                                 <option value="efectivo">💵 Efectivo Nacional</option>
@@ -373,11 +494,11 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                                                     placeholder="¿Con cuánto pagas?"
                                                                     value={montoEntregado}
                                                                     onChange={(e) => setMontoEntregado(e.target.value ? Number(e.target.value) : "")}
-                                                                    className="w-full pl-20 pr-8 py-6 bg-orange-50/50 border-2 border-orange-100 rounded-[2rem] focus:outline-none focus:border-orange-500 transition-all font-black text-slate-900 text-lg placeholder:text-orange-500/30"
+                                                                    className="w-full pl-20 pr-8 py-6 bg-orange-50/50 border-2 border-orange-100 rounded-4xl focus:outline-none focus:border-orange-500 transition-all font-black text-slate-900 text-lg placeholder:text-orange-500/30"
                                                                 />
                                                             </div>
                                                             {cambio !== null && (
-                                                                <div className={`p-8 rounded-[2rem] border-2 flex items-center justify-between shadow-lg relative overflow-hidden ${cambio >= 0 ? "bg-green-50 border-green-100 shadow-green-100" : "bg-red-50 border-red-100 shadow-red-100"
+                                                                <div className={`p-8 rounded-4xl border-2 flex items-center justify-between shadow-lg relative overflow-hidden ${cambio >= 0 ? "bg-green-50 border-green-100 shadow-green-100" : "bg-red-50 border-red-100 shadow-red-100"
                                                                     }`}>
                                                                     <div className={`absolute top-0 right-0 p-4 opacity-5 ${cambio >= 0 ? "text-green-500" : "text-red-500"}`}>
                                                                         <Banknote className="h-20 w-20" />
@@ -416,11 +537,18 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                             <span>Subtotal Gastronómico</span>
                                             <span className="text-slate-900">${total.toLocaleString("es-CO")}</span>
                                         </div>
-                                        {datosDomicilio && (
-                                            <div className="flex items-center justify-between text-orange-500 font-black text-[10px] uppercase tracking-[0.3em]">
-                                                <span>Servicio de Logística (Envío)</span>
-                                                <span className="bg-orange-100 px-3 py-1 rounded-full">+ ${datosDomicilio.costo_domicilio.toLocaleString("es-CO")}</span>
-                                            </div>
+                                        {tipo === "domicilio" && (
+                                            datosDomicilio ? (
+                                                <div className="flex items-center justify-between text-orange-500 font-black text-[10px] uppercase tracking-[0.3em]">
+                                                    <span>Servicio de Logística (Envío)</span>
+                                                    <span className="bg-orange-100 px-3 py-1 rounded-full">+ ${datosDomicilio.costo_domicilio.toLocaleString("es-CO")}</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-between text-red-500 font-black text-[10px] uppercase tracking-[0.3em]">
+                                                    <span>⚠️ Calcula el domicilio para ver el total</span>
+                                                    <span className="bg-red-100 px-3 py-1 rounded-full text-red-600">Pendiente</span>
+                                                </div>
+                                            )
                                         )}
                                         <div className="flex items-center justify-between pt-4 border-t-2 border-slate-50">
                                             <div className="flex flex-col">
@@ -440,16 +568,27 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                                     </div>
 
                                     <button
-                                        onClick={handleProcesarOrden}
-                                        disabled={procesando || (tipo === "domicilio" && (!datosDomicilio || calculandoDomicilio))}
-                                        className="w-full relative group overflow-hidden rounded-[2.5rem] disabled:opacity-50"
+                                        onClick={() => {
+                                            if (tipo === "domicilio" && !datosDomicilio && !calculandoDomicilio) {
+                                                setMostrarCalculador(true);
+                                                return;
+                                            }
+                                            handleProcesarOrden();
+                                        }}
+                                        disabled={procesando || calculandoDomicilio}
+                                        className="w-full relative group overflow-hidden rounded-[2.5rem] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <div className="absolute inset-0 bg-slate-900 group-hover:bg-orange-500 transition-colors duration-500" />
+                                        <div className="absolute inset-0 bg-slate-900 group-hover:bg-orange-500 transition-colors duration-500 disabled:bg-slate-400" />
                                         <div className="relative py-7 flex items-center justify-center gap-5 text-white">
                                             {procesando ? (
                                                 <>
                                                     <div className="h-6 w-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
                                                     <span className="font-black text-xs uppercase tracking-[0.4em]">Procesando Orden...</span>
+                                                </>
+                                            ) : tipo === "domicilio" && !datosDomicilio && !calculandoDomicilio ? (
+                                                <>
+                                                    <Calculator className="h-7 w-7 group-hover:scale-125 transition-transform duration-500" />
+                                                    <span className="font-black text-xs uppercase tracking-[0.4em]">Calcular Domicilio Primero</span>
                                                 </>
                                             ) : (
                                                 <>
@@ -465,6 +604,15 @@ export default function Carrito({ onClose, tipo }: CarritoResumenProps) {
                     </motion.div>
                 </div>
             </AnimatePresence>
+
+            {/* Calculador de Domicilio Modal */}
+            {tipo === "domicilio" && mostrarCalculador && (
+                <CalculadorDomicilio
+                    onDireccionCalculada={handleDireccionCalculada}
+                    onClose={() => setMostrarCalculador(false)}
+                    obligatorio={!datosDomicilio} // Obligatorio si no hay datos calculados
+                />
+            )}
         </>
     );
 }

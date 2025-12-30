@@ -34,7 +34,7 @@ export default function ModalDatosCliente({ onClose }: ModalDatosClienteProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[100] transition-all"
+                className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[70] transition-all"
                 onClick={onClose}
             />
 
@@ -48,7 +48,7 @@ export default function ModalDatosCliente({ onClose }: ModalDatosClienteProps) {
                 className="
                     fixed inset-x-0 bottom-0 lg:inset-auto 
                     lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2
-                    bg-white z-[100] 
+                    bg-white z-[70] 
                     rounded-t-[3rem] lg:rounded-[3rem] 
                     shadow-2xl shadow-gray-900/20
                     lg:max-w-md lg:w-full max-h-[90vh]

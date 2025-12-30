@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { obtenerProductosAction } from '@/src/modules/admin/productos/actions/obtenerProductosAction';
 import { toast } from '@/src/shared/services/toast.service';
 import { ProductoFrontend } from '@/src/modules/admin/productos/types/producto';
+import type { TipoOrden } from '@/src/shared/types/orden';
 
 /**
  * Hook para gestionar la lógica de la tienda: carga de productos, filtros por categoría y tipo de orden.
@@ -13,7 +14,7 @@ export function useTienda() {
     const [loading, setLoading] = useState(true);
     const [categoriaActiva, setCategoriaActiva] = useState<string>("todas");
     const [mostrarCarrito, setMostrarCarrito] = useState(false);
-    const [tipoOrden, setTipoOrden] = useState<"mesa" | "para_llevar">("mesa");
+    const [tipoOrden, setTipoOrden] = useState<TipoOrden>("mesa");
 
     const cargarProductos = useCallback(async () => {
         try {

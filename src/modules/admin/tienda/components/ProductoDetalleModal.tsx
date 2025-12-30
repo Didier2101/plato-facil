@@ -53,7 +53,7 @@ export default function ProductoDetalleModal({
     onClose,
     productosSugeridos = [],
     onProductoSugeridoClick,
-    zIndexBase = 50,
+    zIndexBase = 50, // Default: same level as Carrito, can be increased if needed
 }: ProductoDetalleModalProps) {
     const {
         cantidad,
@@ -283,7 +283,7 @@ export default function ProductoDetalleModal({
                                             onClick={() => handleSugeridoClick(sugerido)}
                                             className="group bg-white rounded-[2rem] p-3 border border-slate-100 shadow-lg shadow-slate-100/50 hover:border-orange-200 cursor-pointer overflow-hidden transition-all"
                                         >
-                                            <div className="relative h-28 w-full rounded-[1.5rem] overflow-hidden mb-3 bg-gray-50">
+                                            <div className="relative h-28 w-full rounded-3xl overflow-hidden mb-3 bg-gray-50">
                                                 {sugerido.imagen_url && !imageErrorsSugeridos[sugerido.id] ? (
                                                     <Image
                                                         src={sugerido.imagen_url}
@@ -321,7 +321,7 @@ export default function ProductoDetalleModal({
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => setCantidad((c) => Math.max(1, c - 1))}
                                 disabled={cantidad <= 1}
-                                className="h-12 w-12 flex items-center justify-center rounded-[1.5rem] bg-white text-gray-900 shadow-sm disabled:opacity-30 disabled:shadow-none hover:text-orange-500 transition-colors"
+                                className="h-12 w-12 flex items-center justify-center rounded-3xl bg-white text-gray-900 shadow-sm disabled:opacity-30 disabled:shadow-none hover:text-orange-500 transition-colors"
                             >
                                 <FaMinus className="text-sm" />
                             </motion.button>
@@ -329,7 +329,7 @@ export default function ProductoDetalleModal({
                             <motion.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => setCantidad((c) => c + 1)}
-                                className="h-12 w-12 flex items-center justify-center rounded-[1.5rem] bg-slate-900 text-white shadow-xl hover:bg-orange-500 transition-all"
+                                className="h-12 w-12 flex items-center justify-center rounded-3xl bg-slate-900 text-white shadow-xl hover:bg-orange-500 transition-all"
                             >
                                 <FaPlus className="text-sm" />
                             </motion.button>

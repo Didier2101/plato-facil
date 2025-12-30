@@ -40,7 +40,7 @@ export default function ProductoCard({
                 className="group relative flex flex-col h-full bg-white rounded-[2rem] md:rounded-[2.5rem] p-3 md:p-4 border-2 border-slate-50 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-orange-100/50 hover:border-orange-100 transition-all duration-500 cursor-pointer overflow-hidden touch-manipulation"
             >
                 {/* Image Section */}
-                <div className="relative h-24 md:h-32 w-full rounded-[1.5rem] md:rounded-[2rem] overflow-hidden mb-3 md:mb-4 bg-slate-50 ring-4 ring-slate-50">
+                <div className="relative h-24 md:h-32 w-full rounded-3xl md:rounded-[2rem] overflow-hidden mb-3 md:mb-4 bg-slate-50 ring-4 ring-slate-50">
                     {producto.imagen_url && !imageError ? (
                         <Image
                             src={producto.imagen_url}

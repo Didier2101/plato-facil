@@ -118,6 +118,52 @@ export function useCarritoResumen(tipo: TipoOrden, onClose: () => void) {
         );
     }, []);
 
+    /**
+     * Actualiza los datos de domicilio desde el CalculadorDomicilio
+     */
+    const actualizarDatosDomicilioDesdeCalculador = useCallback((resultado: {
+        direccion: {
+            direccion_formateada: string;
+            coordenadas: { lat: number; lng: number };
+        };
+        ruta: {
+            distancia_km: number;
+            duracion_minutos: number;
+            costo_domicilio: number;
+            fuera_de_cobertura: boolean;
+            distancia_base_km?: number;
+            costo_base?: number;
+            distancia_exceso_km?: number;
+            costo_exceso?: number;
+        };
+        costo_domicilio: number;
+    }) => {
+        if (resultado.ruta.fuera_de_cobertura) {
+            setErrorDomicilio(`Ubicación fuera de cobertura (${resultado.ruta.distancia_km} km)`);
+            setDatosDomicilio(null);
+            return;
+        }
+
+        setDatosDomicilio({
+            costo_domicilio: resultado.costo_domicilio,
+            distancia_km: resultado.ruta.distancia_km,
+            duracion_estimada: resultado.ruta.duracion_minutos,
+            distancia_base_km: resultado.ruta.distancia_base_km || 0,
+            costo_base: resultado.ruta.costo_base || 0,
+            distancia_exceso_km: resultado.ruta.distancia_exceso_km || 0,
+            costo_exceso: resultado.ruta.costo_exceso || 0,
+            latitud_destino: resultado.direccion.coordenadas.lat,
+            longitud_destino: resultado.direccion.coordenadas.lng
+        });
+        setErrorDomicilio('');
+        
+        // Actualizar también la dirección en el cliente si existe
+        if (cliente) {
+            // Actualizar dirección en el store del cliente
+            // Nota: Esto solo actualiza la dirección mostrada, no guarda en BD
+        }
+    }, [cliente]);
+
     // Iniciar cálculo de domicilio si es necesario
     useEffect(() => {
         if (tipo === "domicilio" && !datosDomicilio && !calculandoDomicilio && !errorDomicilio) {
@@ -190,7 +236,13 @@ export function useCarritoResumen(tipo: TipoOrden, onClose: () => void) {
 
         if (tipo === "domicilio") {
             if (!datosDomicilio) {
-                toast.warning("Cálculo pendiente", { description: "Espera a calcular el costo de envío" });
+                toast.warning("Domicilio no calculado", { 
+                    description: "Debes calcular el costo de envío antes de confirmar la orden. El cliente necesita saber el total completo." 
+                });
+                return;
+            }
+            if (calculandoDomicilio) {
+                toast.warning("Calculando domicilio", { description: "Espera a que termine el cálculo del domicilio" });
                 return;
             }
             if (!metodoPago) {
@@ -265,6 +317,7 @@ export function useCarritoResumen(tipo: TipoOrden, onClose: () => void) {
         handleLimpiarTodo,
         handleProcesarOrden,
         recalcularDomicilio: calcularDomicilioAutomatico,
+        actualizarDatosDomicilioDesdeCalculador,
         productos,
         removerProducto,
         actualizarCantidad,

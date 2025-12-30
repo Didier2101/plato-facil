@@ -14,10 +14,15 @@ interface CalculadorDomicilioProps {
             duracion_minutos: number;
             costo_domicilio: number;
             fuera_de_cobertura: boolean;
+            distancia_base_km?: number;
+            costo_base?: number;
+            distancia_exceso_km?: number;
+            costo_exceso?: number;
         };
         costo_domicilio: number;
     }) => void;
     onClose: () => void;
+    obligatorio?: boolean; // Si es true, no se puede cerrar hasta calcular
 }
 
 // Tipos para el componente de mapa
@@ -116,7 +121,7 @@ const MapaVisualizacion: React.FC<MapaVisualizacionProps> = ({ rutaCalculada, di
     );
 };
 
-export default function CalculadorDomicilio({ onDireccionCalculada, onClose }: CalculadorDomicilioProps) {
+export default function CalculadorDomicilio({ onDireccionCalculada, onClose, obligatorio = false }: CalculadorDomicilioProps) {
     const [direccionInput, setDireccionInput] = useState('');
 
     const {
@@ -128,6 +133,14 @@ export default function CalculadorDomicilio({ onDireccionCalculada, onClose }: C
         limpiarCalculo,
         tieneRutaCalculada
     } = useDomicilioCalculator();
+
+    const handleClose = () => {
+        // Si es obligatorio y no hay ruta calculada, no permitir cerrar
+        if (obligatorio && !tieneRutaCalculada) {
+            return;
+        }
+        onClose();
+    };
 
     const handleBuscarDireccion = async () => {
         if (!direccionInput.trim()) {
@@ -164,10 +177,10 @@ export default function CalculadorDomicilio({ onDireccionCalculada, onClose }: C
     return (
         <>
             {/* Overlay */}
-            <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
+            <div className="fixed inset-0 bg-black/50 z-[60]" onClick={obligatorio && !tieneRutaCalculada ? undefined : handleClose} />
 
             {/* Modal */}
-            <div className="fixed inset-4 md:inset-20 bg-white rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="fixed inset-4 md:inset-20 bg-white rounded-2xl shadow-2xl z-[60] overflow-hidden flex flex-col max-h-[90vh]">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-6">
                     <div className="flex items-center justify-between">
@@ -178,12 +191,19 @@ export default function CalculadorDomicilio({ onDireccionCalculada, onClose }: C
                             </h2>
                             <p className="text-orange-100 mt-1">Calcula el costo de tu domicilio</p>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="text-white hover:text-orange-200 text-2xl transition-colors p-2 rounded-full hover:bg-white/10"
-                        >
-                            <FaTimes />
-                        </button>
+                        {(!obligatorio || tieneRutaCalculada) && (
+                            <button
+                                onClick={handleClose}
+                                className="text-white hover:text-orange-200 text-2xl transition-colors p-2 rounded-full hover:bg-white/10"
+                            >
+                                <FaTimes />
+                            </button>
+                        )}
+                        {obligatorio && !tieneRutaCalculada && (
+                            <div className="text-orange-100 text-sm font-medium px-3 py-1 bg-white/10 rounded-full">
+                                Calcula el domicilio para continuar
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -331,12 +351,20 @@ export default function CalculadorDomicilio({ onDireccionCalculada, onClose }: C
                 {/* Footer */}
                 <div className="p-6 border-t bg-gray-50">
                     <div className="flex gap-3">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                        >
-                            Cancelar
-                        </button>
+                        {(!obligatorio || tieneRutaCalculada) && (
+                            <button
+                                onClick={handleClose}
+                                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                        )}
+                        {obligatorio && !tieneRutaCalculada && (
+                            <div className="flex-1 flex items-center justify-center text-orange-600 text-sm font-medium">
+                                <FaExclamationTriangle className="mr-2" />
+                                Debes calcular el domicilio para continuar
+                            </div>
+                        )}
 
                         {tieneRutaCalculada && (
                             <button
